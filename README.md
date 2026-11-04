@@ -1,2 +1,0 @@
-# opensimfarm
-Open SimFarm
