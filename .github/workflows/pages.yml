@@ -1,11 +1,12 @@
-# Publishes the project site (site/) to GitHub Pages whenever it changes on main.
+# Publishes the project site (site/) to GitHub Pages whenever it or the engine changes on main, with the browser
+# version of the game (site/play/) built here from the engine's sources (engine/tools/build_web.sh).
 # The releases on the page are read from GitHub when a visitor opens it, so a new release needs no new deployment.
 name: Site
 
 on:
   push:
     branches: [main]
-    paths: ["site/**", ".github/workflows/pages.yml"]
+    paths: ["site/**", "engine/src/**", "engine/CMakeLists.txt", "engine/tools/build_web.sh", ".github/workflows/pages.yml"]
   workflow_dispatch:
 
 permissions:
@@ -17,6 +18,9 @@ concurrency:
   group: pages
   cancel-in-progress: false
 
+env:
+  EMSDK_VERSION: "6.0.13"
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -25,6 +29,20 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - name: Cache the Emscripten SDK
+        uses: actions/cache@v4
+        with:
+          path: ~/emsdk
+          key: emsdk-${{ env.EMSDK_VERSION }}-v1
+      - name: Install the Emscripten SDK
+        run: |
+          if [ ! -f ~/emsdk/emsdk_env.sh ]; then
+            git clone --depth 1 https://github.com/emscripten-core/emsdk.git ~/emsdk
+          fi
+          ~/emsdk/emsdk install "$EMSDK_VERSION"
+          ~/emsdk/emsdk activate "$EMSDK_VERSION"
+      - name: Build the browser version
+        run: EMSDK=~/emsdk engine/tools/build_web.sh
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

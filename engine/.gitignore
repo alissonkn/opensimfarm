@@ -4,3 +4,4 @@ build-asan/
 build-pkg/
 build-dbg/
 dist/
+build-web/

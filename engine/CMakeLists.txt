@@ -8,7 +8,11 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # SDL2: use an installed package (find_package) or point SDL2_ROOT at an unpacked SDL2 development tree
 # (include/SDL2 + lib), e.g. -DSDL2_ROOT=$HOME/tools/sdl2/usr on Linux or the SDL2-devel-VC / mingw archive on Windows.
 set(SDL2_ROOT "" CACHE PATH "Optional root of an SDL2 development tree")
-if(SDL2_ROOT)
+if(EMSCRIPTEN)
+    # the browser version: Emscripten's own SDL2 port (see tools/build_web.sh and site/play/)
+    add_library(SDL2::SDL2 INTERFACE IMPORTED)
+    set_target_properties(SDL2::SDL2 PROPERTIES INTERFACE_COMPILE_OPTIONS "-sUSE_SDL=2" INTERFACE_LINK_OPTIONS "-sUSE_SDL=2")
+elseif(SDL2_ROOT)
     find_path(SDL2_INCLUDE_DIR SDL.h PATHS "${SDL2_ROOT}/include/SDL2" "${SDL2_ROOT}/include" NO_DEFAULT_PATH)
     find_library(SDL2_LIBRARY NAMES SDL2 SDL2-2.0 PATHS "${SDL2_ROOT}/lib64" "${SDL2_ROOT}/lib" "${SDL2_ROOT}/lib/x64" NO_DEFAULT_PATH)
     if(NOT SDL2_INCLUDE_DIR OR NOT SDL2_LIBRARY)
@@ -63,6 +67,13 @@ if(MSVC)
     target_compile_options(opensimfarm PRIVATE /W4 /utf-8)
 else()
     target_compile_options(opensimfarm PRIVATE -Wall -Wextra)
+endif()
+if(EMSCRIPTEN)
+    # opensimfarm.js + opensimfarm.wasm for site/play/: the page puts the player's game files into the in-memory file
+    # system and starts main() itself; settings and saves live in the browser's storage (IDBFS)
+    target_link_options(opensimfarm PRIVATE -sASYNCIFY -sASYNCIFY_STACK_SIZE=65536 -sALLOW_MEMORY_GROWTH=1
+        -sINITIAL_MEMORY=67108864 -sSTACK_SIZE=1048576 -sINVOKE_RUN=0 -sEXIT_RUNTIME=1 -sFORCE_FILESYSTEM=1 -lidbfs.js
+        -sEXPORTED_RUNTIME_METHODS=FS,IDBFS,ENV,callMain -sENVIRONMENT=web)
 endif()
 if(WIN32)
     set_target_properties(opensimfarm PROPERTIES WIN32_EXECUTABLE ON)

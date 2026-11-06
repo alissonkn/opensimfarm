@@ -1,0 +1,58 @@
+/* OpenSimFarm in the browser: setup card, game canvas, saves */
+:root { --sky: #1e6fd9; --sky2: #3fa4f0; --barn: #d93a2b; --barn-dark: #a5281d; --grass: #4caf50; --ink: #1d2433; --soft: #4a5568;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, "Noto Sans", sans-serif; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { font-family: var(--font); color: var(--ink); background: linear-gradient(180deg, var(--sky), var(--sky2) 60%, #9fd9ff);
+  display: flex; flex-direction: column; min-height: 100vh; }
+code { background: #f1ede4; padding: .1em .35em; border-radius: 5px; font-size: .92em; }
+.bar { display: flex; align-items: center; justify-content: space-between; padding: .5rem 1rem; color: #fff; flex: none; }
+.brand { display: flex; align-items: center; gap: .5rem; color: #fff; font-weight: 800; text-decoration: none; }
+.brand img { border-radius: 6px; }
+.tools { display: flex; gap: .5rem; }
+.tbtn { font: inherit; font-weight: 700; color: #fff; background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.5);
+  border-radius: 999px; padding: .35rem .9rem; cursor: pointer; }
+.tbtn:hover { background: rgba(255,255,255,.3); }
+
+.setup, .ended { flex: 1; display: grid; place-items: center; padding: 1rem; }
+.card { position: relative; background: #fff; border-radius: 20px; padding: 2rem 2.2rem; max-width: 640px; width: 100%;
+  box-shadow: 0 20px 50px rgba(10, 30, 80, .3); text-align: center; }
+.logo { filter: drop-shadow(0 8px 14px rgba(10,30,80,.3)); }
+h1 { margin: .4rem 0 .6rem; font-size: 2rem; }
+.intro { color: var(--soft); line-height: 1.55; }
+.btn { font: inherit; font-weight: 800; font-size: 1.05rem; border: none; cursor: pointer; border-radius: 999px; padding: .8rem 1.5rem;
+  display: inline-block; }
+.btn.primary { background: var(--barn); color: #fff; box-shadow: 0 5px 0 var(--barn-dark); }
+.btn.primary:hover { filter: brightness(1.06); }
+.btn.primary:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--barn-dark); }
+.btn.secondary { background: #eef6ff; color: var(--sky); }
+.btn.link { background: none; color: var(--soft); text-decoration: underline; font-weight: 600; font-size: .95rem; }
+.drop { border: 3px dashed #b9d6f2; border-radius: 16px; padding: 1.4rem 1rem 1rem; margin: 1.2rem 0 .8rem; transition: background .15s, border-color .15s; }
+.drop.over { background: #eef7ff; border-color: var(--sky2); }
+.or { color: var(--soft); margin: .7rem 0 0; }
+.stored { background: #edf8ea; border-radius: 16px; padding: 1rem; margin: 1rem 0 0; }
+.stored p { margin: 0 0 .7rem; font-weight: 700; }
+.remember { display: flex; gap: .5rem; align-items: flex-start; text-align: left; color: var(--soft); font-size: .95rem; }
+.remember input { margin-top: .25rem; }
+.status { min-height: 1.4em; font-weight: 700; }
+.status.error { color: var(--barn); }
+.small { font-size: .88rem; color: var(--soft); }
+
+.game { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; background: #181818; overflow: hidden; }
+#canvas { display: block; outline: none; width: 100%; height: 100%; }
+.loading { position: absolute; color: #fff; font-weight: 700; }
+
+.modal { position: fixed; inset: 0; background: rgba(10, 20, 35, .7); display: grid; place-items: center; z-index: 10; padding: 1rem; }
+.modal[hidden], [hidden] { display: none !important; }
+.close { position: absolute; top: .6rem; right: .9rem; border: none; background: none; font-size: 2rem; cursor: pointer; color: var(--soft); }
+.save-list { list-style: none; padding: 0; margin: 1rem 0; text-align: left; max-height: 50vh; overflow: auto; }
+.save-list li { display: flex; justify-content: space-between; align-items: center; padding: .55rem .8rem; border-radius: 10px; }
+.save-list li:nth-child(odd) { background: #f6f3ec; }
+.save-list a { font-weight: 700; color: var(--sky); }
+.save-list .empty { color: var(--soft); justify-content: center; }
+
+.beta-tag { display: inline-block; font-size: .62em; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; line-height: 1;
+  padding: .25em .55em; border-radius: 999px; background: #ff7a1a; color: #fff; vertical-align: middle; }
+.beta-warn { text-align: left; background: #fff4e8; border: 2px solid #ff7a1a; border-radius: 14px; padding: .8rem 1rem; margin: .4rem 0 1rem;
+  line-height: 1.5; font-size: .95rem; }
+.beta-warn a { color: var(--barn-dark); font-weight: 700; }

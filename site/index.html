@@ -22,6 +22,7 @@
   <nav class="top">
     <a class="brand" href="#"><img src="assets/favicon.png" alt="" width="32" height="32"> OpenSimFarm</a>
     <div class="links">
+      <a href="play/">Play online <span class="beta-tag">beta</span></a>
       <a href="#features">Features</a>
       <a href="#screens">Screenshots</a>
       <a href="#install">Install</a>
@@ -35,9 +36,10 @@
     <img class="hero-icon" src="assets/icon.png" alt="OpenSimFarm icon: a red barn and silo" width="200" height="200">
     <div class="hero-text">
       <h1>Open<span>Sim</span>Farm</h1>
-      <p class="tagline">Plant, harvest, raise livestock and weather the seasons. The 1993 farm simulation, rebuilt from scratch for today's Windows and Linux.</p>
+      <p class="tagline">Plant, harvest, raise livestock and weather the seasons. The 1993 farm simulation, rebuilt from scratch for today's Windows and Linux, and playable in your browser as a beta.</p>
       <div class="cta" id="cta">
         <a class="btn primary" id="cta-main" href="https://github.com/alissonkn/opensimfarm/releases/latest">Download</a>
+        <a class="btn play" href="play/">▶ Play in your browser <span class="beta-tag">beta</span></a>
         <a class="btn ghost" href="#install">How to install</a>
       </div>
       <p class="cta-note" id="cta-note">Free and open source (GPL-3.0). Needs your own copy of SimFarm.</p>
@@ -57,6 +59,29 @@
       <div>
         <h2>Bring your own SimFarm</h2>
         <p>OpenSimFarm contains <strong>none of the original game's files</strong>: no pictures, sounds, music, maps or texts. It reads them, read-only, from your own SimFarm folder (the one with <code>MEGADATA.IDX</code> and <code>MEGADATA.EEA</code>). On the first start it looks for the folder itself, or you choose it once. Your saves from the original game load as they are.</p>
+        <p>In the browser version (a beta) you choose the folder on the page. Its files are read on your computer and <strong>nothing is uploaded</strong>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="play" class="playband">
+  <div class="wrap">
+    <div class="play-card">
+      <div class="play-text">
+        <span class="badge beta">Beta</span>
+        <h2>No install? Play in your browser</h2>
+        <p class="beta-warn"><strong>⚠ This is a beta.</strong> The browser version is new and less tested than the download: it may have bugs, and it may lag behind the desktop version in fixes and features. For the best and most up-to-date game, <a href="#install">download the desktop version</a>.</p>
+        <p>The same game, compiled for the web. Open the page, choose your SimFarm folder and your farm starts in seconds.</p>
+        <ul>
+          <li>🔒 Your SimFarm files are read in the browser and <strong>never uploaded</strong>.</li>
+          <li>💾 Settings and saves are kept in your browser. Download them any time, or upload a save from the desktop version.</li>
+          <li>🖥️ For desktop browsers (Chrome, Edge, Firefox, Safari) with a mouse.</li>
+        </ul>
+        <a class="btn primary" href="play/">▶ Play now</a>
+      </div>
+      <div class="play-art" aria-hidden="true">
+        <div class="browser"><div class="dots"><i></i><i></i><i></i></div><img src="assets/shots/farm.webp" alt="" width="1280" height="960" loading="lazy"></div>
       </div>
     </div>
   </div>
@@ -194,6 +219,7 @@ tools/package.sh          # or: windows / rpm / deb</code></pre>
     <details><summary>Is any of the original code in it?</summary><p>No. The engine was written from scratch in C++17, from a description of how the game behaves and how its files are laid out.</p></details>
     <details><summary>Will it change my SimFarm files?</summary><p>No. It only reads them. Settings and saved games go to your own settings folder: <code>%APPDATA%\OpenSimFarm</code> on Windows, <code>~/.config/opensimfarm</code> on Linux.</p></details>
     <details><summary>Does it look and play like the original?</summary><p>That's the aim: the same rules, screens and timing, checked side by side against the original. A few things are better on purpose (any window size, clearer messages, a full price list), and the Modern options are there if you want them, all switchable in the Options menu.</p></details>
+    <details><summary>Is the browser version the same game?</summary><p>It is built from the same source, but it is a <strong>beta</strong>: it is less tested than the download, may have bugs of its own, and may not always be as up to date as the desktop version. The download is the main version and the one to use if anything goes wrong in the browser. Other differences: you choose the SimFarm folder on the page each time unless you let the browser remember the files (they stay on your computer), and settings and saves live in the browser's storage. Clearing your browser's site data deletes them, so download the saves you want to keep from the <em>Saves</em> button.</p></details>
     <details><summary>Something doesn't work. Where do I report it?</summary><p>Open an issue on <a href="https://github.com/alissonkn/opensimfarm/issues">GitHub</a>, with your system, the version and what happened.</p></details>
   </div>
 </section>

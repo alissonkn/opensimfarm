@@ -45,6 +45,18 @@
 #include <string>
 #include <sstream>
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+// The browser version (Emscripten, built with ASYNCIFY): the main loop stays as it is and gives the browser control
+// once per frame, until its next screen refresh (also how the page stays responsive; a hidden tab gets no refreshes,
+// so the game simply waits there).
+EM_ASYNC_JS(void, WaitForNextFrame, (), { await new Promise(function (r) { requestAnimationFrame(r); }); });
+// the chosen files cannot be used: the page (site/play) shows why and asks for the folder again
+EM_JS(void, ReportGameFilesProblem, (const char* text), {
+    if (Module.onGameFilesProblem) Module.onGameFilesProblem(UTF8ToString(text));
+});
+#endif
+
 using namespace osf;
 
 static void Fatal(const std::string& msg, bool gui = true)
@@ -1721,6 +1733,13 @@ static std::optional<std::string> AskPlayerForGameFolder(std::string problem, co
                                                          const std::vector<std::string>& skip, bool& noDialog)
 {
     noDialog = false;
+#ifdef __EMSCRIPTEN__
+    // in the browser the page chooses the files; no folder dialog here
+    (void)cancelLabel;
+    (void)skip;
+    ReportGameFilesProblem(problem.empty() ? "The SimFarm files could not be found." : problem.c_str());
+    return std::nullopt;
+#endif
     for (;;)
     {
         const SDL_MessageBoxButtonData buttons[] = {
@@ -2487,7 +2506,9 @@ int main(int argc, char** argv)
             minW = std::max(640, std::min(minW, usable.w));
             minH = std::max(400, std::min(minH, usable.h - 32)); // room for the title bar
         }
-        SDL_SetWindowMinimumSize(window, minW, minH);
+#ifndef __EMSCRIPTEN__
+        SDL_SetWindowMinimumSize(window, minW, minH); // in the browser the page sizes the game (it scales to fit)
+#endif
         // the frame at the sides and bottom is a resize handle (a few pixels more at the bottom corners)
         SDL_SetWindowHitTest(
             window,
@@ -2732,6 +2753,9 @@ int main(int argc, char** argv)
             SDL_RenderCopy(renderer, frameTex, nullptr, &inner);
         }
         SDL_RenderPresent(renderer);
+#ifdef __EMSCRIPTEN__
+        WaitForNextFrame();
+#endif
     };
     // window positions to positions in the drawn frame
     auto convertMouse = [](SDL_Event& e) {
@@ -2796,8 +2820,37 @@ int main(int argc, char** argv)
         last = SDL_GetPerformanceCounter(); // the time spent in the box does not count as game time
         lastFolderCheck = SDL_GetTicks64();
     };
+    // settings.txt in the config folder: written when the game ends (and in the browser also when a setting changes,
+    // as a tab is often just closed)
+    auto settingsText = [&]() {
+        std::ostringstream out;
+        out << "scale=" << uiScale << "\nsfx=" << sound.Enabled() << "\nmusic=" << sound.MusicEnabled() << "\nmessages=" << ui.MessagesOn()
+            << "\ntoolnames=" << ui.ToolNamesOn() << "\nsmartdriving=" << Machines::smartDriving
+            << "\nmodernsound=" << sound.Modern() << "\nmodernrender=" << view.Modern() << "\nmusicvolume=" << sound.MusicVolume() << "\nsfxvolume=" << sound.EffectsVolume() << "\n";
+        return out.str();
+    };
+    auto writeSettings = [&]() {
+        std::error_code ec;
+        std::filesystem::create_directories(ConfigDir(), ec);
+        std::ofstream(std::filesystem::path(ConfigDir()) / "settings.txt") << settingsText();
+    };
+#ifdef __EMSCRIPTEN__
+    std::string writtenSettings = settingsText();
+    int settingsCheck = 0;
+#endif
     while (running)
     {
+#ifdef __EMSCRIPTEN__
+        if (++settingsCheck >= 60)
+        {
+            settingsCheck = 0;
+            if (settingsText() != writtenSettings)
+            {
+                writtenSettings = settingsText();
+                writeSettings();
+            }
+        }
+#endif
         checkGameFolder();
         if (atStart)
         {
@@ -2897,8 +2950,11 @@ int main(int argc, char** argv)
             view.HandleEvent(e);
         }
         const Uint64 now = SDL_GetPerformanceCounter();
-        const double dt = static_cast<double>(now - last) / static_cast<double>(SDL_GetPerformanceFrequency());
+        double dt = static_cast<double>(now - last) / static_cast<double>(SDL_GetPerformanceFrequency());
         last = now;
+#ifdef __EMSCRIPTEN__
+        dt = std::min(dt, 0.1); // a tab that was hidden pauses the game instead of catching up all the time at once
+#endif
         // typing a file name or an amount, or the arrow keys of a list, menu or box, must not scroll the map
         if (!ui.TextFocus() && !ui.ArrowKeysTaken())
             view.Update(static_cast<float>(dt));
@@ -3011,13 +3067,6 @@ int main(int argc, char** argv)
             lastTitle = title;
         }
     }
-    {
-        std::error_code ec;
-        std::filesystem::create_directories(ConfigDir(), ec);
-        std::ofstream out(std::filesystem::path(ConfigDir()) / "settings.txt");
-        out << "scale=" << uiScale << "\nsfx=" << sound.Enabled() << "\nmusic=" << sound.MusicEnabled() << "\nmessages=" << ui.MessagesOn()
-            << "\ntoolnames=" << ui.ToolNamesOn() << "\nsmartdriving=" << Machines::smartDriving
-            << "\nmodernsound=" << sound.Modern() << "\nmodernrender=" << view.Modern() << "\nmusicvolume=" << sound.MusicVolume() << "\nsfxvolume=" << sound.EffectsVolume() << "\n";
-    }
+    writeSettings();
     return 0;
 }

@@ -1,0 +1,3 @@
+# the browser build, made by engine/tools/build_web.sh (and by the Pages workflow), not tracked
+play/opensimfarm.js
+play/opensimfarm.wasm

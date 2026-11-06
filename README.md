@@ -33,6 +33,12 @@ Packages are built by `engine/tools/package.sh` into `engine/dist/`:
 None of them contains anything of the original game. How to build them (tools, one command, checks):
 [engine/README.md, "Building the installers"](engine/README.md#building-the-installers).
 
+Or play in the browser, with nothing to install: https://alissonkn.github.io/opensimfarm/play/ . **The browser version
+is a beta**: it is less tested than the download, may have bugs, and may not be as up to date as the desktop version,
+which stays the main one. You choose your SimFarm folder on the page; its files are read on your computer and never
+uploaded. How it is built:
+[engine/README.md, "The browser version"](engine/README.md#the-browser-version).
+
 ## Build
 Linux (needs CMake and the SDL2 development package, e.g. `libsdl2-dev` or `SDL2-devel`):
 ```
