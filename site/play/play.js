@@ -51,11 +51,12 @@
         });
         return;
       }
-      save(function () { $("game").hidden = true; $("tools").hidden = true; $("ended").hidden = false; });
+      save(function () { $("game").hidden = true; $("tools").hidden = true; document.body.classList.remove("playing"); $("ended").hidden = false; });
     },
     onAbort: function (what) {
       $("game").hidden = true;
       $("tools").hidden = true;
+      document.body.classList.remove("playing");
       $("setup").hidden = false;
       status("The game stopped because of an error (" + what + "). Your saved games are kept; reload the page to play again.", true);
     }
@@ -167,6 +168,7 @@
     $("setup").hidden = true;
     $("game").hidden = false;
     $("tools").hidden = false;
+    document.body.classList.add("playing");
     status("");
     // settings and saves go to the browser's storage now and then, and when the page is left
     setInterval(save, 5000);
@@ -251,6 +253,17 @@
       })();
     });
   }
+
+  // ---- the top bar can be hidden while playing for more room; the choice is remembered
+  var BAR_KEY = "opensimfarm.hideBar";
+  function setBarHidden(hide) {
+    document.body.classList.toggle("nobar", hide);
+    try { if (hide) localStorage.setItem(BAR_KEY, "1"); else localStorage.removeItem(BAR_KEY); } catch (e) {}
+    $("canvas").focus();
+  }
+  try { if (localStorage.getItem(BAR_KEY)) document.body.classList.add("nobar"); } catch (e) {}
+  $("btn-hidebar").addEventListener("click", function () { setBarHidden(true); });
+  $("showbar").addEventListener("click", function () { setBarHidden(false); });
 
   // ---- full screen
   $("btn-full").addEventListener("click", function () {

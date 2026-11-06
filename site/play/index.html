@@ -14,6 +14,7 @@
   <div class="tools" id="tools" hidden>
     <button class="tbtn" id="btn-full" title="Full screen">⛶ Full screen</button>
     <button class="tbtn" id="btn-saves" title="Your saved games">💾 Saves</button>
+    <button class="tbtn" id="btn-hidebar" title="Hide this bar for more room (bring it back with the BETA tab in the corner)">▲ Hide bar</button>
   </div>
 </header>
 
@@ -44,6 +45,7 @@
 </main>
 
 <div id="game" class="game" hidden>
+  <button id="showbar" class="showbar" title="Show the bar (full screen, saves). The browser version is a beta.">BETA ▾</button>
   <canvas id="canvas" tabindex="-1" oncontextmenu="event.preventDefault()"></canvas>
   <div id="loading" class="loading">Starting OpenSimFarm…</div>
 </div>

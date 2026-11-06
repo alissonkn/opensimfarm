@@ -191,7 +191,7 @@
 <section id="build" class="build">
   <div class="wrap">
     <h2 class="section-title">Build it yourself</h2>
-    <div class="two">
+    <div class="two grid2">
       <div class="box">
         <h3>Play from source</h3>
         <p>You need CMake, a C++17 compiler and the SDL2 development package (<code>libsdl2-dev</code> or <code>SDL2-devel</code>).</p>
@@ -206,7 +206,24 @@ cmake --build build -j
         <p>One script builds all of them on Linux, including the Windows installer (cross-compiled with Zig, packed with NSIS):</p>
 <pre><code>cd opensimfarm/engine
 tools/package.sh          # or: windows / rpm / deb</code></pre>
-        <p>The tools to install first and the details are in <a href="https://github.com/alissonkn/opensimfarm/blob/main/engine/README.md#building-the-installers">Building the installers</a>.</p>
+        <p>The tools to install first and the details are in <a href="https://github.com/alissonkn/opensimfarm#building-the-installers">Building the installers</a>.</p>
+      </div>
+      <div class="box">
+        <h3>Build the browser version <span class="beta-tag">beta</span></h3>
+        <p>Install the Emscripten SDK once (no admin rights needed), then build and serve the page locally:</p>
+<pre><code>git clone https://github.com/emscripten-core/emsdk.git ~/tools/emsdk
+~/tools/emsdk/emsdk install 6.0.13 && ~/tools/emsdk/emsdk activate 6.0.13
+engine/tools/build_web.sh
+python3 -m http.server 8000 --directory site   # open localhost:8000/play/</code></pre>
+        <p>Details: <a href="https://github.com/alissonkn/opensimfarm#the-browser-version-online-play-beta">The browser version</a>.</p>
+      </div>
+      <div class="box">
+        <h3>Test it headless</h3>
+        <p>Everything runs without a screen on Linux. The game's own checks, and the browser version in headless Firefox:</p>
+<pre><code>SDL_VIDEODRIVER=dummy engine/build/opensimfarm --selftest
+SDL_VIDEODRIVER=dummy engine/build/opensimfarm --toolstest
+python3 engine/tools/webtest.py --game /path/to/SimFarm</code></pre>
+        <p>All the checks: <a href="https://github.com/alissonkn/opensimfarm#tests">Tests</a>.</p>
       </div>
     </div>
   </div>

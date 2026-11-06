@@ -160,6 +160,7 @@ section { padding: 4rem 0; }
 
 /* ---------- build / faq ---------- */
 .two { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.2rem; }
+@media (min-width: 761px) { .two.grid2 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .box { background: var(--card); border-radius: var(--radius); padding: 1.4rem 1.6rem; box-shadow: var(--shadow); }
 .box h3 { margin-top: 0; }
 .faq details { background: var(--card); border-radius: 14px; padding: 1rem 1.3rem; margin-bottom: .8rem; box-shadow: var(--shadow); }
