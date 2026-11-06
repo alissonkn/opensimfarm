@@ -13,10 +13,11 @@ struct WorldOptions
     int rain = 1, temperature = 1, wind = 1;  // climate classes 0..3
     bool river = false, lake = false; // both off until the design screen turns them on
     unsigned seed = 1;
+    int mapSize = 96; // 96 (the original) or 144 (an engine addition: a larger world, more land)
     // the ground shade term of the scatter: 2 for Use This Region (the original's first maps), rainfall x 4 when the
     // design screen generates (it sets the term before its GENERATE)
     int wetness = 2;
-    // when set, receives the map's tile ids (low 11 bits, x * 96 + y) as they stand before the town and the farm are
+    // when set, receives the map's tile ids (low 11 bits, x * size + y) as they stand before the town and the farm are
     // placed: the design screen's preview
     std::vector<uint16_t>* terrain = nullptr;
 };

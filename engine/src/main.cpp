@@ -111,16 +111,20 @@ static int SelfTest(const std::string& gameDir)
         int crops = 0;
         for (const auto& c : s.crops)
             crops += c.loaded;
-        const bool same = da == db;
+        // the saved file is the original's bytes and then OpenSimFarm's 8-byte signature (map size 96)
+        std::vector<uint8_t> dv(db.begin(), db.end());
+        size_t body = 0;
+        const bool same = db.size() == da.size() + kSaveSignatureSize && db.compare(0, da.size(), da) == 0 &&
+                          SaveFileMapSize(dv, body) == kOriginalMapSize && body == da.size();
         if (std::getenv("OSF_PROBE"))
         {
             int owners[4] = { 0, 0, 0, 0 };
-            for (int c = 0; c < 12; ++c)
-                for (int r = 0; r < 12; ++r)
+            for (int c = 0; c < s.Plots(); ++c)
+                for (int r = 0; r < s.Plots(); ++r)
                     owners[s.PlotOwner(c, r) & 3]++;
             std::map<int, int> hist;
-            for (int x = 0; x < 96; ++x)
-                for (int y = 0; y < 96; ++y)
+            for (int x = 0; x < s.world.size; ++x)
+                for (int y = 0; y < s.world.size; ++y)
                     if (s.PlotOwner(x / 8, y / 8) == 1 && !s.world.At(x, y).HasObject())
                         hist[s.world.At(x, y).BaseTile()]++;
             int ground = 0, total = 0;
@@ -224,7 +228,7 @@ static int ToolsTest(const std::string& gameDir, const std::string& farm)
                 while (bsim.TakeMessage(m)) {}
                 GameEvent e;
                 while (bsim.TakeEvent(e)) {}
-                std::vector<bool> covered(static_cast<size_t>(kMapSize) * kMapSize, false);
+                std::vector<bool> covered(static_cast<size_t>(b.world.size) * b.world.size, false);
                 for (int i = 1; i < 127; ++i)
                 {
                     Machine m2(b.machines, i);
@@ -238,19 +242,19 @@ static int ToolsTest(const std::string& gameDir, const std::string& farm)
                     for (int k = 0; k < Machines::Cells(m2.Type()); ++k)
                     {
                         const int x = m2.X() + (v ? 0 : k), y = m2.Y() + (v ? k : 0);
-                        if (x >= kMapSize || y >= kMapSize)
+                        if (x >= b.world.size || y >= b.world.size)
                             continue;
-                        covered[static_cast<size_t>(x) * kMapSize + y] = true;
+                        covered[static_cast<size_t>(x) * b.world.size + y] = true;
                         const int o = b.world.At(x, y).overlay & 0x7FF;
                         if (!(m2.Flags() & 0x0C) && (!b.world.At(x, y).HasObject() || o < 848 || o > 945))
                             ++badPictures; // a drawn machine on the road missing a cell: half a truck (F38)
                     }
                 }
-                for (int x = 0; x < kMapSize; ++x)
-                    for (int y = 0; y < kMapSize; ++y)
+                for (int x = 0; x < b.world.size; ++x)
+                    for (int y = 0; y < b.world.size; ++y)
                     {
                         const int o = b.world.At(x, y).overlay & 0x7FF;
-                        if (b.world.At(x, y).HasObject() && o >= 848 && o <= 911 && !covered[static_cast<size_t>(x) * kMapSize + y])
+                        if (b.world.At(x, y).HasObject() && o >= 848 && o <= 911 && !covered[static_cast<size_t>(x) * b.world.size + y])
                             ++badPictures; // a machine picture where no machine is
                     }
             }
@@ -311,8 +315,8 @@ static int ToolsTest(const std::string& gameDir, const std::string& farm)
         expect(tsim.EventKind() == 0 && plain == 35, "fair over after 3 weeks; the ground's 35 pictures restored");
     }
     // the prebuilt farms have no free owned land: take the first unowned, empty plot (test setup)
-    for (int c = 0; c < 12; ++c)
-        for (int r = 0; r < 12; ++r)
+    for (int c = 0; c < s.Plots(); ++c)
+        for (int r = 0; r < s.Plots(); ++r)
         {
             bool empty = s.PlotOwner(c, r) == 0;
             for (int x = c * 8; x < c * 8 + 8 && empty; ++x)
@@ -561,11 +565,11 @@ static int ToolsTest(const std::string& gameDir, const std::string& farm)
             const bool closed = isim.ToggleInside(bx, by) == i && !(Rd8(in.structures, b + 2) & 1);
             bool same = true;
             std::string diff;
-            for (int k = 0; k < kMapSize * kMapSize; ++k)
+            for (int k = 0; k < in.world.size * in.world.size; ++k)
                 if (in.world.cells[static_cast<size_t>(k)].BaseTile() != before.cells[static_cast<size_t>(k)].BaseTile() && same)
                 {
                     same = false;
-                    diff = " cell " + std::to_string(k / kMapSize) + "," + std::to_string(k % kMapSize) + " " +
+                    diff = " cell " + std::to_string(k / in.world.size) + "," + std::to_string(k % in.world.size) + " " +
                            std::to_string(before.cells[static_cast<size_t>(k)].base) + " -> " + std::to_string(in.world.cells[static_cast<size_t>(k)].base);
                 }
             expect(opened && inside && closed && same, "a right click shows a building's inside and its outside again (type " +
@@ -681,12 +685,12 @@ static int ToolsTest(const std::string& gameDir, const std::string& farm)
         GameState t = s;
         Simulation tsim(t);
         int town0 = 0, town1 = 0;
-        for (int c = 0; c < 12; ++c)
-            for (int r = 0; r < 12; ++r)
+        for (int c = 0; c < t.Plots(); ++c)
+            for (int r = 0; r < t.Plots(); ++r)
                 town0 += t.PlotOwner(c, r) == 2;
         const bool built = tsim.TownBuildPlot(5);
-        for (int c = 0; c < 12; ++c)
-            for (int r = 0; r < 12; ++r)
+        for (int c = 0; c < t.Plots(); ++c)
+            for (int r = 0; r < t.Plots(); ++r)
                 town1 += t.PlotOwner(c, r) == 2;
         expect(built && town1 == town0 + 1, "the town vote builds a plot beside the town (" + std::to_string(town0) + " -> " + std::to_string(town1) + ")");
     }
@@ -727,8 +731,8 @@ static int ToolsTest(const std::string& gameDir, const std::string& farm)
         Simulation tsim(t);
         t.scalars["opt_autodoze"] = 1;
         int rx = -1, ry = -1;
-        for (int x = 1; x < kMapSize - 1 && rx < 0; ++x)
-            for (int y = 1; y < kMapSize - 1 && rx < 0; ++y)
+        for (int x = 1; x < t.world.size - 1 && rx < 0; ++x)
+            for (int y = 1; y < t.world.size - 1 && rx < 0; ++y)
                 if (t.PlotOwner(x / 8, y / 8) == 1 && !t.world.At(x, y).HasObject() && !tsim.FieldIndexAt(x, y) &&
                     t.world.At(x, y).BaseTile() >= 15 && t.world.At(x, y).BaseTile() <= 30)
                 {
@@ -774,8 +778,8 @@ static int ToolsTest(const std::string& gameDir, const std::string& farm)
         GameState t = s;
         Simulation tsim(t);
         bool tried = false;
-        for (int x = 1; x < kMapSize - 1 && !tried; ++x)
-            for (int y = 1; y < kMapSize - 1 && !tried; ++y)
+        for (int x = 1; x < t.world.size - 1 && !tried; ++x)
+            for (int y = 1; y < t.world.size - 1 && !tried; ++y)
             {
                 const int a = tsim.Herds().AnimalAt(x, y);
                 if (!a || t.PlotOwner(x / 8, y / 8) != 1)
@@ -1101,7 +1105,7 @@ static int ToolsTest(const std::string& gameDir, const std::string& farm)
                     for (int k = -d; k <= d && tx < 0; ++k)
                     {
                         const int x = mx + k, y = my + d;
-                        if (x < 0 || y < 0 || x >= kMapSize || y >= kMapSize || tm.PlotOwner(x / 8, y / 8) != 1)
+                        if (x < 0 || y < 0 || x >= tm.world.size || y >= tm.world.size || tm.PlotOwner(x / 8, y / 8) != 1)
                             continue;
                         const MapCell& c = tm.world.At(x, y);
                         if (!c.HasObject() && ((c.BaseTile() >= 15 && c.BaseTile() <= 30) || (c.BaseTile() >= 150 && c.BaseTile() <= 171)))
@@ -1179,7 +1183,7 @@ static int ToolsTest(const std::string& gameDir, const std::string& farm)
                 for (int d = 2; d < 20 && gx < 0; ++d)
                     for (int k = -d; k <= d && gx < 0; ++k)
                         for (const auto& [x, y] : { std::pair{ tx + k, ty + d }, std::pair{ tx + k, ty - d }, std::pair{ tx + d, ty + k }, std::pair{ tx - d, ty + k } })
-                            if (gx < 0 && x >= 0 && y >= 0 && x < kMapSize && y < kMapSize && tq.PlotOwner(x / 8, y / 8) == 1 &&
+                            if (gx < 0 && x >= 0 && y >= 0 && x < tq.world.size && y < tq.world.size && tq.PlotOwner(x / 8, y / 8) == 1 &&
                                 !tq.world.At(x, y).HasObject() && tq.world.At(x, y).BaseTile() >= 15 && tq.world.At(x, y).BaseTile() <= 30 &&
                                 !sq.StructureAt(x, y))
                                 gx = x, gy = y;
@@ -1209,8 +1213,8 @@ static int ToolsTest(const std::string& gameDir, const std::string& farm)
             GameState tr = s;
             Simulation sr(tr);
             std::vector<std::pair<int, int>> bare;
-            for (int x = 0; x < kMapSize && bare.size() < 4; ++x)
-                for (int y = 0; y < kMapSize && bare.size() < 4; ++y)
+            for (int x = 0; x < tr.world.size && bare.size() < 4; ++x)
+                for (int y = 0; y < tr.world.size && bare.size() < 4; ++y)
                 {
                     const MapCell& c = tr.world.At(x, y);
                     if (tr.PlotOwner(x / 8, y / 8) == 1 && !c.HasObject() && c.BaseTile() >= 15 && c.BaseTile() <= 30 && !sr.StructureAt(x, y) &&
@@ -1454,7 +1458,7 @@ static int ToolsTest(const std::string& gameDir, const std::string& farm)
         for (int i = 0; all && i < 4; ++i)
         {
             const int x = g.irrigationLists[static_cast<size_t>(3 * i)], y = g.irrigationLists[static_cast<size_t>(3 * i + 1)];
-            all = g.irrigationLists[static_cast<size_t>(3 * i + 2)] == 64 && x < kMapSize && y < kMapSize && g.world.At(x, y).BaseTile() >= 120 &&
+            all = g.irrigationLists[static_cast<size_t>(3 * i + 2)] == 64 && x < g.world.size && y < g.world.size && g.world.At(x, y).BaseTile() >= 120 &&
                   g.world.At(x, y).BaseTile() <= 121;
         }
         expect(all, "the saved irrigation sources are read with the original's overlapping layout (SCEN2: four pumps)");
@@ -1507,8 +1511,8 @@ static int ToolsTest(const std::string& gameDir, const std::string& farm)
         t.cash = 0;
         const bool paid = tsim.Liquidate(9000000, true);
         int plots = 0;
-        for (int c = 0; c < 12; ++c)
-            for (int r = 0; r < 12; ++r)
+        for (int c = 0; c < t.Plots(); ++c)
+            for (int r = 0; r < t.Plots(); ++r)
                 plots += t.PlotOwner(c, r) == 1;
         GameEvent ev;
         bool lostBox = false;
@@ -1537,7 +1541,20 @@ static int ToolsTest(const std::string& gameDir, const std::string& farm)
 }
 
 // A new game from start to first harvest: generated world, a corn field in the farm block, leased machines.
+// a new game on a generated world, on the original's 96 x 96 map and on the engine's larger 144 x 144 one
+static int NewGameTestSize(const std::string& gameDir, int mapSize);
 static int NewGameTest(const std::string& gameDir)
+{
+    int failures = 0;
+    for (int n : { kOriginalMapSize, kLargeMapSize })
+    {
+        std::printf("-- a new world of %d x %d cells\n", n, n);
+        failures += NewGameTestSize(gameDir, n);
+    }
+    return failures ? 1 : 0;
+}
+
+static int NewGameTestSize(const std::string& gameDir, int mapSize)
 {
     Megadata mega;
     std::string err;
@@ -1553,13 +1570,16 @@ static int NewGameTest(const std::string& gameDir)
     opt.seed = 4242;
     opt.temperature = 3; // warm: corn planted in March needs the heat
     opt.rain = 0;
+    opt.mapSize = mapSize;
     expect(GenerateWorld(gameDir, mega, tmpl, opt, s, err), "world generated " + err);
+    expect(s.world.size == mapSize && s.Plots() == mapSize / 8 && s.zones.size() == static_cast<size_t>(s.Plots() * s.Plots() * 7),
+           "the map is " + std::to_string(s.world.size) + " cells a side, " + std::to_string(s.Plots()) + " plots a side");
     Simulation sim(s);
     const int fc = static_cast<int>(s.scalars["farm_plot_x"]), fr = static_cast<int>(s.scalars["farm_plot_y"]);
     // the new farm: 3 x 3 plots, fenced, the homestead picture in its corner
     int owned = 0;
-    for (int c = 0; c < 12; ++c)
-        for (int r = 0; r < 12; ++r)
+    for (int c = 0; c < s.Plots(); ++c)
+        for (int r = 0; r < s.Plots(); ++r)
             owned += s.PlotOwner(c, r) == 1;
     expect(owned == 9 && s.world.At(fc * 8, fr * 8).BaseTile() == 180 && s.world.At(fc * 8 + 1, fr * 8 + 2).BaseTile() == 252 &&
                (s.world.At(fc * 8 + 12, fr * 8 + 12).overlay & 0x800) && s.cal.month == 3,
@@ -1567,8 +1587,8 @@ static int NewGameTest(const std::string& gameDir)
     // the town's home plot (level 10, type 0): the layout's dirt roads on ground, every cell flagged as town
     {
         int tc = -1, tr = -1, roads = 0, town = 0;
-        for (int c = 0; c < 12; ++c)
-            for (int r = 0; r < 12; ++r)
+        for (int c = 0; c < s.Plots(); ++c)
+            for (int r = 0; r < s.Plots(); ++r)
                 if (s.PlotOwner(c, r) == 2)
                 {
                     tc = c;
@@ -1625,6 +1645,59 @@ static int NewGameTest(const std::string& gameDir)
     const std::string path = (std::filesystem::temp_directory_path() / "osf_newgame.sfm").string();
     GameState back;
     expect(s.Save(path, err) && back.Load(gameDir, path, err), "the new farm saves and loads");
+    auto readFile = [](const std::string& p) {
+        std::ifstream in(p, std::ios::binary);
+        return std::vector<uint8_t>((std::istreambuf_iterator<char>(in)), {});
+    };
+    const std::vector<uint8_t> file = readFile(path);
+    size_t body = 0;
+    expect(file.size() == SaveBodySize(mapSize) + kSaveSignatureSize && SaveFileMapSize(file, body) == mapSize &&
+               (mapSize != kOriginalMapSize || body == kOriginalSaveSize),
+           "the save carries the signature with its map size (" + std::to_string(file.size()) + " bytes)");
+    // (loaded without the new-game price reset, as the round-trip test does)
+    expect(back.Load(gameDir, path, err, false), "loaded again as saved");
+    bool cellsSame = back.world.size == s.world.size && back.zones == s.zones;
+    for (size_t i = 0; cellsSame && i < s.world.cells.size(); ++i)
+        cellsSame = back.world.cells[i].base == s.world.cells[i].base && back.world.cells[i].overlay == s.world.cells[i].overlay &&
+                    back.world.cells[i].terrain == s.world.cells[i].terrain;
+    const std::string path2 = (std::filesystem::temp_directory_path() / "osf_newgame2.sfm").string();
+    expect(cellsSame && back.Save(path2, err) && readFile(path2) == file, "loaded again: the same map and plots, saved again byte for byte");
+    {
+        // the signature must match the file: one that claims another map size is refused
+        std::vector<uint8_t> bad = file;
+        bad[bad.size() - 3] = static_cast<uint8_t>(mapSize == kOriginalMapSize ? kLargeMapSize : kOriginalMapSize);
+        std::ofstream(path2, std::ios::binary).write(reinterpret_cast<const char*>(bad.data()), static_cast<std::streamsize>(bad.size()));
+        GameState refused;
+        expect(!refused.Load(gameDir, path2, err), "a save whose signature does not fit its size is refused");
+    }
+    if (mapSize > 128)
+    {
+        // the far corner of a larger world (its last 2 x 2 plots): cells past 127 hold a field (the records keep
+        // coordinates in bytes)
+        const int pc = s.Plots() - 2, x0 = pc * 8;
+        s.cash = 1000000;
+        int bought = 0;
+        std::string why;
+        for (int c = pc; c < pc + 2; ++c)
+            for (int r = pc; r < pc + 2; ++r)
+                bought += sim.BuyPlot(c, r, why);
+        expect(bought == 4 && (s.world.At(x0 + 15, x0 + 15).overlay & 0x800), "the last plots of the map can be bought " + why);
+        const bool sold = sim.SellPlot(pc + 1, pc + 1, why) && s.PlotOwner(pc + 1, pc + 1) == 0;
+        expect(sold && sim.BuyPlot(pc + 1, pc + 1, why), "the last plot sold and bought again " + why);
+        for (int x = x0; x < x0 + 16; ++x)
+            for (int y = x0; y < x0 + 16; ++y)
+                if (!s.world.At(x, y).HasObject())
+                    s.world.At(x, y).base = 17;
+        const EditResult far = ApplyTool(s, sim, Tool::Plant, x0 + 1, x0 + 1, 0);
+        const int ff = sim.FieldIndexAt(x0 + 3, x0 + 3);
+        expect(far.ok && ff > 0 && s.FieldAt(ff).X() > 127 && s.FieldAt(ff).Y() > 127,
+               "a field in the far corner, at cell " + std::to_string(ff > 0 ? s.FieldAt(ff).X() : -1) + " " + far.message);
+        GameState again;
+        expect(s.Save(path2, err) && again.Load(gameDir, path2, err) && again.FieldAt(ff).X() == s.FieldAt(ff).X() &&
+                   again.PlotOwner(pc, pc) == 1,
+               "the far field and plot survive a save and load");
+        std::filesystem::remove(path2);
+    }
     return failures ? 1 : 0;
 }
 
@@ -1695,8 +1768,8 @@ static int CompareSaves(const std::string& gameDir, const std::string& a, const 
     line("timeline cells differing", 0, rows);
     std::printf("-- map (base tiles; animals and machines ignored)\n");
     std::map<std::string, int> kinds;
-    for (int cx = 0; cx < kMapSize; ++cx)
-        for (int cy = 0; cy < kMapSize; ++cy)
+    for (int cx = 0; cx < x.world.size; ++cx)
+        for (int cy = 0; cy < x.world.size; ++cy)
         {
             const int u = x.world.At(cx, cy).BaseTile(), v = y.world.At(cx, cy).BaseTile();
             if (u == v)
@@ -1917,9 +1990,9 @@ int main(int argc, char** argv)
                     for (int k = 0; k < Machines::Cells(m.Type()); ++k)
                     {
                         const int x = m.X() + (v ? 0 : k), y = m.Y() + (v ? k : 0);
-                        if (x >= kMapSize || y >= kMapSize)
+                        if (x >= s.world.size || y >= s.world.size)
                             continue;
-                        covered.insert(x * kMapSize + y);
+                        covered.insert(x * s.world.size + y);
                         const int o = s.world.At(x, y).overlay & 0x7FF;
                         if (check && (!s.world.At(x, y).HasObject() || o < 848 || o > 945))
                         {
@@ -1928,11 +2001,11 @@ int main(int argc, char** argv)
                         }
                     }
                 }
-                for (int x = 0; x < kMapSize; ++x)
-                    for (int y = 0; y < kMapSize; ++y)
+                for (int x = 0; x < s.world.size; ++x)
+                    for (int y = 0; y < s.world.size; ++y)
                     {
                         const int o = s.world.At(x, y).overlay & 0x7FF;
-                        if (s.world.At(x, y).HasObject() && o >= 848 && o <= 911 && !covered.count(x * kMapSize + y))
+                        if (s.world.At(x, y).HasObject() && o >= 848 && o <= 911 && !covered.count(x * s.world.size + y))
                         {
                             if (++ghosts <= 3)
                                 std::printf("  ghost: cell %d,%d picture %d\n", x, y, o);
@@ -2027,7 +2100,7 @@ int main(int argc, char** argv)
             {
                 std::printf("%3d:", y);
                 for (int x = cx - rr; x <= cx + rr; ++x)
-                    if (x >= 0 && y >= 0 && x < kMapSize && y < kMapSize)
+                    if (x >= 0 && y >= 0 && x < s.world.size && y < s.world.size)
                     {
                         std::printf(" %4d%c", s.world.At(x, y).BaseTile(), s.world.At(x, y).HasObject() ? '*' : ' ');
                         if (std::getenv("OSF_MAPOV")) // OSF_MAPOV: the overlay picture too
@@ -2071,8 +2144,8 @@ int main(int argc, char** argv)
             }
             const int fx = static_cast<int>(s.scalars["farm_plot_x"]) * 8 + 2, fy = static_cast<int>(s.scalars["farm_plot_y"]) * 8 + 2;
             size_t k = 0;
-            for (int y = fy; y < kMapSize && k < ids.size(); y += 2)
-                for (int x = fx; x < kMapSize && k < ids.size(); ++x)
+            for (int y = fy; y < s.world.size && k < ids.size(); y += 2)
+                for (int x = fx; x < s.world.size && k < ids.size(); ++x)
                 {
                     MapCell& c = s.world.At(x, y);
                     if (s.PlotOwner(x / 8, y / 8) == 1 && !c.HasObject() && c.BaseTile() >= 15 && c.BaseTile() <= 30 && !sim.FieldIndexAt(x, y))
@@ -2105,8 +2178,8 @@ int main(int argc, char** argv)
         if (std::getenv("OSF_CELLSCAN"))
         {
             // owned cells that show plain ground but carry the object flag or the field-cell flag without a field
-            for (int x = 0; x < kMapSize; ++x)
-                for (int y = 0; y < kMapSize; ++y)
+            for (int x = 0; x < s.world.size; ++x)
+                for (int y = 0; y < s.world.size; ++y)
                 {
                     const MapCell& c = s.world.At(x, y);
                     if (s.PlotOwner(x / 8, y / 8) != 1)
@@ -2123,8 +2196,8 @@ int main(int argc, char** argv)
             // the town's plots, its home plot and the plot it works on
             std::printf("home %lld,%lld work %lld,%lld pot %lld\n", static_cast<long long>(s.scalars["homestead_x"]), static_cast<long long>(s.scalars["homestead_y"]),
                         static_cast<long long>(s.scalars["town_work_x"]), static_cast<long long>(s.scalars["town_work_y"]), static_cast<long long>(s.scalars["town_pot"]));
-            for (int c = 0; c < 12; ++c)
-                for (int r = 0; r < 12; ++r)
+            for (int c = 0; c < s.Plots(); ++c)
+                for (int r = 0; r < s.Plots(); ++r)
                     if (s.PlotOwner(c, r) == 2)
                         std::printf("town plot %d,%d type %02X\n", c, r, s.PlotType(c, r));
         }
@@ -2153,10 +2226,31 @@ int main(int argc, char** argv)
         std::printf("%s %s\n", r.ok ? "ok" : "refused", r.message.c_str());
         return s.Save(argv[7], err) ? 0 : 1;
     }
+    if (argc > 4 && std::strcmp(argv[1], "--newworld") == 0)
+    {
+        // --newworld SIZE SEED OUT [folder]: a generated world (SIZE 96 or 144) saved to OUT, for test farms
+        char* fake[2] = { argv[0], argc > 5 ? argv[5] : nullptr };
+        auto dir = ResolveGameDirectory(argc > 5 ? 2 : 1, fake);
+        if (!dir) { Fatal("game folder unknown", false); return 1; }
+        Megadata mega;
+        GameState tmpl, s;
+        std::string err;
+        if (!mega.Open(*dir, err) || !tmpl.Load(*dir, ResolveFarm(*dir, "SCEN0.SSM"), err)) { std::printf("%s\n", err.c_str()); return 1; }
+        WorldOptions opt;
+        opt.mapSize = std::atoi(argv[2]) == kLargeMapSize ? kLargeMapSize : kOriginalMapSize;
+        opt.seed = static_cast<unsigned>(std::strtoul(argv[3], nullptr, 10));
+        opt.river = opt.lake = true;
+        if (!GenerateWorld(*dir, mega, tmpl, opt, s, err)) { std::printf("%s\n", err.c_str()); return 1; }
+        std::printf("world %d x %d, farm at plot %lld,%lld, town at %lld,%lld\n", s.world.size, s.world.size,
+                    static_cast<long long>(s.scalars["farm_plot_x"]), static_cast<long long>(s.scalars["farm_plot_y"]),
+                    static_cast<long long>(s.scalars["homestead_x"]), static_cast<long long>(s.scalars["homestead_y"]));
+        return s.Save(argv[4], err) ? 0 : 1;
+    }
     if (argc > 4 && std::strcmp(argv[1], "--applylist") == 0)
     {
-        // --applylist FROM LIST TO: many tool clicks in one run; each LIST line is "TOOL X Y PARAM" (see --apply), or
-        // "buy RECORD X Y" for a BUY placement (see --buy); a refused line is reported with its message
+        // --applylist FROM LIST TO: many tool clicks in one run; each LIST line is "TOOL X Y PARAM" (see --apply),
+        // "buy RECORD X Y" for a BUY placement (see --buy), "plot COL ROW" to buy land or "cash N"; a refused line is
+        // reported with its message
         char* fake[2] = { argv[0], argc > 5 ? argv[5] : nullptr };
         auto dir = ResolveGameDirectory(argc > 5 ? 2 : 1, fake);
         if (!dir) { Fatal("game folder unknown", false); return 1; }
@@ -2180,6 +2274,23 @@ int main(int argc, char** argv)
                 int rec = 0, x = 0, y = 0;
                 ls >> rec >> x >> y;
                 r = ShopBuy(s, sim, rec, x, y);
+            }
+            else if (first == "plot")
+            {
+                // "plot COL ROW": buy a plot of land as the MAP window's BUY does
+                int c = 0, rw = 0;
+                ls >> c >> rw;
+                std::string why;
+                r.ok = sim.BuyPlot(c, rw, why);
+                r.message = why;
+            }
+            else if (first == "cash")
+            {
+                // "cash N": set the funds (for test farms)
+                long long v = 0;
+                ls >> v;
+                s.cash = v;
+                r.ok = true;
             }
             else
             {
@@ -2325,7 +2436,7 @@ int main(int argc, char** argv)
                 if (std::getenv("OSF_AROUND"))
                     for (int dy = -1; dy <= 1; ++dy)
                         for (int dx = -1; dx <= 1; ++dx)
-                            if (x + dx >= 0 && y + dy >= 0 && x + dx < kMapSize && y + dy < kMapSize)
+                            if (x + dx >= 0 && y + dy >= 0 && x + dx < s.world.size && y + dy < s.world.size)
                                 std::printf("   (%d,%d) base %d obj %d ov %d\n", x + dx, y + dy, s.world.At(x + dx, y + dy).BaseTile(),
                                             s.world.At(x + dx, y + dy).HasObject(), s.world.At(x + dx, y + dy).overlay & 0x7FF);
             }
@@ -2338,7 +2449,7 @@ int main(int argc, char** argv)
             if (!(Rd8(s.traffic, b) & 1))
                 continue;
             const int x = Rd16(s.traffic, b + 2), y = Rd16(s.traffic, b + 4);
-            const MapCell c = x < kMapSize && y < kMapSize ? s.world.At(x, y) : MapCell{};
+            const MapCell c = x < s.world.size && y < s.world.size ? s.world.At(x, y) : MapCell{};
             std::printf("car %d %d,%d heading %d kind %d flags %d base %d ov %d\n", i, x, y, Rd8(s.traffic, b + 6), Rd8(s.traffic, b + 7),
                         Rd8(s.traffic, b), c.base, c.overlay & 0x7FF);
         }

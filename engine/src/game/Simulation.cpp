@@ -470,26 +470,26 @@ void Simulation::Credit(int cat, int64_t amount, const char* label)
 int64_t Simulation::PlotLandValue(int c, int r, bool asFree) const
 {
     int freePlots = 0;
-    for (int cc = 0; cc < 12; ++cc)
-        for (int rr = 0; rr < 12; ++rr)
+    for (int cc = 0; cc < _s.Plots(); ++cc)
+        for (int rr = 0; rr < _s.Plots(); ++rr)
             if (_s.PlotOwner(cc, rr) == 0 || (asFree && cc == c && rr == r))
                 freePlots++;
     // the "level" term is the high nibble of the plot's last zone attribute byte (zone record byte 6)
-    const size_t zb = static_cast<size_t>(c * 12 + r) * 7 + 6;
+    const size_t zb = _s.PlotByte(c, r, 6);
     const int level = zb < _s.zones.size() ? (_s.zones[zb] >> 4) & 15 : 0;
     int water = 0;
     for (int x = c * 8; x < c * 8 + 8; ++x)
         for (int y = r * 8; y < r * 8 + 8; ++y)
             if (_s.world.At(x, y).base & 0x1000) // the water-reach flag of the tile word (not the overlay word)
                 water++;
-    return (100 * (144 - freePlots) + 16 * level + 16 * _wetness + 15000 + 500 * water) & 0xFFFF; // a 16-bit result
+    return (100 * (_s.Plots() * _s.Plots() - freePlots) + 16 * level + 16 * _wetness + 15000 + 500 * water) & 0xFFFF; // a 16-bit result
 }
 
 int64_t Simulation::LandValue() const
 {
     int64_t total = 0;
-    for (int c = 0; c < 12; ++c)
-        for (int r = 0; r < 12; ++r)
+    for (int c = 0; c < _s.Plots(); ++c)
+        for (int r = 0; r < _s.Plots(); ++r)
             if (_s.PlotOwner(c, r) == 1)
                 total += PlotLandValue(c, r);
     return total;
@@ -535,8 +535,8 @@ int Simulation::FieldProblems(Field& f) const
 void Simulation::EvaluationSnapshot()
 {
     int owned = 0, town = 0;
-    for (int c = 0; c < 12; ++c)
-        for (int r = 0; r < 12; ++r)
+    for (int c = 0; c < _s.Plots(); ++c)
+        for (int r = 0; r < _s.Plots(); ++r)
         {
             owned += _s.PlotOwner(c, r) == 1;
             town += _s.PlotOwner(c, r) == 2;
@@ -761,13 +761,13 @@ void Simulation::FillWaterTowers()
         const int x = Rd8(_s.structures, b + 4), y = Rd8(_s.structures, b + 5);
         bool ditch = false;
         for (const auto& [dx, dy] : { std::pair{ 0, -1 }, std::pair{ 1, 0 }, std::pair{ 0, 1 }, std::pair{ -1, 0 } })
-            if (x + dx >= 0 && y + dy >= 0 && x + dx < kMapSize && y + dy < kMapSize && Irrigation::IsFullDitch(_s.world.At(x + dx, y + dy).BaseTile()))
+            if (x + dx >= 0 && y + dy >= 0 && x + dx < _s.world.size && y + dy < _s.world.size && Irrigation::IsFullDitch(_s.world.At(x + dx, y + dy).BaseTile()))
                 ditch = true;
         if (!ditch)
             continue;
         const int level = std::min(255, Rd16(_s.structures, b + 0x0A) + 50);
         Wr16(_s.structures, b + 0x0A, level);
-        if ((flags & 1) && x < kMapSize && y < kMapSize)
+        if ((flags & 1) && x < _s.world.size && y < _s.world.size)
             _s.world.At(x, y).base = static_cast<uint16_t>((level >> 6) + 83); // the level picture, flags cleared
     }
 }
@@ -785,7 +785,7 @@ int Simulation::DrawWater(int limit)
         total = std::min(limit, total + level);
         Wr16(_s.structures, b + 0x0A, 0);
         const int x = Rd8(_s.structures, b + 4), y = Rd8(_s.structures, b + 5);
-        if ((flags & 1) && x < kMapSize && y < kMapSize)
+        if ((flags & 1) && x < _s.world.size && y < _s.world.size)
             _s.world.At(x, y).base = 83;
     }
     return total;
@@ -908,7 +908,7 @@ void Simulation::RefreshFields(bool withStatus)
         f.SetMoisture(2 * _wetness + (_disasters->Flooding() ? 5 : 0));
         int full = 0, empty = 0;
         auto count = [&](int x, int y) {
-            if (x < 0 || y < 0 || x >= kMapSize || y >= kMapSize)
+            if (x < 0 || y < 0 || x >= _s.world.size || y >= _s.world.size)
                 return;
             const int id = _s.world.At(x, y).BaseTile();
             full += Irrigation::IsFullDitch(id);
@@ -935,8 +935,8 @@ void Simulation::RefreshFields(bool withStatus)
 
 void Simulation::PaintField(Field& f, int tile, bool onlyCropTiles)
 {
-    for (int x = f.X(); x < f.X() + f.W() && x < kMapSize; ++x)
-        for (int y = f.Y(); y < f.Y() + f.H() && y < kMapSize; ++y)
+    for (int x = f.X(); x < f.X() + f.W() && x < _s.world.size; ++x)
+        for (int y = f.Y(); y < f.Y() + f.H() && y < _s.world.size; ++y)
         {
             MapCell& cell = _s.world.At(x, y);
             const int id = cell.base & 0x7FF;
@@ -1116,7 +1116,7 @@ bool Simulation::StartPlanting(Field& f, int crop, std::string& why)
     for (int k = 0; k < 4; ++k)
     {
         const int x = f.X() + (k & 1), y = f.Y() + (k >> 1);
-        if (x < kMapSize && y < kMapSize)
+        if (x < _s.world.size && y < _s.world.size)
         {
             MapCell& c = _s.world.At(x, y);
             c.base = static_cast<uint16_t>((c.base & 0xF800) | (539 + 4 * (crop & 15) + k));
@@ -1160,7 +1160,7 @@ bool Simulation::StartSpray(Field& f, int job, std::string& why, bool checkIdle)
             // the barrel leaves the map
             const int x = Rd8(_s.objects20, b + 5), y = Rd8(_s.objects20, b + 6);
             // one kept in a building (the Move tool can put it there) leaves its slot
-            if (const int st = x < kMapSize && y < kMapSize ? StructureAt(x, y) : 0)
+            if (const int st = x < _s.world.size && y < _s.world.size ? StructureAt(x, y) : 0)
             {
                 const size_t sb = static_cast<size_t>(st) * 70;
                 const int sk = (x - Rd8(_s.structures, sb + 4)) * 3 + (y - Rd8(_s.structures, sb + 5));
@@ -1173,7 +1173,7 @@ bool Simulation::StartSpray(Field& f, int job, std::string& why, bool checkIdle)
                     ToggleInside(Rd8(_s.structures, sb + 4), Rd8(_s.structures, sb + 5));
                 }
             }
-            else if (x < kMapSize && y < kMapSize && (_s.world.At(x, y).overlay & 0x7FF) >= 912 && (_s.world.At(x, y).overlay & 0x7FF) <= 915)
+            else if (x < _s.world.size && y < _s.world.size && (_s.world.At(x, y).overlay & 0x7FF) >= 912 && (_s.world.At(x, y).overlay & 0x7FF) <= 915)
             {
                 _s.world.At(x, y).base &= static_cast<uint16_t>(~0x800);
                 _s.world.At(x, y).overlay &= 0xF800;
@@ -1567,8 +1567,8 @@ void Simulation::ClearStubble(Field& f)
     // the pictures a hand harvest scatters over the field (overlay 0x40C / 0x40D) go with the harvest: when the week's
     // deadline finished the harvest before the pickers' three days were over they stayed on for good, also over the
     // next crop (user save BUGHARV, finding F40)
-    for (int x = f.X(); x < f.X() + f.W() && x < kMapSize; ++x)
-        for (int y = f.Y(); y < f.Y() + f.H() && y < kMapSize; ++y)
+    for (int x = f.X(); x < f.X() + f.W() && x < _s.world.size; ++x)
+        for (int y = f.Y(); y < f.Y() + f.H() && y < _s.world.size; ++y)
         {
             MapCell& c = _s.world.At(x, y);
             const int o = c.overlay & 0x7FF;
@@ -1755,8 +1755,8 @@ int64_t Simulation::RemoveStructure(int index, bool refund)
     const int bx = Rd8(_s.structures, b + 4), by = Rd8(_s.structures, b + 5);
     if (cat == 0x46 || cat == 0x47)
         _irrigation->RemoveSource(bx, by);
-    for (int x = bx; x < bx + w && x < kMapSize; ++x)
-        for (int y = by; y < by + h && y < kMapSize; ++y)
+    for (int x = bx; x < bx + w && x < _s.world.size; ++x)
+        for (int y = by; y < by + h && y < _s.world.size; ++y)
         {
             Puff(x, y);
             MapCell& c = _s.world.At(x, y);
@@ -1824,7 +1824,7 @@ void Simulation::TakeItem(int index, bool freeRecord)
 {
     const size_t b = static_cast<size_t>(index) * 12;
     const int x = Rd8(_s.items, b + 8), y = Rd8(_s.items, b + 9);
-    if (x < kMapSize && y < kMapSize)
+    if (x < _s.world.size && y < _s.world.size)
     {
         if (const int st = StructureAt(x, y))
         {
@@ -1897,8 +1897,8 @@ void Simulation::AnimateStalls()
         return;
     }
     static int spotX = 0, spotY = 0;
-    for (int pc = 0; pc < 12; ++pc)
-        for (int pr = 0; pr < 12; ++pr)
+    for (int pc = 0; pc < _s.Plots(); ++pc)
+        for (int pr = 0; pr < _s.Plots(); ++pr)
         {
             if (_s.PlotOwner(pc, pr) != 2 || (_s.PlotType(pc, pr) & 15) != 4)
                 continue;
@@ -1951,8 +1951,8 @@ void Simulation::AnimateStalls()
 // the ground's own pictures back on the six fair cells (the end of a fair)
 static void RestoreFairCells(GameState& s)
 {
-    for (int pc = 0; pc < 12; ++pc)
-        for (int pr = 0; pr < 12; ++pr)
+    for (int pc = 0; pc < s.Plots(); ++pc)
+        for (int pr = 0; pr < s.Plots(); ++pr)
             if (s.PlotOwner(pc, pr) == 2 && (s.PlotType(pc, pr) & 15) == 4)
             {
                 static const int cells[6][3] = { { 3, 2, 9 }, { 2, 1, 1 }, { 1, 3, 14 }, { 1, 5, 28 }, { 3, 3, 16 }, { 5, 2, 11 } };
@@ -1966,8 +1966,8 @@ static void RestoreFairCells(GameState& s)
 
 bool Simulation::EventGround(int& x, int& y) const
 {
-    for (int c = 0; c < 12; ++c)
-        for (int r = 0; r < 12; ++r)
+    for (int c = 0; c < _s.Plots(); ++c)
+        for (int r = 0; r < _s.Plots(); ++r)
             if (_s.PlotOwner(c, r) == 2 && (_s.PlotType(c, r) & 15) == 4)
             {
                 x = c * 8;
@@ -2120,7 +2120,7 @@ void Simulation::RemoveAnimal(int index)
 void Simulation::ClearAnimalCell(int x, int y)
 {
     Puff(x, y);
-    if (x >= kMapSize || y >= kMapSize)
+    if (x >= _s.world.size || y >= _s.world.size)
         return;
     MapCell& c = _s.world.At(x, y);
     const int o = c.overlay & 0x7FF;
@@ -2187,7 +2187,7 @@ void Simulation::SetTownLayout(const std::vector<uint8_t>& cmp)
 
 bool Simulation::BuyPlot(int c, int r, std::string& why)
 {
-    if (c < 0 || r < 0 || c > 11 || r > 11 || _s.PlotOwner(c, r) != 0)
+    if (c < 0 || r < 0 || c >= _s.Plots() || r >= _s.Plots() || _s.PlotOwner(c, r) != 0)
     {
         why = "Only free land can be bought.";
         return false;
@@ -2211,7 +2211,7 @@ bool Simulation::BuyPlot(int c, int r, std::string& why)
 
 bool Simulation::SellPlot(int c, int r, std::string& why, bool income)
 {
-    if (c < 0 || r < 0 || c > 11 || r > 11 || _s.PlotOwner(c, r) != 1)
+    if (c < 0 || r < 0 || c >= _s.Plots() || r >= _s.Plots() || _s.PlotOwner(c, r) != 1)
     {
         why = "You can only sell your own land.";
         return false;
@@ -2279,8 +2279,8 @@ bool Simulation::SellPlot(int c, int r, std::string& why, bool income)
 int Simulation::TownLevels() const
 {
     int levels = 0;
-    for (int c = 0; c < 12; ++c)
-        for (int r = 0; r < 12; ++r)
+    for (int c = 0; c < _s.Plots(); ++c)
+        for (int r = 0; r < _s.Plots(); ++r)
             if (_s.PlotOwner(c, r) == 2)
                 levels += _s.PlotType(c, r) >> 4;
     return levels;
@@ -2291,11 +2291,11 @@ bool Simulation::TownPickPlot(int& pc, int& pr) const
     // rings around the town's home plot, columns outer and rows inner: the first free plot none of whose cells is
     // water or flagged (cell flags 0x1000/0x2000)
     const int h1 = static_cast<int>(Scalar("homestead_x")), h2 = static_cast<int>(Scalar("homestead_y"));
-    for (int k = 1; k < 12; ++k)
+    for (int k = 1; k < _s.Plots(); ++k)
         for (int c = h1 - k; c <= h1 + k; ++c)
             for (int r = h2 - k; r <= h2 + k; ++r)
             {
-                if (c < 0 || r < 0 || c >= 12 || r >= 12 || _s.PlotOwner(c, r) != 0)
+                if (c < 0 || r < 0 || c >= _s.Plots() || r >= _s.Plots() || _s.PlotOwner(c, r) != 0)
                     continue;
                 bool bad = false;
                 for (int x = c * 8; x < c * 8 + 8 && !bad; ++x)
@@ -2393,8 +2393,8 @@ bool Simulation::PlaceTownPlot(int c, int r, int type)
 {
     // an event ground (type 4) needs fewer than 7 grounds and 16 developed plots per ground
     int grounds = 0, developed = 0;
-    for (int cc = 0; cc < 12; ++cc)
-        for (int rr = 0; rr < 12; ++rr)
+    for (int cc = 0; cc < _s.Plots(); ++cc)
+        for (int rr = 0; rr < _s.Plots(); ++rr)
             if (_s.PlotOwner(cc, rr) == 2)
             {
                 developed++;
@@ -2463,10 +2463,10 @@ bool Simulation::TownClearPlot(int c, int r)
     // column nor its row (the original tests the two separately); else the homestead
     int wc = h1, wr = h2;
     bool found = false;
-    for (int k = 1; k < 12 && !found; ++k)
+    for (int k = 1; k < _s.Plots() && !found; ++k)
         for (int cc = c - k; cc <= c + k && !found; ++cc)
             for (int rr = r - k; rr <= r + k && !found; ++rr)
-                if (cc >= 0 && rr >= 0 && cc < 12 && rr < 12 && _s.PlotOwner(cc, rr) == 2 && cc != h1 && rr != h2)
+                if (cc >= 0 && rr >= 0 && cc < _s.Plots() && rr < _s.Plots() && _s.PlotOwner(cc, rr) == 2 && cc != h1 && rr != h2)
                 {
                     wc = cc;
                     wr = rr;
@@ -2633,8 +2633,8 @@ void Simulation::DeleteField(int index)
     if (!f.InUse())
         return;
     _machines->ReleaseField(index);
-    for (int x = f.X(); x < f.X() + f.W() && x < kMapSize; ++x)
-        for (int y = f.Y(); y < f.Y() + f.H() && y < kMapSize; ++y)
+    for (int x = f.X(); x < f.X() + f.W() && x < _s.world.size; ++x)
+        for (int y = f.Y(); y < f.Y() + f.H() && y < _s.world.size; ++y)
         {
             MapCell& c = _s.world.At(x, y);
             if (((x - f.X()) & 3) == 1 && ((y - f.Y()) & 3) == 1)
@@ -2784,8 +2784,8 @@ void Simulation::WeeklyWetness()
         step += 4;
     _wetness = std::clamp(_wetness + step, 0, 12);
     _acc = 0;
-    for (int x = 0; x < kMapSize; ++x)
-        for (int y = 0; y < kMapSize; ++y)
+    for (int x = 0; x < _s.world.size; ++x)
+        for (int y = 0; y < _s.world.size; ++y)
         {
             MapCell& c = _s.world.At(x, y);
             const int id = c.BaseTile();
@@ -2879,7 +2879,7 @@ void Simulation::WeekTick()
             Wr16(_s.structures, b + 0x0A, 0);
             Wr8(_s.structures, b + 2, flags | 0x02);
             const int x = Rd8(_s.structures, b + 4), y = Rd8(_s.structures, b + 5);
-            if (x < kMapSize && y < kMapSize)
+            if (x < _s.world.size && y < _s.world.size)
                 _s.world.At(x, y).base = static_cast<uint16_t>((_s.world.At(x, y).base & 0xF800) | 149);
             Event(44, 74, "A water tower has burst. Bulldoze it and buy a new one.");
         }
@@ -2903,7 +2903,7 @@ void Simulation::WeekTick()
         const int drawn = DrawWater(64);
         Wr16(_s.items, b + 2, 2 * drawn);
         const int x = Rd8(_s.items, b + 8), y = Rd8(_s.items, b + 9);
-        if (drawn && x < kMapSize && y < kMapSize)
+        if (drawn && x < _s.world.size && y < _s.world.size)
             _s.world.At(x, y).base = static_cast<uint16_t>((_s.world.At(x, y).base & 0xF800) | 176);
     }
     for (int i = 1; i < 512; ++i)
@@ -3007,8 +3007,8 @@ bool Simulation::Liquidate(int64_t debt, bool tax)
                 return true;
         }
     // then land, except the homestead plot: its fields are deleted first; the price is not yearly income
-    for (int c = 0; c < 12; ++c)
-        for (int r = 0; r < 12; ++r)
+    for (int c = 0; c < _s.Plots(); ++c)
+        for (int r = 0; r < _s.Plots(); ++r)
         {
             if (_s.PlotOwner(c, r) != 1 || (c == Scalar("farm_plot_x") && r == Scalar("farm_plot_y")))
                 continue;
@@ -3221,9 +3221,9 @@ void Simulation::Shorelines()
     // flagged 0x4000 on the overlay) gets the shore picture of its four neighbours, or interior water
     static const int shore[16] = { 55, 51, 47, 49, 43, 57, 45, 65, 39, 53, 59, 67, 41, 61, 63, -1 };
     static const int dx[4] = { -1, 0, 1, 0 }, dy[4] = { 0, 1, 0, -1 };
-    auto water = [&](int x, int y) { return x < 0 || y < 0 || x >= kMapSize || y >= kMapSize || (_s.world.At(x, y).base & 0x2000); };
-    for (int x = 0; x < kMapSize; ++x)
-        for (int y = 0; y < kMapSize; ++y)
+    auto water = [&](int x, int y) { return x < 0 || y < 0 || x >= _s.world.size || y >= _s.world.size || (_s.world.At(x, y).base & 0x2000); };
+    for (int x = 0; x < _s.world.size; ++x)
+        for (int y = 0; y < _s.world.size; ++y)
         {
             MapCell& c = _s.world.At(x, y);
             const int t = c.BaseTile();
@@ -3245,7 +3245,7 @@ void Simulation::BulldozeCell(int x, int y)
     // the original's per-cell bulldoze routine without the tool's charge (tornado and locusts use it): a building is
     // wrecked, a crop cell is stripped (+256 field damage), a trough or hay pile is removed, roads, ditches, fences,
     // gates, trees, valves and road bridges turn to ground; rocks cost 25 to clear. Machines and animals are not touched.
-    if (x < 0 || y < 0 || x >= kMapSize || y >= kMapSize)
+    if (x < 0 || y < 0 || x >= _s.world.size || y >= _s.world.size)
         return;
     MapCell& c = _s.world.At(x, y);
     if (const int st = StructureAt(x, y))

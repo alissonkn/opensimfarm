@@ -18,6 +18,9 @@ constexpr SDL_Rect kMap{ 248, 39, 290, 290 };
 struct Button { int x, y, w, h; };
 constexpr Button kUseRegion{ 97, 233, 140, 22 }, kDesign{ 97, 258, 140, 22 }, kLoad{ 97, 282, 140, 22 }, kQuit{ 97, 306, 140, 22 };
 bool In(const Button& b, int x, int y) { return x >= b.x && y >= b.y && x < b.x + b.w && y < b.y + b.h; }
+// the map size of a designed world, under the design picture (an engine addition: 96 x 96 as the original, or
+// 144 x 144 for more land). The region screen stays as the original: its worlds are 96 x 96.
+constexpr Button kMapSizeButton{ 229, 342, 150, 22 };
 // the eight prebuilt farms on the region map: 17x17 boxes at (248 + 16 gx, 40 + 16 gy)
 constexpr int kFarmGx[8] = { 0, 1, 1, 3, 9, 11, 13, 15 }, kFarmGy[8] = { 8, 11, 3, 6, 7, 6, 11, 8 };
 } // namespace
@@ -193,6 +196,8 @@ void StartScreen::Generate(bool byButton)
     // the ground shade term: the design screen's GENERATE WORLD sets it to rainfall x 4 first (live:
     // rainfall 0 gave the driest ground 15-17); entering the screen and Use This Region keep the live soil
     // wetness, a new game's 2 here
+    _byButton = byButton;
+    _opt.mapSize = _design ? _designMapSize : kOriginalMapSize;
     WorldOptions opt = _opt;
     opt.wetness = byButton ? 4 * _opt.rain : 2;
     std::vector<uint16_t> terrain;
@@ -207,11 +212,14 @@ void StartScreen::Generate(bool byButton)
     // 2 x 2 block of its overview colours (far_mapc.mbm, the Map window's table) in the design picture's palette
     const std::vector<uint8_t> mapc = mega->Read("far_mapc.mbm");
     const Palette pal = LoadPalette(mega->Read("scenario.pal"));
-    _preview.assign(192 * 192, 0xFF000000u);
-    for (int x = 0; x < kMapSize; ++x)
-        for (int y = 0; y < kMapSize; ++y)
+    // (a larger world is drawn the same way at two pixels a cell and scaled into the preview box)
+    const int N = _world.world.size, D = 2 * N;
+    _previewSide = D;
+    _preview.assign(static_cast<size_t>(D) * D, 0xFF000000u);
+    for (int x = 0; x < N; ++x)
+        for (int y = 0; y < N; ++y)
         {
-            const int t = terrain[static_cast<size_t>(x * 96 + y)];
+            const int t = terrain[static_cast<size_t>(x * N + y)];
             for (int r = 0; r < 2; ++r)
             {
                 const int b = 2 * t + r < static_cast<int>(mapc.size()) ? mapc[static_cast<size_t>(2 * t + r)] : 0;
@@ -220,11 +228,26 @@ void StartScreen::Generate(bool byButton)
                     int idx = 0;
                     for (int plane = 0; plane < 4; ++plane)
                         idx |= ((b >> (6 - 2 * plane + (1 - c))) & 1) << plane;
-                    _preview[static_cast<size_t>(2 * y + r) * 192 + 2 * x + c] =
+                    _preview[static_cast<size_t>(2 * y + r) * D + 2 * x + c] =
                         0xFF000000u | (pal[idx][0] << 16) | (pal[idx][1] << 8) | pal[idx][2];
                 }
             }
         }
+}
+
+void StartScreen::ToggleMapSize()
+{
+    _designMapSize = _designMapSize == kLargeMapSize ? kOriginalMapSize : kLargeMapSize;
+    Generate(_byButton); // the preview shows a world of the new size at once
+}
+
+void StartScreen::DrawMapSizeButton()
+{
+    const Button& b = kMapSizeButton;
+    _g.Fill(b.x, b.y, b.w, b.h, kBlack);
+    _g.Fill(b.x + 1, b.y + 1, b.w - 2, b.h - 2, kLightGrey);
+    _g.Bevel(b.x + 1, b.y + 1, b.w - 2, b.h - 2, true);
+    _g.TextCentre(b.x + b.w / 2, b.y + 7, _designMapSize == kLargeMapSize ? "MAP 144 x 144" : "MAP 96 x 96", kBlack);
 }
 
 std::string StartScreen::DesignEvent(int x, int y)
@@ -243,6 +266,8 @@ std::string StartScreen::DesignEvent(int x, int y)
         _opt.lake = !_opt.lake;
     if (In(kGenerate, x, y))
         Generate(true);
+    if (In(kMapSizeButton, x, y))
+        ToggleMapSize();
     if (In(kPlay, x, y) && _haveWorld)
     {
         // the climate classes count at PLAY!, so the tables follow the sliders even without a new generation
@@ -305,11 +330,14 @@ void StartScreen::DrawDesign()
         pressed(kLake);
     if (_haveWorld)
     {
-        _g.DrawPixels(_preview, 192, 192, kPreview.x, kPreview.y, kPreview.w, kPreview.h);
-        // the town's home plot marked T at its corner, the farm H at its origin cell (two pixels per cell)
-        _g.Text(kPreview.x + 16 * static_cast<int>(_world.scalars["homestead_x"]), kPreview.y + 16 * static_cast<int>(_world.scalars["homestead_y"]), "T", kBlack);
-        _g.Text(kPreview.x + 2 * static_cast<int>(_world.scalars["view_x"]), kPreview.y + 2 * static_cast<int>(_world.scalars["view_y"]), "H", kBlack);
+        _g.DrawPixels(_preview, _previewSide, _previewSide, kPreview.x, kPreview.y, kPreview.w, kPreview.h);
+        // the town's home plot marked T at its corner, the farm H at its origin cell (two pixels per cell; a larger
+        // world's preview is scaled into the box, and the marks with it)
+        auto mark = [&](int px, int py, const char* c) { _g.Text(kPreview.x + px * 192 / _previewSide, kPreview.y + py * 192 / _previewSide, c, kBlack); };
+        mark(16 * static_cast<int>(_world.scalars["homestead_x"]), 16 * static_cast<int>(_world.scalars["homestead_y"]), "T");
+        mark(2 * static_cast<int>(_world.scalars["view_x"]), 2 * static_cast<int>(_world.scalars["view_y"]), "H");
     }
+    DrawMapSizeButton();
     if (!_note.empty())
         _g.Text(140, 376, _note.substr(0, 44), kYellow);
 }

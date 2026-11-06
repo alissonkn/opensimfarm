@@ -142,7 +142,7 @@ MapView::~MapView()
 
 void MapView::ClampCamera()
 {
-    const float worldPx = kMapSize * 16.0f;
+    const float worldPx = MapSize() * 16.0f;
     const float visW = _viewW / _zoom, visH = _viewH / _zoom;
     _camX = visW >= worldPx ? (worldPx - visW) / 2 : std::clamp(_camX, 0.0f, worldPx - visW);
     _camY = visH >= worldPx ? (worldPx - visH) / 2 : std::clamp(_camY, 0.0f, worldPx - visH);
@@ -158,7 +158,7 @@ bool MapView::CellAt(int sx, int sy, int& cx, int& cy) const
     const double tile = 16.0 * _zoom;
     cx = static_cast<int>(std::floor((std::lround(_camX * _zoom) + sx) / tile));
     cy = static_cast<int>(std::floor((std::lround(_camY * _zoom) + sy) / tile));
-    return cx >= 0 && cy >= 0 && cx < kMapSize && cy < kMapSize;
+    return cx >= 0 && cy >= 0 && cx < MapSize() && cy < MapSize();
 }
 
 void MapView::HandleEvent(const SDL_Event& e)
@@ -247,8 +247,8 @@ void MapView::Draw(SDL_Renderer* renderer, int width, int height)
     // the camera in whole screen pixels, so every tile lands on the same pixel grid
     const int offX = static_cast<int>(std::lround(_camX * _zoom)), offY = static_cast<int>(std::lround(_camY * _zoom));
     const int x0 = std::max(0, static_cast<int>(_camX / 16)), y0 = std::max(0, static_cast<int>(_camY / 16));
-    const int x1 = std::min(kMapSize - 1, static_cast<int>((_camX + width / _zoom) / 16));
-    const int y1 = std::min(kMapSize - 1, static_cast<int>((_camY + height / _zoom) / 16));
+    const int x1 = std::min(MapSize() - 1, static_cast<int>((_camX + width / _zoom) / 16));
+    const int y1 = std::min(MapSize() - 1, static_cast<int>((_camY + height / _zoom) / 16));
     // Modern Render: the smooth atlases for this tile size, and the movers' glides
     const double now = Now();
     const int size = static_cast<int>(std::lround(16 * _zoom));
@@ -298,7 +298,7 @@ void MapView::Draw(SDL_Renderer* renderer, int width, int height)
             if (c.HasObject())
             {
                 const int o = c.OverlayTile();
-                if (sm && _glides.count(x * kMapSize + y))
+                if (sm && _glides.count(x * MapSize() + y))
                     continue; // drawn on its way below
                 if (o >= 0 && o < 200)
                 {
@@ -357,9 +357,9 @@ bool MapView::GlidePosition(int cell, double now, float& px, float& py) const
     return it != _glides.end() && GlideAt(it->second, cell, now, px, py);
 }
 
-bool MapView::GlideAt(const Glide& g, int cell, double now, float& px, float& py)
+bool MapView::GlideAt(const Glide& g, int cell, double now, float& px, float& py) const
 {
-    const float toX = static_cast<float>(cell / kMapSize) * 16, toY = static_cast<float>(cell % kMapSize) * 16;
+    const float toX = static_cast<float>(cell / MapSize()) * 16, toY = static_cast<float>(cell % MapSize()) * 16;
     const double f = g.duration > 0 ? (now - g.start) / g.duration : 1.0;
     if (f >= 1)
         return false;
@@ -373,7 +373,7 @@ void MapView::TrackMovers(double now)
 {
     if (!_world)
         return;
-    const size_t n = static_cast<size_t>(kMapSize) * kMapSize;
+    const size_t n = static_cast<size_t>(MapSize()) * MapSize();
     std::vector<uint16_t> cur(n, 0);
     for (size_t i = 0; i < n; ++i)
     {
@@ -428,7 +428,7 @@ void MapView::TrackMovers(double now)
             const int ca = came[a], cg = gone[r];
             if (MoverKind(cur[static_cast<size_t>(ca)]) != MoverKind(_prevMover[static_cast<size_t>(cg)]))
                 continue;
-            const int d = std::max(std::abs(ca / kMapSize - cg / kMapSize), std::abs(ca % kMapSize - cg % kMapSize));
+            const int d = std::max(std::abs(ca / MapSize() - cg / MapSize()), std::abs(ca % MapSize() - cg % MapSize()));
             if (d > 2)
                 continue;
             // an animal steps the way its new picture faces (heading 0 = up, clockwise; Animals::TileFor), so
@@ -440,7 +440,7 @@ void MapView::TrackMovers(double now)
             {
                 static constexpr int kStepX[8] = { 0, 1, 1, 1, 0, -1, -1, -1 }, kStepY[8] = { -1, -1, 0, 1, 1, 1, 0, -1 };
                 const int h = ((pic - 946) & 15) >> 1;
-                const int rx = ca / kMapSize - cg / kMapSize - kStepX[h], ry = ca % kMapSize - cg % kMapSize - kStepY[h];
+                const int rx = ca / MapSize() - cg / MapSize() - kStepX[h], ry = ca % MapSize() - cg % MapSize() - kStepY[h];
                 const int rest = std::max(std::abs(rx), std::abs(ry));
                 if (d == 1 ? rest != 0 : rest != 1)
                     continue;
@@ -462,8 +462,8 @@ void MapView::TrackMovers(double now)
             continue; // a turn or a kick on the spot: any glide into the cell goes on
         // it starts where it is drawn now (still on its way from the last step, or at its cell)
         Glide g;
-        g.fromX = static_cast<float>(from / kMapSize) * 16;
-        g.fromY = static_cast<float>(from % kMapSize) * 16;
+        g.fromX = static_cast<float>(from / MapSize()) * 16;
+        g.fromY = static_cast<float>(from % MapSize()) * 16;
         float px, py;
         const auto old = before.find(from);
         if (old != before.end() && GlideAt(old->second, from, now, px, py))
@@ -666,7 +666,7 @@ int MapView::SelfTest(const MapGraphics& gfx)
             w.At(x, y).base = static_cast<uint16_t>(w.At(x, y).base & ~0x800);
             w.At(x, y).overlay = 0;
         };
-        auto pos = [&](int x, int y, double now, float& px, float& py) { return v.GlidePosition(x * kMapSize + y, now, px, py); };
+        auto pos = [&](int x, int y, double now, float& px, float& py) { return v.GlidePosition(x * v.MapSize() + y, now, px, py); };
         float px = 0, py = 0;
         put(10, 10, 946 + 16 + 2);    // a cow facing east
         put(20, 20, 860);             // a harvester across (20, 20) and (21, 20)

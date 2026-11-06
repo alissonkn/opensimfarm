@@ -10,7 +10,6 @@
 namespace osf {
 
 namespace {
-bool InMap(int x, int y) { return x >= 0 && y >= 0 && x < kMapSize && y < kMapSize; }
 constexpr int kDryBed = 28;
 } // namespace
 
@@ -112,8 +111,8 @@ bool Disasters::Start(int id)
     {
         _sim.DisasterEvent(53, 58, "Drought warning: ponds and ditches are drying up.");
         // sweep in place: shores recede
-        for (int x = 0; x < kMapSize; ++x)
-            for (int y = 0; y < kMapSize; ++y)
+        for (int x = 0; x < _s.world.size; ++x)
+            for (int y = 0; y < _s.world.size; ++y)
             {
                 MapCell& c = _s.world.At(x, y);
                 const int id2 = c.BaseTile();
@@ -122,7 +121,7 @@ bool Disasters::Start(int id)
                 int dry = 0;
                 for (int dx = -1; dx <= 1; ++dx)
                     for (int dy = -1; dy <= 1; ++dy)
-                        if (!InMap(x + dx, y + dy) || !(_s.world.At(x + dx, y + dy).base & 0x3000))
+                        if (!_s.world.In(x + dx, y + dy) || !(_s.world.At(x + dx, y + dy).base & 0x3000))
                             dry++;
                 if (dry >= 3)
                     c.base = static_cast<uint16_t>(((c.base & 0xF800) & ~0x2000) | kDryBed);
@@ -184,7 +183,7 @@ bool Disasters::Start(int id)
 
 void Disasters::FloodCell(int x, int y)
 {
-    if (!InMap(x, y))
+    if (!_s.world.In(x, y))
         return;
     if (const int fi = _sim.FieldIndexAt(x, y))
     {
@@ -259,15 +258,16 @@ void Disasters::Tick()
                 _tdx = Axis();
                 _tdy = Axis();
             }
-            if (_tx <= 0 || _tx >= kMapSize - 1)
+            if (_tx <= 0 || _tx >= _s.world.size - 1)
                 Stop(kTornado);
         }
         _tMoveStamp = now;
     }
-    if (Active(kFlood) && _floodPos < 94 * 94)
-        for (int k = 0; k < 64 && _floodPos < 94 * 94; ++k, ++_floodPos)
+    const int fn = _s.world.size - 2; // 94 on the original map
+    if (Active(kFlood) && _floodPos < fn * fn)
+        for (int k = 0; k < 64 && _floodPos < fn * fn; ++k, ++_floodPos)
         {
-            const int x = _floodPos / 94, y = _floodPos % 94;
+            const int x = _floodPos / fn, y = _floodPos % fn;
             if (!(_s.world.At(x, y).base & 0x1000)) // the water-reach flag of the tile word
                 continue;
             for (int bx = x - 2; bx <= x; ++bx)
@@ -303,10 +303,12 @@ void Disasters::Day(int wind, int temperature, int& wetness)
             // the original's wind exposure: the field grown by 2 cells; every column
             // counts once if a tree stands in the two top or two bottom rows of that frame, every row once if one
             // stands in its two left or two right columns (bounds in bytes, clamped to the map)
-            auto clampc = [](int v) { return std::clamp(static_cast<int>(static_cast<int8_t>(v & 0xFF)), 0, kMapSize - 1); };
+            // (a larger world's cells above 127 are real cells, so there only the map clamps)
+            const bool large = _s.world.size > 128;
+            auto clampc = [&](int v) { return std::clamp(large ? v : static_cast<int>(static_cast<int8_t>(v & 0xFF)), 0, _s.world.size - 1); };
             const int x0 = clampc(f.X() - 2), x1 = clampc(f.X() + f.W() + 2), y0 = clampc(f.Y() - 2), y1 = clampc(f.Y() + f.H() + 2);
             auto tree = [&](int x, int y) {
-                if (!InMap(x, y))
+                if (!_s.world.In(x, y))
                     return false;
                 const int id = _s.world.At(x, y).BaseTile();
                 return id >= 131 && id < 131 + 16;

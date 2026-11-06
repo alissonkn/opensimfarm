@@ -33,7 +33,7 @@ void Flight::Park(int m, bool stamp)
     Machine p(_s.machines, m);
     for (int k = 0; k < 4; ++k)
     {
-        MapCell& c = _s.world.At(std::min(kMapSize - 1, p.HomeX() + k % 2), std::min(kMapSize - 1, p.HomeY() + k / 2));
+        MapCell& c = _s.world.At(std::min(_s.world.size - 1, p.HomeX() + k % 2), std::min(_s.world.size - 1, p.HomeY() + k / 2));
         // the hangar tiles under the parked plane are kept in spare bytes of the plane record
         if (stamp)
         {
@@ -57,8 +57,8 @@ std::string Flight::Buy()
     }
     if (_s.cash < 6000)
         return "Not enough money.";
-    for (int col = 0; col < 12; ++col)
-        for (int row = 0; row < 12; ++row)
+    for (int col = 0; col < _s.Plots(); ++col)
+        for (int row = 0; row < _s.Plots(); ++row)
         {
             const int type = _s.PlotType(col, row);
             if ((type & 15) != 5)
@@ -135,8 +135,8 @@ bool Flight::Start(int m)
     Machine p(_s.machines, m);
     // the view is centred on the hangar (its clamps use the window's offsets 48 and 32), and the plane
     // starts at the view centre: next to the map edge that is not over the hangar
-    _sx = std::clamp(p.HomeX() - kHalfW, 0, 0x60 - ((48 + kWinW) >> 4));
-    _sy = std::clamp(p.HomeY() - kHalfH, 0, 0x60 - ((32 + kWinH) >> 4));
+    _sx = std::clamp(p.HomeX() - kHalfW, 0, _s.world.size - ((48 + kWinW) >> 4));
+    _sy = std::clamp(p.HomeY() - kHalfH, 0, _s.world.size - ((32 + kWinH) >> 4));
     _xo = _yo = 0;
     _heading = 6;
     _alt = 10;
@@ -172,13 +172,13 @@ void Flight::End()
     static const int kWreck[4] = { 73, 74, 113, 114 };
     for (int k = 0; k < 4; ++k)
     {
-        MapCell& w = _s.world.At(std::min(kMapSize - 1, cx + k % 2), std::min(kMapSize - 1, cy + k / 2));
+        MapCell& w = _s.world.At(std::min(_s.world.size - 1, cx + k % 2), std::min(_s.world.size - 1, cy + k / 2));
         w.base = static_cast<uint16_t>((w.base & 0xF800) | kWreck[k]);
     }
     Machine p(_s.machines, m);
     for (int k = 0; k < 4; ++k)
     {
-        MapCell& h = _s.world.At(std::min(kMapSize - 1, p.HomeX() + k % 2), std::min(kMapSize - 1, p.HomeY() + k / 2));
+        MapCell& h = _s.world.At(std::min(_s.world.size - 1, p.HomeX() + k % 2), std::min(_s.world.size - 1, p.HomeY() + k / 2));
         h.base = static_cast<uint16_t>((h.base & 0xF800) | 23);
     }
     const int pc = p.HomeX() / 8, pr = p.HomeY() / 8;
@@ -326,9 +326,9 @@ void Flight::South(int bounce)
         ++_yo;
         return;
     }
-    if (++_sy > kSyMax)
+    if (++_sy > SyMax())
     {
-        _sy = kSyMax;
+        _sy = SyMax();
         if (++_yo > kYMax)
         {
             _yo = kYMax;
@@ -344,9 +344,9 @@ void Flight::East()
         ++_xo;
         return;
     }
-    if (++_sx > kSxMax)
+    if (++_sx > SxMax())
     {
-        _sx = kSxMax;
+        _sx = SxMax();
         if (++_xo > kXMax)
         {
             _xo = kXMax;

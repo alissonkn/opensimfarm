@@ -41,7 +41,7 @@ public:
     void ResetTool() { _tool = Tool::Examine; _moveKind = 0; }
     // the plain arrow pointer, for the region screen (the original keeps the game's tool pointer there, e.g. the
     // magnifier after File > New Game; user finding)
-    static float ThumbFraction(float pos, float shown); // a scroll thumb's place along its track, 0..1
+    static float ThumbFraction(float pos, float shown, int mapCells); // a scroll thumb's place along its track, 0..1
     void ArrowCursor()
     {
         if (_shownCursor == -1)

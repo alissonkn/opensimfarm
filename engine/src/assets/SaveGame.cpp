@@ -2,46 +2,45 @@
 // Licensed under the GNU General Public License version 3 (see LICENSE.txt).
 #include "assets/SaveGame.h"
 
-#include <fstream>
-#include <iterator>
-
 namespace osf {
 
-// Section sizes of the original save layout, in file order, up to the map.
-static constexpr size_t kSectionsBeforeMap[] = {
-    1,              // version
-    2, 256 * 32,    // animals
-    2, 127 * 20,    // 20-byte object table
-    2, 127 * 56,    // 56-byte machine / storage table
-    2, 98 * 68,     // fields
-    2, 127 * 70,    // buildings
-    2, 512 * 12,    // items / containers
-    1, 16 * 8,      // town-event visitors
-    98 * 240 * 2,   // schedule timeline
-};
-static constexpr size_t kSaveSize = 139072;
+namespace {
+constexpr uint8_t kSignature[4] = { 'O', 'S', 'F', 'M' };
+constexpr uint8_t kFormatVersion = 1;
+bool UsableMapSize(int n) { return n >= kOriginalMapSize && n <= 192 && n % 16 == 0; }
+}
 
-bool LoadWorldFromSave(const std::string& path, World& world, std::string& error)
+size_t SaveBodySize(int n)
 {
-    std::ifstream f(path, std::ios::binary);
-    std::vector<uint8_t> d((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
-    if (d.size() != kSaveSize)
+    const size_t plots = static_cast<size_t>(n / kPlotCells) * (n / kPlotCells);
+    const size_t originalPlots = static_cast<size_t>(kOriginalMapSize / kPlotCells) * (kOriginalMapSize / kPlotCells);
+    return kOriginalSaveSize - static_cast<size_t>(kOriginalMapSize) * kOriginalMapSize * 5 - originalPlots * 7 +
+           static_cast<size_t>(n) * n * 5 + plots * 7;
+}
+
+int SaveFileMapSize(const std::vector<uint8_t>& d, size_t& body)
+{
+    if (d.size() >= kSaveSignatureSize)
     {
-        error = "not an original SimFarm save/scenario: " + path;
-        return false;
+        const uint8_t* t = &d[d.size() - kSaveSignatureSize];
+        if (t[0] == kSignature[0] && t[1] == kSignature[1] && t[2] == kSignature[2] && t[3] == kSignature[3] && t[4] >= 1)
+        {
+            const int n = t[5] | (t[6] << 8);
+            body = d.size() - kSaveSignatureSize;
+            return UsableMapSize(n) && SaveBodySize(n) == body ? n : 0;
+        }
     }
-    size_t off = 0;
-    for (size_t s : kSectionsBeforeMap)
-        off += s;
-    // 9,216 cells x 5 bytes, stored cell by cell in map order: base word, overlay word, terrain byte.
-    for (size_t i = 0; i < world.cells.size(); ++i)
-    {
-        const uint8_t* c = &d[off + i * 5];
-        world.cells[i].base = static_cast<uint16_t>(c[0] | (c[1] << 8));
-        world.cells[i].overlay = static_cast<uint16_t>(c[2] | (c[3] << 8));
-        world.cells[i].terrain = c[4];
-    }
-    return true;
+    body = d.size();
+    return d.size() == kOriginalSaveSize ? kOriginalMapSize : 0; // an original save: no signature
+}
+
+void AppendSaveSignature(std::vector<uint8_t>& d, int n)
+{
+    d.insert(d.end(), kSignature, kSignature + 4);
+    d.push_back(kFormatVersion);
+    d.push_back(static_cast<uint8_t>(n & 0xFF));
+    d.push_back(static_cast<uint8_t>((n >> 8) & 0xFF));
+    d.push_back(0);
 }
 
 } // namespace osf

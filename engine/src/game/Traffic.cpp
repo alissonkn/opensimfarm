@@ -51,7 +51,7 @@ void Traffic::Remove(int i)
 int Traffic::Mask(int x, int y) const
 {
     auto road = [&](int cx, int cy) {
-        if (cx < 0 || cy < 0 || cx >= kMapSize || cy >= kMapSize)
+        if (cx < 0 || cy < 0 || cx >= _s.world.size || cy >= _s.world.size)
             return false;
         const int t = _s.world.At(cx, cy).BaseTile();
         return Paved(t) || Dirt(t) || Bridge(t);
@@ -77,8 +77,8 @@ bool Traffic::Choose(int heading, int x, int y, int& nx, int& ny, int& nh)
                 d = (d + 1) & 3;
             heading = h = d * 2;
         }
-        nx = std::clamp(x + kDx[h], 0, kMapSize - 1);
-        ny = std::clamp(y + kDy[h], 0, kMapSize - 1);
+        nx = std::clamp(x + kDx[h], 0, _s.world.size - 1);
+        ny = std::clamp(y + kDy[h], 0, _s.world.size - 1);
         const MapCell& c = _s.world.At(nx, ny);
         const int t = c.BaseTile();
         if (Paved(t) || Bridge(t) || (Dirt(t) && !(c.overlay & 0x0800)))
@@ -100,7 +100,7 @@ void Traffic::Step(int i)
     const size_t b = Rec(i);
     int fl = Rd8(_s.traffic, b);
     const int x = Rd16(_s.traffic, b + 2), y = Rd16(_s.traffic, b + 4), kind = Rd8(_s.traffic, b + 7);
-    if (x < 0 || y < 0 || x >= kMapSize || y >= kMapSize)
+    if (x < 0 || y < 0 || x >= _s.world.size || y >= _s.world.size)
     {
         Remove(i);
         return;

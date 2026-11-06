@@ -7,7 +7,9 @@
 
 namespace osf {
 
-constexpr int kMapSize = 96;
+// The original's map is 96 x 96 cells. OpenSimFarm can also make larger worlds (an engine addition: 144 x 144, more
+// land to farm); the size travels with the map, and the land is always plots of 8 x 8 cells.
+constexpr int kOriginalMapSize = 96, kLargeMapSize = 144, kPlotCells = 8;
 
 // One map cell: base word (tile id in bits 0-10, flags above), overlay word, terrain byte.
 struct MapCell
@@ -20,15 +22,26 @@ struct MapCell
     int OverlayTile() const { return (overlay & 0x7FF) - 0x350; } // index into the masked sheet
 };
 
-// The map of an original saved game or prebuilt farm (.SFM / .SSM).
-// Only the map is read for now; the rest of the state follows with the simulation milestones.
+// The map of a saved game or prebuilt farm (.SFM / .SSM): size x size cells, column-major (x * size + y).
 struct World
 {
-    std::vector<MapCell> cells = std::vector<MapCell>(kMapSize * kMapSize);
-    MapCell& At(int x, int y) { return cells[static_cast<size_t>(x) * kMapSize + y]; } // column-major: x*96 + y
-    const MapCell& At(int x, int y) const { return cells[static_cast<size_t>(x) * kMapSize + y]; }
+    int size = kOriginalMapSize;
+    std::vector<MapCell> cells = std::vector<MapCell>(kOriginalMapSize * kOriginalMapSize);
+    void Resize(int n) { size = n; cells.assign(static_cast<size_t>(n) * n, MapCell{}); }
+    bool In(int x, int y) const { return x >= 0 && y >= 0 && x < size && y < size; }
+    int Clamp(int v) const { return v < 0 ? 0 : v >= size ? size - 1 : v; }
+    int Plots() const { return size / kPlotCells; } // plots along each side: 12 on the original's map
+    MapCell& At(int x, int y) { return cells[static_cast<size_t>(x) * size + y]; }
+    const MapCell& At(int x, int y) const { return cells[static_cast<size_t>(x) * size + y]; }
 };
 
-bool LoadWorldFromSave(const std::string& path, World& world, std::string& error);
+// Saved games. The original's file is 139,072 bytes with a 96 x 96 map. OpenSimFarm writes the same layout (a
+// larger map has a larger map section and plot table) and puts an 8-byte signature at the end: "OSFM", the format
+// version, the map size (16 bits, little-endian) and a spare byte. The original reads its fixed sections and ignores
+// the signature (checked: it loads such a 96 x 96 save); a file without the signature is an original 96 x 96 one.
+constexpr size_t kOriginalSaveSize = 139072, kSaveSignatureSize = 8;
+size_t SaveBodySize(int mapSize);                                     // the file without the signature
+int SaveFileMapSize(const std::vector<uint8_t>& file, size_t& bodySize); // 0: not a save this engine can read
+void AppendSaveSignature(std::vector<uint8_t>& file, int mapSize);
 
 } // namespace osf

@@ -58,7 +58,9 @@ private:
     static constexpr int kWinW = 544, kWinH = 368;
     static constexpr int kHalfW = kWinW >> 5, kHalfH = kWinH >> 5;
     static constexpr int kXMax = kHalfW - 3, kYMax = kHalfH - 3;
-    static constexpr int kSxMax = 0x60 - (kWinW >> 4), kSyMax = 0x5F - (kWinH >> 4);
+    // the scroll limits from the map size (96: 0x60 and 0x5F; a larger world, an engine addition, moves them)
+    int SxMax() const { return _s.world.size - (kWinW >> 4); }
+    int SyMax() const { return _s.world.size - 1 - (kWinH >> 4); }
     // one pass every 2 timer ticks, the code's minimum wait (measured on the running original: 25 cells a second,
     // with the 50 Hz clock)
     static constexpr int kPassTicks = 2;

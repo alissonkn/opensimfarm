@@ -45,8 +45,8 @@ void AutoDoze(GameState& s, Simulation& sim, int x, int y, int w, int h)
 {
     if (!s.scalars["opt_autodoze"])
         return;
-    for (int cx = x; cx < x + w && cx < kMapSize; ++cx)
-        for (int cy = y; cy < y + h && cy < kMapSize; ++cy)
+    for (int cx = x; cx < x + w && cx < s.world.size; ++cx)
+        for (int cy = y; cy < y + h && cy < s.world.size; ++cy)
             if (AutoDozable(s.world.At(cx, cy).BaseTile()) && s.cash >= 25 && sim.Spend(-1, 25))
             {
                 MapCell& c = s.world.At(cx, cy);
@@ -180,7 +180,7 @@ EditResult ShopBuy(GameState& s, Simulation& sim, int rec, int x, int y)
         const std::string why = sim.Plane().Buy();
         return { why.empty(), why.empty() ? "The crop duster waits at the town airport." : why, why.empty() ? "plopitem.voc" : "uhoh.voc" };
     }
-    if (x < 0 || y < 0 || x >= kMapSize || y >= kMapSize)
+    if (x < 0 || y < 0 || x >= s.world.size || y >= s.world.size)
         return { false, "", "uhoh.voc" };
     if (s.PlotOwner(x / 8, y / 8) != 1)
         return { false, "You do not own this land.", "uhoh.voc" };
@@ -262,7 +262,7 @@ EditResult ShopBuy(GameState& s, Simulation& sim, int rec, int x, int y)
         const int w = std::max(1, CatalogByte(s, rec, 8)), h = std::max(1, CatalogByte(s, rec, 9));
         for (int cx = x; cx < x + w; ++cx)
             for (int cy = y; cy < y + h; ++cy)
-                if (cx >= kMapSize || cy >= kMapSize || s.PlotOwner(cx / 8, cy / 8) != 1 || s.world.At(cx, cy).HasObject() ||
+                if (cx >= s.world.size || cy >= s.world.size || s.PlotOwner(cx / 8, cy / 8) != 1 || s.world.At(cx, cy).HasObject() ||
                     !Buildable(s.world.At(cx, cy).BaseTile(), s.scalars["opt_autodoze"] != 0) || sim.FieldIndexAt(cx, cy))
                     return { false, "There is no room here.", "uhoh.voc" };
         AutoDoze(s, sim, x, y, w, h);
@@ -439,7 +439,7 @@ static int BuildingCovering(const GameState& s, int x, int y, bool& open)
 // item record. Animals cannot be moved. Seen live on ACT1/MRKC: a cow is refused, a closed building's stack is not seen.
 bool PickObject(GameState& s, Simulation& sim, int x, int y, int& kind, int& index, std::string& why)
 {
-    if (x < 0 || y < 0 || x >= kMapSize || y >= kMapSize)
+    if (x < 0 || y < 0 || x >= s.world.size || y >= s.world.size)
         return false;
     if (const int i = sim.Fleet().MachineAt(x, y))
     {
@@ -595,7 +595,7 @@ bool BareGround(int t) { return t >= 15 && t <= 31; }
 // drives there by itself.
 EditResult DropObject(GameState& s, Simulation& sim, int kind, int index, int fromX, int fromY, int x, int y)
 {
-    if (x < 0 || y < 0 || x >= kMapSize || y >= kMapSize || s.PlotOwner(x / 8, y / 8) != 1)
+    if (x < 0 || y < 0 || x >= s.world.size || y >= s.world.size || s.PlotOwner(x / 8, y / 8) != 1)
         return { false, "You can only move things onto your own land.", "uhoh.voc" };
     const EditResult refused{ false, "There is no room there.", "uhoh.voc" };
     const EditResult done{ true, "", "plopitem.voc" };
@@ -734,7 +734,7 @@ EditResult DropObject(GameState& s, Simulation& sim, int kind, int index, int fr
 bool ExamineCardAt(const GameState& s, int x, int y, ExamineCard& card)
 {
     card = ExamineCard{};
-    if (x < 0 || y < 0 || x >= kMapSize || y >= kMapSize)
+    if (x < 0 || y < 0 || x >= s.world.size || y >= s.world.size)
         return false;
     const MapCell& c = s.world.At(x, y);
     const int base = c.BaseTile();

@@ -26,7 +26,6 @@ constexpr int kSignBase = 539;
 constexpr int kShape[16] = { 0, 0, 1, 2, 0, 0, 3, 4, 1, 5, 1, 6, 7, 8, 9, 10 };
 
 int Id(const GameState& s, int x, int y) { return s.world.At(x, y).BaseTile(); }
-bool InMap(int x, int y) { return x >= 0 && y >= 0 && x < kMapSize && y < kMapSize; }
 bool HasObject(const GameState& s, int x, int y) { return s.world.At(x, y).HasObject(); }
 bool Owned(const GameState& s, int x, int y) { return s.PlotOwner(x / 8, y / 8) == 1; }
 // buildable land: ground or a road piece (ground family or road families)
@@ -65,14 +64,14 @@ int Mask(const GameState& s, int x, int y, int set)
     static const int dx[4] = { 0, 1, 0, -1 }, dy[4] = { -1, 0, 1, 0 };
     int m = 0;
     for (int k = 0; k < 4; ++k)
-        if (InMap(x + dx[k], y + dy[k]) && Connects(set, Id(s, x + dx[k], y + dy[k])))
+        if (s.world.In(x + dx[k], y + dy[k]) && Connects(set, Id(s, x + dx[k], y + dy[k])))
             m |= 1 << k;
     return m;
 }
 
 void Reshape(GameState& s, int x, int y)
 {
-    if (!InMap(x, y))
+    if (!s.world.In(x, y))
         return;
     const int id = Id(s, x, y);
     const int set = ConnectionSet(id);
@@ -103,7 +102,7 @@ bool FieldClear(GameState& s, Simulation& sim, int x0, int y0, std::string& why)
         for (int y = y0 - 1; y <= y0 + 8 && why.empty(); ++y)
         {
             const bool inside = x >= x0 && x < x0 + 8 && y >= y0 && y < y0 + 8;
-            if (!InMap(x, y))
+            if (!s.world.In(x, y))
                 why = "A field does not fit at the edge of the map.";
             else if (sim.FieldIndexAt(x, y) != 0)
                 why = inside ? "There is already a field there." : "Fields need one free cell between them.";
@@ -148,7 +147,7 @@ int GroundTile(const GameState& s, int wetness, int cx, int cy)
 void FencePlot(GameState& s, int col, int row)
 {
     auto fenceable = [](int id) { return (id >= 15 && id <= 30) || (id >= 535 && id <= 538) || (id >= 131 && id <= 146); };
-    auto mine = [&](int c, int r) { return c >= 0 && r >= 0 && c < 12 && r < 12 && s.PlotOwner(c, r) == 1; };
+    auto mine = [&](int c, int r) { return c >= 0 && r >= 0 && c < s.Plots() && r < s.Plots() && s.PlotOwner(c, r) == 1; };
     const int x0 = col * 8, y0 = row * 8;
     auto put = [&](int x, int y) {
         MapCell& c = s.world.At(x, y);
@@ -173,7 +172,7 @@ void FencePlot(GameState& s, int col, int row)
 
 void DrawHomestead(GameState& s, int x, int y, int tier)
 {
-    if (x < 0 || y < 0 || x + 3 >= kMapSize || y + 3 >= kMapSize || tier < 0 || tier > 5)
+    if (x < 0 || y < 0 || x + 3 >= s.world.size || y + 3 >= s.world.size || tier < 0 || tier > 5)
         return;
     auto set = [&](int dx, int dy, int id) { MapCell& c = s.world.At(x + dx, y + dy); c.base = static_cast<uint16_t>((c.base & 0xF800) | id); };
     // the yard first, then per tier the house (base picture b at (1,2), b+1 at (2,2), b+40 and b+41 below) and the
@@ -245,7 +244,7 @@ void RedrawTownPlot(GameState& s, const std::vector<uint16_t>& layout, int col, 
         return;
     auto lay = [&](int i, int j) { return static_cast<int>(layout[static_cast<size_t>(j * 40 + off + i)]); };
     auto put = [&](int i, int j, int id) {
-        if (InMap(col * 8 + i, row * 8 + j))
+        if (s.world.In(col * 8 + i, row * 8 + j))
             s.world.At(col * 8 + i, row * 8 + j).base = static_cast<uint16_t>(id);
     };
     // dirt roads of the block become paved road pieces in the cells i < iEnd, j0 <= j < j1
@@ -332,7 +331,7 @@ void ReshapeAround(GameState& s, int cx, int cy)
 
 EditResult ApplyTool(GameState& s, Simulation& sim, Tool tool, int cx, int cy, int param)
 {
-    if (!InMap(cx, cy))
+    if (!s.world.In(cx, cy))
         return Refuse();
     const ToolInfo& info = GetToolInfo(tool);
     const int id = Id(s, cx, cy);
@@ -378,7 +377,7 @@ EditResult ApplyTool(GameState& s, Simulation& sim, Tool tool, int cx, int cy, i
         // word, ...) keeps its old values; the soil counters come from the zone bytes of the plot under the field's
         // centre (N = A = byte 6, pests = byte 2, disease = byte 3, weeds = byte 4), B = 65, C = 80
         Field f = s.FieldAt(index);
-        const size_t zb = static_cast<size_t>(((cx + 4) >> 3) * 12 + ((cy + 4) >> 3)) * 7;
+        const size_t zb = s.PlotByte((cx + 4) >> 3, (cy + 4) >> 3, 0);
         auto zone = [&](int k) { return zb + k < s.zones.size() ? s.zones[zb + k] : 0; };
         f.Set16(0x28, 0);
         f.Set8(0x08, cx); f.Set8(0x09, cy); f.Set8(0x0A, 8); f.Set8(0x0B, 8);

@@ -104,11 +104,15 @@ struct GameState
     void SetMarketPrice(int crop, int v) { SetCatalogPrice(kCropRecord0 + crop, v); }
     int Contracts(int crop) const { return CatalogOwn(kCropRecord0 + crop); }
 
-    // plot grid: 144 plots x 7 bytes (type|level<<4, ownership, zone maps...)
-    int PlotType(int col, int row) const { return Rd8(zones, static_cast<size_t>(col * 12 + row) * 7 + 0); }
-    int PlotOwner(int col, int row) const { return Rd8(zones, static_cast<size_t>(col * 12 + row) * 7 + 1); }
-    void SetPlotType(int col, int row, int v) { Wr8(zones, static_cast<size_t>(col * 12 + row) * 7 + 0, v); }
-    void SetPlotOwner(int col, int row, int owner) { Wr8(zones, static_cast<size_t>(col * 12 + row) * 7 + 1, owner); }
+    // plot grid: Plots() x Plots() plots (144 on the original's map) x 7 bytes (type|level<<4, ownership, zone maps...)
+    int Plots() const { return world.Plots(); }
+    size_t PlotByte(int col, int row, int k) const { return static_cast<size_t>(col * Plots() + row) * 7 + k; }
+    int PlotType(int col, int row) const { return Rd8(zones, PlotByte(col, row, 0)); }
+    int PlotOwner(int col, int row) const { return Rd8(zones, PlotByte(col, row, 1)); }
+    void SetPlotType(int col, int row, int v) { Wr8(zones, PlotByte(col, row, 0), v); }
+    void SetPlotOwner(int col, int row, int owner) { Wr8(zones, PlotByte(col, row, 1), owner); }
+    // a new, empty map of n x n cells with its plot table (the larger worlds of world creation)
+    void ResizeMap(int n) { world.Resize(n); zones.assign(static_cast<size_t>(world.Plots()) * world.Plots() * 7, 0); }
 
     // schedule timeline: 240 rows (weeks) x 98 fields of u16 codes
     int ScheduleCode(int row, int field) const { return Rd16(timeline, (static_cast<size_t>(row) * 98 + (field - 1)) * 2); }

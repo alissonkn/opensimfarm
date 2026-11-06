@@ -98,7 +98,7 @@ private:
     struct Route
     {
         int tx = -1, ty = -1;
-        std::vector<int> cells; // x * 96 + y, from the first step to the destination
+        std::vector<int> cells; // x * map size + y, from the first step to the destination
         size_t next = 0;
         int steps = 0;
         int waited = 0; // ticks spent waiting for another machine on the next cells

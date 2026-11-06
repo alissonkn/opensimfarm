@@ -35,6 +35,8 @@ private:
     bool ToPicture(int px, int py, int& x, int& y) const;
     std::string DesignEvent(int x, int y);
     void DrawDesign();
+    void ToggleMapSize();
+    void DrawMapSizeButton();
     void Climate(int gx, int gy);
     bool Valid(int gx, int gy) const; // the region grid's valid cells
     void Generate(bool byButton = false);
@@ -54,9 +56,12 @@ private:
     bool _regionPicked = false;
     int _cellX = 0, _cellY = 0; // picked region cell
     WorldOptions _opt;
+    bool _byButton = false;
+    int _designMapSize = 96; // the design screen's MAP button (96 or 144)
     GameState _template, _world;
     bool _haveWorld = false;
     std::vector<uint32_t> _preview;
+    int _previewSide = 192;
 };
 
 } // namespace osf

@@ -628,6 +628,7 @@ void GameUi::DrawEditFrame()
     float vx = 0, vy = 0, vw = 1, vh = 1;
     if (_ctx.view)
         _ctx.view->VisibleCells(vx, vy, vw, vh);
+    const int cells = _ctx.view ? _ctx.view->MapSize() : kOriginalMapSize;
     const int B = kScrollBar, A = kScrollArrow;
     // checkered tracks: light grey with every other pixel dark
     _g.Fill(right, m.y, B, bottom - A - m.y, kLightGrey);
@@ -639,8 +640,8 @@ void GameUi::DrawEditFrame()
         for (int x = A + (y & 1); x < right - A; x += 2)
             _g.Fill(x, y, 1, 1, kDarkGrey);
     const int vTrack = bottom - A - m.y, hTrack = right - 2 * A;
-    _g.Fill(right + 1, m.y + static_cast<int>(ThumbFraction(vy, vh) * (vTrack - A)), B - 2, A, kWhite);
-    _g.Fill(A + static_cast<int>(ThumbFraction(vx, vw) * (hTrack - A)), bottom + 1, A, B - 2, kWhite);
+    _g.Fill(right + 1, m.y + static_cast<int>(ThumbFraction(vy, vh, cells) * (vTrack - A)), B - 2, A, kWhite);
+    _g.Fill(A + static_cast<int>(ThumbFraction(vx, vw, cells) * (hTrack - A)), bottom + 1, A, B - 2, kWhite);
     button(right, kStatusY, B, 14, 0);
     button(right, bottom - A, B, A, 2);
     button(0, bottom, A, B, 3);
@@ -650,11 +651,11 @@ void GameUi::DrawEditFrame()
 }
 
 // where a scroll thumb sits along its track: 0 with the view at the top / left edge of the farm, 1 at the bottom /
-// right edge, whatever the zoom (the view can only move 96 cells less what it shows; user finding: at some zoom
-// levels the thumb stopped short of the end)
-float GameUi::ThumbFraction(float pos, float shown)
+// right edge, whatever the zoom (the view can only move the map's cells less what it shows; user finding: at some
+// zoom levels the thumb stopped short of the end)
+float GameUi::ThumbFraction(float pos, float shown, int mapCells)
 {
-    const float range = 96.0f - shown;
+    const float range = static_cast<float>(mapCells) - shown;
     return range > 0.01f ? std::clamp(pos / range, 0.0f, 1.0f) : 0.0f;
 }
 
@@ -669,9 +670,9 @@ bool GameUi::FrameClick(int x, int y)
     int dx = 0, dy = 0;
     const int B = kScrollBar, A = kScrollArrow;
     if (x >= right && x < right + B && y >= kStatusY && y < bottom)
-        dy = y < m.y ? -1 : y >= bottom - A ? 1 : (y - m.y < ThumbFraction(vy, vh) * (bottom - 2 * A - m.y) ? -static_cast<int>(vh) : static_cast<int>(vh));
+        dy = y < m.y ? -1 : y >= bottom - A ? 1 : (y - m.y < ThumbFraction(vy, vh, _ctx.view->MapSize()) * (bottom - 2 * A - m.y) ? -static_cast<int>(vh) : static_cast<int>(vh));
     else if (y >= bottom && y < bottom + B && x >= 0 && x < right)
-        dx = x < A ? -1 : x >= right - A ? 1 : (x - A < ThumbFraction(vx, vw) * (right - 3 * A) ? -static_cast<int>(vw) : static_cast<int>(vw));
+        dx = x < A ? -1 : x >= right - A ? 1 : (x - A < ThumbFraction(vx, vw, _ctx.view->MapSize()) * (right - 3 * A) ? -static_cast<int>(vw) : static_cast<int>(vw));
     else
         return false;
     _ctx.view->SetTopLeft(static_cast<int>(vx) + dx, static_cast<int>(vy) + dy);

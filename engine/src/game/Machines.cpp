@@ -24,7 +24,6 @@ enum : int { kTractor = 0, kPlow = 1, kPlanter = 2, kSprayer = 3, kHarvester = 4
 
 bool IsGround(int id) { return id >= 15 && id <= 30; }
 bool IsRoad(int id) { return (id >= 150 && id <= 171) || (id >= 188 && id <= 191) || (id >= 118 && id <= 119); } // bridges too
-bool InMap(int x, int y) { return x >= 0 && y >= 0 && x < kMapSize && y < kMapSize; }
 int Dist2(int x0, int y0, int x1, int y1) { return (x0 - x1) * (x0 - x1) + (y0 - y1) * (y0 - y1); }
 
 } // namespace
@@ -53,7 +52,7 @@ Machines::Machines(GameState& s, Simulation& sim) : _s(s), _sim(sim)
 {
     // a machine picture (tiles 848 .. 911) on a cell no drawn machine covers is a half truck left by an earlier engine
     // version (user finding F38) and saved with the game: it is taken away. The original's own farms have none.
-    std::vector<bool> covered(static_cast<size_t>(kMapSize) * kMapSize, false);
+    std::vector<bool> covered(static_cast<size_t>(_s.world.size) * _s.world.size, false);
     for (int i = 1; i < 127; ++i)
     {
         Machine m(_s.machines, i);
@@ -63,16 +62,16 @@ Machines::Machines(GameState& s, Simulation& sim) : _s(s), _sim(sim)
         for (int k = 0; k < Cells(m.Type()); ++k)
         {
             const int x = m.X() + (v ? 0 : k), y = m.Y() + (v ? k : 0);
-            if (InMap(x, y))
-                covered[static_cast<size_t>(x) * kMapSize + y] = true;
+            if (_s.world.In(x, y))
+                covered[static_cast<size_t>(x) * _s.world.size + y] = true;
         }
     }
-    for (int x = 0; x < kMapSize; ++x)
-        for (int y = 0; y < kMapSize; ++y)
+    for (int x = 0; x < _s.world.size; ++x)
+        for (int y = 0; y < _s.world.size; ++y)
         {
             MapCell& c = _s.world.At(x, y);
             const int o = c.overlay & 0x7FF;
-            if (c.HasObject() && o >= 848 && o <= 911 && !covered[static_cast<size_t>(x) * kMapSize + y])
+            if (c.HasObject() && o >= 848 && o <= 911 && !covered[static_cast<size_t>(x) * _s.world.size + y])
             {
                 c.base &= static_cast<uint16_t>(~0x800);
                 c.overlay &= 0xF800;
@@ -91,7 +90,7 @@ void Machines::Lift(Machine& m)
     {
         const bool vertical = (m.Heading() & 7) == 0 || (m.Heading() & 7) == 4;
         const int x = m.X() + (vertical ? 0 : k), y = m.Y() + (vertical ? k : 0);
-        if (!InMap(x, y) || !drawn)
+        if (!_s.world.In(x, y) || !drawn)
             continue;
         MapCell& c = _s.world.At(x, y);
         const int o = c.overlay & 0x7FF;
@@ -111,7 +110,7 @@ void Machines::Stamp(Machine& m)
     for (int k = 0; k < n; ++k)
     {
         const int x = m.X() + (vertical ? 0 : k), y = m.Y() + (vertical ? k : 0);
-        if (!InMap(x, y))
+        if (!_s.world.In(x, y))
             return; // blocked: the machine stays unmarked
         if (_s.world.At(x, y).HasObject())
         {
@@ -140,16 +139,16 @@ void Machines::StampTowed(Machine& lead)
     const int h = lead.Heading() & 7;
     const int back = (h + 4) & 7;
     imp.SetHeading(h);
-    imp.SetPos(std::clamp(lead.X() + kDx[back] * Cells(imp.Type()), 0, kMapSize - 1), std::clamp(lead.Y() + kDy[back] * Cells(imp.Type()), 0, kMapSize - 1));
+    imp.SetPos(std::clamp(lead.X() + kDx[back] * Cells(imp.Type()), 0, _s.world.size - 1), std::clamp(lead.Y() + kDy[back] * Cells(imp.Type()), 0, _s.world.size - 1));
     if (h == 0 && Cells(lead.Type()) == 2)
-        imp.SetPos(imp.X(), std::min(kMapSize - 1, lead.Y() + 2)); // behind a two-cell vehicle facing north
+        imp.SetPos(imp.X(), std::min(_s.world.size - 1, lead.Y() + 2)); // behind a two-cell vehicle facing north
     Stamp(imp);
 }
 
 // ---------------------------------------------------------------- steering
 int Machines::Cost(const Machine& m, int x, int y) const
 {
-    if (!InMap(x, y))
+    if (!_s.world.In(x, y))
         return kBlocked;
     int cost;
     if (Dist2(x, y, m.TargetX(), m.TargetY()) <= 4)
@@ -174,13 +173,13 @@ bool Machines::PlanRoute(const Machine& m, Route& r) const
     r = Route{};
     r.tx = m.TargetX();
     r.ty = m.TargetY();
-    if (!InMap(r.tx, r.ty) || !InMap(m.X(), m.Y()))
+    if (!_s.world.In(r.tx, r.ty) || !_s.world.In(m.X(), m.Y()))
         return false;
-    constexpr int N = kMapSize * kMapSize;
+    const int N = _s.world.size * _s.world.size;
     std::vector<int> dist(N, INT_MAX), from(N, -1);
     using Item = std::pair<int, int>;
     std::priority_queue<Item, std::vector<Item>, std::greater<Item>> open;
-    const int start = m.X() * kMapSize + m.Y(), goal = r.tx * kMapSize + r.ty;
+    const int start = m.X() * _s.world.size + m.Y(), goal = r.tx * _s.world.size + r.ty;
     dist[start] = 0;
     open.push({ 0, start });
     while (!open.empty())
@@ -191,11 +190,11 @@ bool Machines::PlanRoute(const Machine& m, Route& r) const
             continue;
         if (c == goal)
             break;
-        const int cx = c / kMapSize, cy = c % kMapSize;
+        const int cx = c / _s.world.size, cy = c % _s.world.size;
         for (int h = 0; h < 8; h += 2)
         {
             const int nx = cx + kDx[h], ny = cy + kDy[h];
-            if (!InMap(nx, ny))
+            if (!_s.world.In(nx, ny))
                 continue;
             int step;
             if (Dist2(nx, ny, r.tx, r.ty) <= 4)
@@ -209,7 +208,7 @@ bool Machines::PlanRoute(const Machine& m, Route& r) const
             }
             if (step < 0)
                 continue;
-            const int n = nx * kMapSize + ny;
+            const int n = nx * _s.world.size + ny;
             if (d + step < dist[n])
             {
                 dist[n] = d + step;
@@ -240,7 +239,7 @@ bool Machines::MachineInWay(const Machine& m, int x, int y, int heading) const
     for (int k = 0; k < Cells(m.Type()); ++k)
     {
         const int cx = x + (vertical ? 0 : k), cy = y + (vertical ? k : 0);
-        if (!InMap(cx, cy))
+        if (!_s.world.In(cx, cy))
             continue;
         const MapCell& c = _s.world.At(cx, cy);
         const int o = c.overlay & 0x7FF;
@@ -260,16 +259,16 @@ int Machines::RouteStep(Machine& m)
     if (!smartDriving)
         return -1;
     Route& r = _routes[m.index];
-    const int here = m.X() * kMapSize + m.Y();
+    const int here = m.X() * _s.world.size + m.Y();
     auto valid = [&] {
         if (r.tx != m.TargetX() || r.ty != m.TargetY() || r.next >= r.cells.size())
             return false;
         // on the route: the next cell must be a neighbour of the machine and still open
         if (r.next > 0 && r.cells[r.next - 1] != here)
             return false;
-        if (r.next == 0 && std::abs(r.cells[0] / kMapSize - m.X()) + std::abs(r.cells[0] % kMapSize - m.Y()) != 1)
+        if (r.next == 0 && std::abs(r.cells[0] / _s.world.size - m.X()) + std::abs(r.cells[0] % _s.world.size - m.Y()) != 1)
             return false;
-        const int nx = r.cells[r.next] / kMapSize, ny = r.cells[r.next] % kMapSize;
+        const int nx = r.cells[r.next] / _s.world.size, ny = r.cells[r.next] % _s.world.size;
         if (Dist2(nx, ny, r.tx, r.ty) <= 4)
             return true;
         const int id = _s.world.At(nx, ny).BaseTile();
@@ -280,7 +279,7 @@ int Machines::RouteStep(Machine& m)
         r = Route{};
         return -1;
     }
-    const int nx = r.cells[r.next] / kMapSize, ny = r.cells[r.next] % kMapSize;
+    const int nx = r.cells[r.next] / _s.world.size, ny = r.cells[r.next] % _s.world.size;
     for (int h = 0; h < 8; h += 2)
         if (m.X() + kDx[h] == nx && m.Y() + kDy[h] == ny)
         {
@@ -344,7 +343,9 @@ bool Machines::Drive(Machine& m)
         }
         return true;
     }
-    const int dx = static_cast<int8_t>(m.X() - m.TargetX()), dy = static_cast<int8_t>(m.Y() - m.TargetY());
+    // (signed bytes as the original; on a larger world, an engine addition, a distance can pass 127 and is kept whole)
+    auto s8 = [&](int v) { return _s.world.size > 128 ? v : static_cast<int>(static_cast<int8_t>(v)); };
+    const int dx = s8(m.X() - m.TargetX()), dy = s8(m.Y() - m.TargetY());
     int heading;
     if (std::abs(dy) >= std::abs(dx))
         heading = dy < 0 ? 4 : 0;
@@ -633,7 +634,7 @@ void Machines::Remove(int index)
     {
         for (int k = 0; k < 4; ++k)
         {
-            MapCell& c = _s.world.At(std::min(kMapSize - 1, m.HomeX() + k % 2), std::min(kMapSize - 1, m.HomeY() + k / 2));
+            MapCell& c = _s.world.At(std::min(_s.world.size - 1, m.HomeX() + k % 2), std::min(_s.world.size - 1, m.HomeY() + k / 2));
             c.base = static_cast<uint16_t>((c.base & 0xF800) | 23);
         }
         const int pc = m.HomeX() / 8, pr = m.HomeY() / 8, slot = m.HomeX() % 8;
@@ -650,7 +651,7 @@ bool Machines::FootprintFree(int type, int x, int y) const
 {
     for (int k = 0; k < Cells(type); ++k)
     {
-        if (!InMap(x, y + k))
+        if (!_s.world.In(x, y + k))
             return false;
         const MapCell& c = _s.world.At(x, y + k);
         if (c.HasObject() || !(IsGround(c.BaseTile()) || IsRoad(c.BaseTile())) || _s.PlotOwner(x / 8, (y + k) / 8) != 1)
@@ -662,7 +663,7 @@ bool Machines::FootprintFree(int type, int x, int y) const
 int Machines::Lease(int type)
 {
     const int hx = static_cast<int>(_sim.Scalar("homestead_x")), hy = static_cast<int>(_sim.Scalar("homestead_y"));
-    return Create(type, std::clamp(hx * 8 + 1, 0, kMapSize - 1), std::clamp(hy * 8 + 5, 0, kMapSize - 1), true);
+    return Create(type, std::clamp(hx * 8 + 1, 0, _s.world.size - 1), std::clamp(hy * 8 + 5, 0, _s.world.size - 1), true);
 }
 
 int Machines::Dispatch(int type, int x, int y)
@@ -785,7 +786,7 @@ bool Machines::SweepStep(Field& f, Machine& lead, int paintTile)
         return true;
     Lift(lead);
     lead.SetHeading(ny != lead.Y() ? 4 : dir > 0 ? 2 : 6);
-    lead.SetPos(std::clamp(nx, 0, kMapSize - 1), ny);
+    lead.SetPos(std::clamp(nx, 0, _s.world.size - 1), ny);
     // every step runs the occupancy test over the lead's whole footprint (the catalogue
     // size, turned with the heading: a harvester driving along a row covers two cells), in order; the first animal
     // found kicks (and loses its female bit), and the machine and its implement are not drawn for this step (F7E4).
@@ -795,7 +796,7 @@ bool Machines::SweepStep(Field& f, Machine& lead, int paintTile)
     for (int k = 0; k < Cells(lead.Type()) && hx < 0; ++k)
     {
         const int cx = lead.X() + (vertical ? 0 : k), cy = lead.Y() + (vertical ? k : 0);
-        if (InMap(cx, cy) && _s.world.At(cx, cy).HasObject())
+        if (_s.world.In(cx, cy) && _s.world.At(cx, cy).HasObject())
         {
             hx = cx;
             hy = cy;
@@ -1155,7 +1156,7 @@ void Machines::Week()
             // outside a building its footprint gets the dust puff, which leaves bare ground when it ends
             for (int dx = 0; dx < w; ++dx)
                 for (int dy = 0; dy < cells; ++dy)
-                    if (InMap(x + dx, y + dy))
+                    if (_s.world.In(x + dx, y + dy))
                     {
                         MapCell& c = _s.world.At(x + dx, y + dy);
                         c.base = static_cast<uint16_t>((c.base & 0xF800) | Simulation::GroundTileFor(_sim.SoilWetness(), c));
@@ -1241,7 +1242,7 @@ void Machines::StepBarrels()
                 if (_s.world.At(dx, dy).HasObject())
                 {
                     dx = m.X();
-                    dy = std::min(kMapSize - 1, m.Y() + 1);
+                    dy = std::min(_s.world.size - 1, m.Y() + 1);
                 }
                 MapCell& c = _s.world.At(dx, dy);
                 if (!c.HasObject())

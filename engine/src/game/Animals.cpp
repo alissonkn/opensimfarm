@@ -16,7 +16,6 @@ constexpr int kDy[8] = { -1, -1, 0, 1, 1, 1, 0, -1 };
 constexpr int kHungerLimit[4] = { 50, 35, 56, 56 };
 constexpr int kThirstLimit[4] = { 160, 160, 80, 64 };
 constexpr int kBrokenFence = 0xC0;
-bool InMap(int x, int y) { return x >= 0 && y >= 0 && x < kMapSize && y < kMapSize; }
 size_t Rec(int i) { return static_cast<size_t>(i) * 32; }
 } // namespace
 
@@ -25,7 +24,7 @@ bool Animals::Passable(int x, int y) const
     // the base tile must be a trough (175-176), ground (15-30), road (150-171), rock (535-538), tree
     // (131-146), crop (680-840), an open gate or broken fence (189, 191, 192, 193), or tiles 36 / 12; a cell holding an
     // object passes only when its overlay is 962 (the family bounds read from memory)
-    if (!InMap(x, y))
+    if (!_s.world.In(x, y))
         return false;
     const MapCell& c = _s.world.At(x, y);
     const int id = c.BaseTile();
@@ -39,7 +38,7 @@ bool Animals::Passable(int x, int y) const
 
 void Animals::Lift(int x, int y)
 {
-    if (!InMap(x, y))
+    if (!_s.world.In(x, y))
         return;
     MapCell& c = _s.world.At(x, y);
     const int o = c.overlay & 0x7FF;
@@ -54,7 +53,7 @@ void Animals::Stamp(int i)
 {
     const size_t b = Rec(i);
     const int x = Rd8(_s.animals, b), y = Rd8(_s.animals, b + 1);
-    if (!InMap(x, y))
+    if (!_s.world.In(x, y))
         return;
     MapCell& c = _s.world.At(x, y);
     c.base |= 0x800;
@@ -277,7 +276,7 @@ void Animals::Step(int i)
     }
     Wr8(_s.animals, b + 4, h);
     const int nx = x + kDx[h], ny = y + kDy[h];
-    if (!InMap(nx, ny))
+    if (!_s.world.In(nx, ny))
     {
         Wr8(_s.animals, b + 4, HeadingTo(x, y, tx, ty)); // the map edge: turn toward the target, no step
         return;
@@ -343,7 +342,7 @@ int Animals::AnimalAt(int x, int y) const
 bool Animals::MoveTo(int i, int x, int y)
 {
     const size_t b = Rec(i);
-    if (!InMap(x, y) || _s.world.At(x, y).HasObject() || !Passable(x, y))
+    if (!_s.world.In(x, y) || _s.world.At(x, y).HasObject() || !Passable(x, y))
         return false;
     Lift(Rd8(_s.animals, b), Rd8(_s.animals, b + 1));
     Wr8(_s.animals, b, x);
@@ -387,7 +386,7 @@ bool Animals::FeedAt(int i, bool hay)
     for (int dx = -2; dx <= 2; ++dx)
         for (int dy = -2; dy <= 2; ++dy)
         {
-            if (!InMap(x + dx, y + dy))
+            if (!_s.world.In(x + dx, y + dy))
                 continue;
             const MapCell& c = _s.world.At(x + dx, y + dy);
             const int o = c.overlay & 0x7FF;

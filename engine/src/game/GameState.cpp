@@ -22,8 +22,6 @@ int Calendar::Season() const
 
 namespace {
 
-constexpr size_t kSaveSize = 139072;
-
 // Scalar tail, in the order the original writes it.
 const std::vector<std::pair<const char*, int>>& TailLayout()
 {
@@ -60,11 +58,15 @@ bool GameState::Load(const std::string& gameDir, const std::string& path, std::s
 {
     std::ifstream f(path, std::ios::binary);
     std::vector<uint8_t> d((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
-    if (d.size() != kSaveSize)
+    size_t body = 0;
+    const int mapSize = SaveFileMapSize(d, body);
+    if (!mapSize)
     {
-        error = "not an original SimFarm save or prebuilt farm: " + path;
+        error = "not a SimFarm save or prebuilt farm: " + path;
         return false;
     }
+    d.resize(body); // the signature is not part of the game
+    world.Resize(mapSize);
     size_t o = 0;
     auto take = [&](std::vector<uint8_t>& dst, size_t n) {
         dst.assign(d.begin() + o, d.begin() + o + n);
@@ -106,7 +108,7 @@ bool GameState::Load(const std::string& gameDir, const std::string& path, std::s
         irrigationLists = m;
     }
     take(cropNames, 16 * 14);
-    take(zones, 12 * 12 * 7);
+    take(zones, static_cast<size_t>(world.Plots()) * world.Plots() * 7);
     take(eventGrounds, 8 * 2);
     take(tail, d.size() - o);
 
@@ -171,7 +173,7 @@ bool GameState::Save(const std::string& path, std::string& error) const
     GameState copy = *this;
     copy.StoreScalarsToTail();
     std::vector<uint8_t> d;
-    d.reserve(kSaveSize);
+    d.reserve(SaveBodySize(world.size) + kSaveSignatureSize);
     auto put = [&](const std::vector<uint8_t>& v) { d.insert(d.end(), v.begin(), v.end()); };
     auto put16 = [&](int v) { d.push_back(static_cast<uint8_t>(v & 0xFF)); d.push_back(static_cast<uint8_t>((v >> 8) & 0xFF)); };
     put(copy.version);
@@ -200,11 +202,12 @@ bool GameState::Save(const std::string& path, std::string& error) const
     }
     put(copy.weather); put(copy.catalog); put(copy.irrigationFlag); put(copy.irrigationLists);
     put(copy.cropNames); put(copy.zones); put(copy.eventGrounds); put(copy.tail);
-    if (d.size() != kSaveSize)
+    if (d.size() != SaveBodySize(world.size) || copy.zones.size() != static_cast<size_t>(world.Plots()) * world.Plots() * 7)
     {
         error = "internal error: save size mismatch";
         return false;
     }
+    AppendSaveSignature(d, world.size); // OpenSimFarm's mark; the original ignores it
     std::ofstream out(path, std::ios::binary);
     out.write(reinterpret_cast<const char*>(d.data()), static_cast<std::streamsize>(d.size()));
     return static_cast<bool>(out);

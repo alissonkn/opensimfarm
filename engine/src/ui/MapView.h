@@ -35,6 +35,7 @@ public:
     // headless check of the smoothing and of the glide tracking (--graphicstest); 0 when all is well
     static int SelfTest(const MapGraphics& gfx);
     void SetWorld(const World* world) { _world = world; }
+    int MapSize() const { return _world ? _world->size : kOriginalMapSize; }
     void SetEventBank(int bank) { _eventBank = bank; } // the rodeo (1) / fair (2) pictures of the event ground, 0 = none
 
     void HandleEvent(const SDL_Event& e);
@@ -71,7 +72,7 @@ private:
     bool GlidePosition(int cell, double now, float& px, float& py) const; // world pixels; false when not gliding
     static int MoverKind(int overlay);                                      // -1 for things that do not move
     struct Glide;
-    static bool GlideAt(const Glide& g, int cell, double now, float& px, float& py);
+    bool GlideAt(const Glide& g, int cell, double now, float& px, float& py) const;
     static double Now();
 
     // smooth atlases for one shown tile size (lazily built; plain and event tiles change with the palette and crops)

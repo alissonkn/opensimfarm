@@ -17,8 +17,6 @@ constexpr int kPumpPower = 0x40;
 constexpr int kWindmillKind = 0x30;
 constexpr int kDx[4] = { 0, 1, 0, -1 }; // north, east, south, west
 constexpr int kDy[4] = { -1, 0, 1, 0 };
-int Clamp(int v) { return std::clamp(v, 0, kMapSize - 1); }
-bool InMap(int x, int y) { return x >= 0 && y >= 0 && x < kMapSize && y < kMapSize; }
 bool IsPump(int id) { return id == 120 || id == 121; }
 } // namespace
 
@@ -64,7 +62,7 @@ void Irrigation::Flip(int x, int y)
 {
     // queuing a cell: a fill marks it and fills an empty ditch, an emptying pass unmarks it and empties a full one.
     // The coordinates arrive as bytes, so -1 becomes 255 and is clamped to the far edge.
-    MapCell& c = _s.world.At(Clamp(x & 0xFF), Clamp(y & 0xFF));
+    MapCell& c = _s.world.At(_s.world.Clamp(x & 0xFF), _s.world.Clamp(y & 0xFF));
     const int id = c.BaseTile();
     if (_parity)
     {
@@ -83,7 +81,7 @@ void Irrigation::Flip(int x, int y)
 bool Irrigation::Touched(int x, int y) const
 {
     // "already done in this pass": marked in a fill, unmarked in an emptying pass
-    const bool marked = (_s.world.At(Clamp(x), Clamp(y)).base & kTouched) != 0;
+    const bool marked = (_s.world.At(_s.world.Clamp(x), _s.world.Clamp(y)).base & kTouched) != 0;
     return _parity ? marked : !marked;
 }
 
@@ -96,7 +94,7 @@ int Irrigation::Mask(int x, int y, int& mask) const
     for (int k = 0; k < 4; ++k)
     {
         const int nx = x + kDx[k], ny = y + kDy[k];
-        if (!InMap(nx, ny))
+        if (!_s.world.In(nx, ny))
             continue;
         const int id = _s.world.At(nx, ny).BaseTile();
         const bool piece = (id >= 87 && id <= 120) || id == 122 || id == 124 || id == 172 || id == 173 || IsPump(id) ||
@@ -134,7 +132,7 @@ bool Irrigation::SourceBesideWater(int x, int y) const
         return false;
     for (int cx = x - 1; cx < x + 2; ++cx)
         for (int cy = y - 1; cy < y + 2; ++cy)
-            if (_s.world.At(Clamp(cx), Clamp(cy)).base & kWaterCell)
+            if (_s.world.At(_s.world.Clamp(cx), _s.world.Clamp(cy)).base & kWaterCell)
                 return true;
     return false;
 }

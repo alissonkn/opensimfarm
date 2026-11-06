@@ -15,6 +15,12 @@ game behaves and how its files are laid out.
 ## Features
 * The farm, its crops, animals, machines, weather, disasters, market, bank and town, as in the original
 * Loads and saves the original's saved games
+* Larger worlds: Design Your Own can make a world of 144 x 144 cells instead of 96 x 96 (the MAP button under the
+  design picture), more than twice the land in the same plots of 8 x 8 cells. Everything else (fields, machines,
+  animals, buildings) keeps the original's limits
+* Saves written by OpenSimFarm end with a small signature that records the map size. The original game reads
+  a 96 x 96 one as usual; a save without it (one from the original) opens as before and gets it the next time it is
+  saved. A 144 x 144 world can only be played in OpenSimFarm
 * Zoom (mouse wheel or the + / − buttons) and moving around with the arrow keys or WASD, at any window size
 * A radio at the right of the menu bar: skip back and forth through the game's songs, pause and resume the music,
   or leave the choice to the game (AUTO)
@@ -151,9 +157,9 @@ The checks are built into the program. `SDL_VIDEODRIVER=dummy` keeps them from o
 ```
 cd engine
 export SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy
-./build/opensimfarm --selftest      # every prebuilt farm loaded and saved again, byte for byte
+./build/opensimfarm --selftest      # every prebuilt farm loaded and saved again: the same bytes, then the signature
 ./build/opensimfarm --toolstest     # fields, machines, roads, the shop, land, disasters, the crop duster, save and reload
-./build/opensimfarm --newgametest   # a generated world: a field, a ditch, machines, a harvest sold, save and reload
+./build/opensimfarm --newgametest   # generated worlds of 96 and 144: a field, a ditch, a harvest sold, land, save and reload
 ./build/opensimfarm --audiotest     # Modern Sound: every song and effect rendered (about 10 s)
 ./build/opensimfarm --graphicstest  # Modern Render: smoothing of every tile, and the glides
 ./build/opensimfarm --simulate 400  # 400 game days, with a report

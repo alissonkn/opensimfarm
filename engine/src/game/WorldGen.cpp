@@ -18,7 +18,6 @@ namespace osf {
 
 namespace {
 constexpr int kWater = 39 + 0x10;
-bool InMap(int x, int y) { return x >= 0 && y >= 0 && x < kMapSize && y < kMapSize; }
 bool IsWater(const MapCell& c) { return (c.base & 0x2000) != 0; }
 
 // one of the 12 climate tables: 60 lines x 4 comma-separated values = 240 weeks
@@ -102,15 +101,18 @@ bool GenerateWorld(const std::string& gameDir, const Megadata& mega, const GameS
     // 1. a height map by midpoint displacement in the tile layer: every cell starts at word 0,
     // each pass fills the cells off the coarser lattice with the mean of its aligned neighbours plus a random step,
     // clamped to 1..15, as ground base + value. Reads past the last column fall into the cleared overlay layer.
-    std::vector<uint16_t> words(static_cast<size_t>(kMapSize) * kMapSize * 2, 0);
+    // a larger world (an engine addition) runs the same passes over its own size
+    const int N = opt.mapSize == kLargeMapSize ? kLargeMapSize : kOriginalMapSize, P = N / kPlotCells;
+    s.ResizeMap(N);
+    std::vector<uint16_t> words(static_cast<size_t>(N) * N * 2, 0);
     auto H = [&](int a, int b) {
-        if (a < 0) a = -a; else if (a > 96) a -= 96;
-        if (b < 0) b = -b; else if (b > 96) b -= 96;
-        return ((words[static_cast<size_t>(a * 96 + b)] & 0xFF) - 15) & 15;
+        if (a < 0) a = -a; else if (a > N) a -= N;
+        if (b < 0) b = -b; else if (b > N) b -= N;
+        return ((words[static_cast<size_t>(a * N + b)] & 0xFF) - 15) & 15;
     };
     for (const auto& [step, mask] : { std::pair{ 16, 31 }, { 8, 15 }, { 4, 7 }, { 2, 3 }, { 1, 1 } })
-        for (int x = 0; x < 96; x += step)
-            for (int y = 0; y < 96; y += step)
+        for (int x = 0; x < N; x += step)
+            for (int y = 0; y < N; y += step)
             {
                 const bool xOn = (mask & x) == 0, yOn = (mask & y) == 0;
                 if (xOn && yOn)
@@ -123,16 +125,16 @@ bool GenerateWorld(const std::string& gameDir, const Megadata& mega, const GameS
                     v = ((H(x, y - step) + H(x, y + step)) >> 1) + r;
                 else
                     v = ((H(x + step, y - step) + H(x - step, y - step) + H(x + step, y + step) + H(x - step, y + step)) >> 2) + r;
-                words[static_cast<size_t>(x * 96 + y)] = static_cast<uint16_t>(15 + (std::clamp(v, 1, 15) & 15));
+                words[static_cast<size_t>(x * N + y)] = static_cast<uint16_t>(15 + (std::clamp(v, 1, 15) & 15));
             }
     // 2. the scatter: the height becomes the terrain byte and the ground shade; high cells
     // grow a tree (7 in 16), middling ones a rock (2 in 16)
     const int kWet = std::clamp(opt.wetness, 0, 12); // the ground shade term
-    for (int y = 0; y < 96; ++y)
-        for (int x = 0; x < 96; ++x)
+    for (int y = 0; y < N; ++y)
+        for (int x = 0; x < N; ++x)
         {
             MapCell& c = s.world.At(x, y);
-            const uint16_t w = words[static_cast<size_t>(x * 96 + y)];
+            const uint16_t w = words[static_cast<size_t>(x * N + y)];
             const int t = ((w & 0xFF) - 15) & 15;
             c.terrain = static_cast<uint8_t>(t);
             c.overlay = 0;
@@ -143,17 +145,17 @@ bool GenerateWorld(const std::string& gameDir, const Megadata& mega, const GameS
                 c.base = static_cast<uint16_t>(535 + (g.Shift() & 3));
         }
     // then the terrain byte is smoothed in place: the mean of the 8 neighbours (edges clamped)
-    auto T = [&](int x, int y) { return static_cast<int>(s.world.At(std::clamp(x, 0, 95), std::clamp(y, 0, 95)).terrain); };
-    for (int y = 1; y < 96; ++y)
-        for (int x = 1; x < 96; ++x)
+    auto T = [&](int x, int y) { return static_cast<int>(s.world.At(std::clamp(x, 0, N - 1), std::clamp(y, 0, N - 1)).terrain); };
+    for (int y = 1; y < N; ++y)
+        for (int x = 1; x < N; ++x)
             s.world.At(x, y).terrain = static_cast<uint8_t>(
                 ((T(x + 1, y - 1) + T(x, y - 1) + T(x - 1, y - 1) + T(x + 1, y + 1) + T(x, y + 1) + T(x - 1, y + 1) + T(x + 1, y) + T(x - 1, y)) & 0xFF) >> 3);
     // and every plot gets its attributes: three random levels (weeds, disease, pests: bytes 4, 3, 2) and, from
     // the terrain byte of cell (column, row) - not of the plot - bytes 6 (land value, N/A) and 5
-    for (int c = 0; c < 12; ++c)
-        for (int r = 0; r < 12; ++r)
+    for (int c = 0; c < P; ++c)
+        for (int r = 0; r < P; ++r)
         {
-            const size_t z = static_cast<size_t>(c * 12 + r) * 7;
+            const size_t z = s.PlotByte(c, r, 0);
             s.zones[z + 4] = static_cast<uint8_t>((g.Shift() & 15) << 2);
             s.zones[z + 3] = static_cast<uint8_t>((g.Shift() & 15) << 2);
             s.zones[z + 2] = static_cast<uint8_t>((g.Shift() & 15) << 2);
@@ -166,13 +168,13 @@ bool GenerateWorld(const std::string& gameDir, const Megadata& mega, const GameS
         // a 3-cell-wide random walk across the map: the axis by a coin, the start by G3 0..93, and per
         // step a coin for the direction and a coin for the move
         const bool alongY = (g.Shift() & 1) != 0;
-        int off = g.g3.Bounded(0x5E);
-        for (int step = 0; step < 96; ++step)
+        int off = g.g3.Bounded(N - 2); // 0..94 on the original map
+        for (int step = 0; step < N; ++step)
         {
             const int x = alongY ? off : step, y = alongY ? step : off;
-            if (InMap(x, y))
+            if (s.world.In(x, y))
                 for (int k = 0; k < 3; ++k)
-                    if (InMap(alongY ? x + k : x, alongY ? y : y + k))
+                    if (s.world.In(alongY ? x + k : x, alongY ? y : y + k))
                         SetWater(s.world.At(alongY ? x + k : x, alongY ? y : y + k));
             const int dir = g.Shift() & 1;
             off += dir == 0 ? -(g.Shift() & 1) : (g.Shift() & 1);
@@ -182,7 +184,9 @@ bool GenerateWorld(const std::string& gameDir, const Megadata& mega, const GameS
     {
         // 2h rows from the centre row down, widths 2i + 1 (+0..3) for i = 0..h-1 then h..1; the original tests the
         // centre row for the map edge, so rows below the map are written only when the engine can
-        const int cx = g.g3.Bounded(0x18) + g.g3.Bounded(0x30), cy = g.g3.Bounded(0x18) + g.g3.Bounded(0x30), h = (g.Shift() & 7) + 4;
+        // (on a larger world both ranges grow with the map)
+        const int qa = N / 4, qb = N / 2;
+        const int cx = g.g3.Bounded(qa) + g.g3.Bounded(qb), cy = g.g3.Bounded(qa) + g.g3.Bounded(qb), h = (g.Shift() & 7) + 4;
         for (int n = 0; n < 2 * h; ++n)
         {
             const int i = n < h ? n : 2 * h - n;
@@ -191,7 +195,7 @@ bool GenerateWorld(const std::string& gameDir, const Megadata& mega, const GameS
             const int y = cy + n;
             const int x0 = cx + (t >> 1) - (w >> 1);
             for (int x = x0; x < x0 + w; ++x)
-                if (InMap(x, cy) && InMap(x, y))
+                if (s.world.In(x, cy) && s.world.In(x, y))
                     SetWater(s.world.At(x, y));
         }
     }
@@ -200,15 +204,15 @@ bool GenerateWorld(const std::string& gameDir, const Megadata& mega, const GameS
     // the table's N/E/S/W bits follow the original's transposed row/column naming: bit 1 = the cell to the left,
     // 2 = below, 4 = to the right, 8 = above (checked against the tile pictures: 39 has its land above)
     static const int dx[4] = { -1, 0, 1, 0 }, dy[4] = { 0, 1, 0, -1 };
-    for (int x = 0; x < kMapSize; ++x)
-        for (int y = 0; y < kMapSize; ++y)
+    for (int x = 0; x < s.world.size; ++x)
+        for (int y = 0; y < s.world.size; ++y)
         {
             MapCell& c = s.world.At(x, y);
             if (!IsWater(c))
                 continue;
             int mask = 0;
             for (int k = 0; k < 4; ++k)
-                if (InMap(x + dx[k], y + dy[k]) && !IsWater(s.world.At(x + dx[k], y + dy[k])))
+                if (s.world.In(x + dx[k], y + dy[k]) && !IsWater(s.world.At(x + dx[k], y + dy[k])))
                     mask |= 1 << k;
             const int id = shore[mask] < 0 ? kWater : shore[mask] + (g.Shift() & 1);
             c.base = static_cast<uint16_t>((c.base & 0xF800) | id);
@@ -216,10 +220,10 @@ bool GenerateWorld(const std::string& gameDir, const Megadata& mega, const GameS
 
     if (opt.terrain)
     {
-        opt.terrain->assign(96 * 96, 0);
-        for (int x = 0; x < 96; ++x)
-            for (int y = 0; y < 96; ++y)
-                (*opt.terrain)[static_cast<size_t>(x * 96 + y)] = static_cast<uint16_t>(s.world.At(x, y).base & 0x7FF);
+        opt.terrain->assign(static_cast<size_t>(N) * N, 0);
+        for (int x = 0; x < N; ++x)
+            for (int y = 0; y < N; ++y)
+                (*opt.terrain)[static_cast<size_t>(x * N + y)] = static_cast<uint16_t>(s.world.At(x, y).base & 0x7FF);
     }
     // ---------------------------------------------------------------- town plot and farm block
     auto plotDry = [&](int col, int row) {
@@ -231,21 +235,23 @@ bool GenerateWorld(const std::string& gameDir, const Megadata& mega, const GameS
     };
     // the town's home plot and the farm: one of four layouts by G2, repeated until the home plot and the
     // farm's first 2 x 2 plots hold no water
+    // (a larger world keeps the layouts: the far edge is its last plot and the ranges move by half the extra plots)
     int tc = 0, tr = 0, fc = 0, fr = 0;
+    const int E = P - 1, M = (P - 12) / 2;
     for (int attempt = 0; attempt < 1000; ++attempt)
     {
         switch (g.Shift() & 3)
         {
-        case 0: tc = (g.Shift() & 7) + 2; tr = 0; fc = (g.Shift() & 7) + 2; fr = (g.Shift() & 3) + 6; break;
-        case 1: tc = 11 - (g.Shift() & 3); tr = (g.Shift() & 7) + 2; fc = (g.Shift() & 3) + 1; fr = (g.Shift() & 7) + 2; break;
-        case 2: tc = (g.Shift() & 7) + 2; tr = 11 - (g.Shift() & 3); fc = (g.Shift() & 7) + 2; fr = g.Shift() & 3; break;
-        default: tc = 0; tr = (g.Shift() & 7) + 2; fc = (g.Shift() & 3) + 6; fr = (g.Shift() & 7) + 2; break;
+        case 0: tc = (g.Shift() & 7) + 2 + M; tr = 0; fc = (g.Shift() & 7) + 2 + M; fr = (g.Shift() & 3) + 6 + M; break;
+        case 1: tc = E - (g.Shift() & 3); tr = (g.Shift() & 7) + 2 + M; fc = (g.Shift() & 3) + 1 + M; fr = (g.Shift() & 7) + 2 + M; break;
+        case 2: tc = (g.Shift() & 7) + 2 + M; tr = E - (g.Shift() & 3); fc = (g.Shift() & 7) + 2 + M; fr = (g.Shift() & 3) + M; break;
+        default: tc = 0; tr = (g.Shift() & 7) + 2 + M; fc = (g.Shift() & 3) + 6 + M; fr = (g.Shift() & 7) + 2 + M; break;
         }
         if (plotDry(fc, fr) && plotDry(tc, tr) && plotDry(fc + 1, fr) && plotDry(fc, fr + 1) && plotDry(fc + 1, fr + 1))
             break;
     }
-    for (int c = 0; c < 12; ++c)
-        for (int r = 0; r < 12; ++r)
+    for (int c = 0; c < P; ++c)
+        for (int r = 0; r < P; ++r)
         {
             s.SetPlotOwner(c, r, 0);
             s.SetPlotType(c, r, 0xFF);

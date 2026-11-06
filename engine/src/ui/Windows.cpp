@@ -472,9 +472,11 @@ public:
         // the tile: the terrain, the plot-ownership tile, or a step 0x1D0 + value / 8 of the 32-step ramp
         if (_mapc.empty() && ctx.mega)
             _mapc = ctx.mega->Read("far_mapc.mbm");
-        std::vector<int> tile(kMapSize * kMapSize);
-        for (int x = 0; x < kMapSize; ++x)
-            for (int y = 0; y < kMapSize; ++y)
+        // a larger world (an engine addition) is drawn the same way at two pixels a cell, then scaled into the box
+        const int N = s.world.size, D = 2 * N, P = s.Plots();
+        std::vector<int> tile(static_cast<size_t>(N) * N);
+        for (int x = 0; x < N; ++x)
+            for (int y = 0; y < N; ++y)
             {
                 const MapCell& c = s.world.At(x, y);
                 const int terrain = (c.HasObject() && (c.overlay & 0x7FF) < 960) ? (c.overlay & 0x7FF) : c.BaseTile();
@@ -489,7 +491,7 @@ public:
                     t = (c.base & 0x2000) ? 0x1EF : std::min(0x1EF, 0x1D3 + ctx.sim->SoilWetness() + c.terrain);
                 else if (_mode != kOverhead && _mode != kProfit)
                     t = _mode == kNutrients ? 0x1EF : 0x1D0;
-                tile[static_cast<size_t>(x) * kMapSize + y] = t;
+                tile[static_cast<size_t>(x) * N + y] = t;
             }
         if (_mode != kOverhead && _mode != kProperty && _mode != kWater)
             for (int fi = 1; fi < 98; ++fi)
@@ -498,15 +500,15 @@ public:
                 if (!f.InUse())
                     continue;
                 const int t = _mode == kProfit ? 0x1EF - ((f.Stress() >> 8) >> 3) : 0x1D0 + (FieldValue(f) >> 3);
-                for (int x = f.X(); x < std::min(kMapSize, f.X() + f.W()); ++x)
-                    for (int y = f.Y(); y < std::min(kMapSize, f.Y() + f.H()); ++y)
-                        tile[static_cast<size_t>(x) * kMapSize + y] = t;
+                for (int x = f.X(); x < std::min(N, f.X() + f.W()); ++x)
+                    for (int y = f.Y(); y < std::min(N, f.Y() + f.H()); ++y)
+                        tile[static_cast<size_t>(x) * N + y] = t;
             }
-        std::vector<uint8_t> ix(192 * 192);
-        for (int x = 0; x < kMapSize; ++x)
-            for (int y = 0; y < kMapSize; ++y)
+        std::vector<uint8_t> ix(static_cast<size_t>(D) * D);
+        for (int x = 0; x < N; ++x)
+            for (int y = 0; y < N; ++y)
             {
-                const int t = tile[static_cast<size_t>(x) * kMapSize + y];
+                const int t = tile[static_cast<size_t>(x) * N + y];
                 for (int r = 0; r < 2; ++r)
                 {
                     const int b = 2 * t + r < static_cast<int>(_mapc.size()) ? _mapc[static_cast<size_t>(2 * t + r)] : 0;
@@ -515,10 +517,20 @@ public:
                         int idx = 0;
                         for (int plane = 0; plane < 4; ++plane)
                             idx |= ((b >> (6 - 2 * plane + (1 - c))) & 1) << plane;
-                        ix[static_cast<size_t>(2 * y + r) * 192 + 2 * x + c] = static_cast<uint8_t>(idx);
+                        ix[static_cast<size_t>(2 * y + r) * D + 2 * x + c] = static_cast<uint8_t>(idx);
                     }
                 }
             }
+        // a larger world's picture is scaled into the 192 x 192 box here, before the lines below, so that they stay whole
+        if (D != 192)
+        {
+            std::vector<uint8_t> box(192 * 192);
+            for (int y = 0; y < 192; ++y)
+                for (int x = 0; x < 192; ++x)
+                    box[static_cast<size_t>(y) * 192 + x] = ix[static_cast<size_t>(y * D / 192) * D + x * D / 192];
+            ix.swap(box);
+        }
+        auto sc = [&](int v) { return v * 192 / D; }; // map pixels (two a cell) to box pixels
         // the original draws the chosen plot and the view frame in XOR mode with colour 15 (palette index ^ 15):
         // horizontal lines stop before their end x, vertical lines include their end y
         auto xorPixel = [&](int x, int y) {
@@ -528,16 +540,16 @@ public:
         auto xorH = [&](int x1, int x2, int y) { for (int x = x1; x < x2; ++x) xorPixel(x, y); };
         auto xorV = [&](int x, int y1, int y2) { for (int y = y1; y <= y2; ++y) xorPixel(x, y); };
         if (_mode == kProperty && _plotC >= 0)
-            for (int k = 0; k < 16; ++k)
-                xorH(_plotC * 16, _plotC * 16 + 16, _plotR * 16 + k);
+            for (int y = sc(_plotR * 16); y < sc(_plotR * 16 + 16); ++y)
+                xorH(sc(_plotC * 16), sc(_plotC * 16 + 16), y);
         // the view: two nested outlines from its top-left cell, two map pixels per whole cell it shows
         int viewCol = 0, viewRow = 0;
         if (ctx.view)
         {
             float vx, vy, vw, vh;
             ctx.view->VisibleCells(vx, vy, vw, vh);
-            const int x1 = 2 * static_cast<int>(vx), y1 = 2 * static_cast<int>(vy);
-            const int x2 = x1 + 2 * static_cast<int>(vw) - 1, y2 = y1 + 2 * static_cast<int>(vh) - 1;
+            const int x1 = sc(2 * static_cast<int>(vx)), y1 = sc(2 * static_cast<int>(vy));
+            const int x2 = sc(2 * static_cast<int>(vx) + 2 * static_cast<int>(vw)) - 1, y2 = sc(2 * static_cast<int>(vy) + 2 * static_cast<int>(vh)) - 1;
             xorV(x1, y1, y2);
             xorV(x2, y1, y2);
             xorH(x1, x2, y1);
@@ -546,8 +558,8 @@ public:
             xorV(x2 - 1, y1 + 1, y2 - 2);
             xorH(x1 + 1, x2 - 2, y1 + 1);
             xorH(x1 + 1, x2 - 2, y2 - 1);
-            viewCol = std::clamp(static_cast<int>(vx + vw / 2) / 8, 0, 11);
-            viewRow = std::clamp(static_cast<int>(vy + vh / 2) / 8, 0, 11);
+            viewCol = std::clamp(static_cast<int>(vx + vw / 2) / 8, 0, P - 1);
+            viewRow = std::clamp(static_cast<int>(vy + vh / 2) / 8, 0, P - 1);
         }
         const Palette& pal = g.Pal();
         std::vector<uint32_t> px(192 * 192);
@@ -559,15 +571,17 @@ public:
         // XOR drawing
         if (_mode == kProperty)
         {
-            for (int k = 0; k < 12; ++k)
+            for (int k = 0; k < P; ++k)
             {
-                g.Fill(72 + 16 * k, 0, 1, 192, kYellow);
-                g.Fill(72, 16 * k, 192, 1, kYellow);
+                g.Fill(72 + 192 * k / P, 0, 1, 192, kYellow);
+                g.Fill(72, 192 * k / P, 192, 1, kYellow);
             }
         }
         // letters over the map, in the game's font: T the town plot, H the farmhouse (the saved position words),
         // D a tornado, L the locusts
         auto letter = [&](const char* c, int mx, int my) {
+            mx = sc(mx);
+            my = sc(my);
             if (mx >= 0 && my >= 0 && mx < 192 && my < 192)
                 g.Text(72 + mx, my, c, kBlack);
         };
@@ -680,15 +694,17 @@ public:
         }
         if (Rect{ 72, 0, 192, 192 }.Contains(x, y))
         {
+            // to the map's two pixels a cell (the same on the original's map; a larger world is scaled into the box)
+            const int D = 2 * ctx.state->world.size, mx = (x - 72) * D / 192, my = y * D / 192;
             if (_mode == kProperty)
             {
-                _plotC = (x - 72) / 16;
-                _plotR = y / 16;
+                _plotC = mx / 16;
+                _plotR = my / 16;
             }
             else if (ctx.view)
                 // the clicked cell becomes the view's top-left. Measured on the original: the view then sits 2 pixels
                 // above that row's top edge
-                ctx.view->SetCamera((x - 72) / 2 * 16, y / 2 * 16 - 2);
+                ctx.view->SetCamera(mx / 2 * 16, my / 2 * 16 - 2);
         }
     }
 
