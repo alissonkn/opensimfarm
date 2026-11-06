@@ -206,3 +206,11 @@ section { padding: 4rem 0; }
   .gallery { grid-template-columns: 1fr 1fr; }
   .shot.big { grid-column: span 2; grid-row: auto; }
 }
+.spotlight { display: grid; grid-template-columns: 3fr 2fr; gap: 1.6rem; align-items: center; margin-top: 1.6rem;
+  background: linear-gradient(135deg, #fff, #fdf3e1); border-radius: var(--radius); padding: 1.2rem; box-shadow: var(--shadow);
+  border-left: 7px solid #e0558f; }
+.spotlight .shot { box-shadow: none; padding: 0; background: none; }
+.spotlight .shot:hover { transform: none; }
+.spot-text h3 { margin: .5rem 0 .4rem; font-size: 1.5rem; }
+.spot-text p { color: var(--ink-soft); margin: 0 0 .7rem; }
+@media (max-width: 760px) { .spotlight { grid-template-columns: 1fr; } }
