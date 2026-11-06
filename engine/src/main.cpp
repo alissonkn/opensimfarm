@@ -3074,10 +3074,7 @@ int main(int argc, char** argv)
         sound.PlayMusic(ui.RadioSong(sim->Song()), !ui.RadioManual());
         std::string m;
         while (sim->TakeMessage(m))
-        {
-            std::printf("%s\n", m.c_str());
             ui.ShowMessage(m);
-        }
         {
             float vx, vy, vw, vh;
             view.VisibleCells(vx, vy, vw, vh);
