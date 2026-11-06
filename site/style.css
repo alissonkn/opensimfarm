@@ -150,6 +150,12 @@ section { padding: 4rem 0; }
 .notes .md table { border-collapse: collapse; margin: .6rem 0; }
 .notes .md th, .notes .md td { border: 1px solid #e5dfd0; padding: .35rem .7rem; text-align: left; }
 .notes .md h2 { font-size: 1.2rem; margin: 1.2rem 0 .4rem; }
+.notes .md .markdown-alert { border-left: 6px solid #9aa5b1; background: #f4f6f8; border-radius: 10px; padding: .6rem .9rem; margin: .7rem 0; }
+.notes .md .markdown-alert-warning { border-left-color: #ff7a1a; background: #fff4e8; }
+.notes .md .markdown-alert p { margin: .3rem 0; }
+.notes .md .markdown-alert-title { display: flex; align-items: center; gap: .4rem; font-weight: 800; }
+.notes .md .markdown-alert-warning .markdown-alert-title { color: #b35400; }
+.notes .md .markdown-alert-title svg { fill: currentColor; flex: none; }
 .loading { color: var(--ink-soft); font-style: italic; }
 
 /* ---------- build / faq ---------- */
