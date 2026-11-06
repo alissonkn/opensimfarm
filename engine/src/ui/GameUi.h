@@ -99,6 +99,14 @@ public:
     void AskNewGame();
     void Saved(const std::string& name); // every save: the thumbs-up box
 
+    // The radio at the right end of the menu bar (an engine addition): previous / play-pause / next and a display.
+    // AUTO (the default): the game chooses the song as before. Previous / next pick a song of the 7 in turn
+    // (wrapping); a picked song plays to its end and the next one follows. The AUTO button (lit while the game
+    // chooses) gives the choice back to the game. Play-pause is the Options > Music switch (the song stops where it is).
+    static constexpr int kRadioSongs = 7;
+    std::string RadioSong(const std::string& gameSong); // what to play now; also moves on after a picked song ends
+    bool RadioManual() const { return _radioManual; }
+
 private:
     bool _resumeNormal = false; // a Save / Load dialog paused the game; closing it resumes at Normal speed
     struct MenuItem { std::string label; std::string command; };
@@ -116,6 +124,14 @@ private:
     void Click() { if (onSound) onSound("click.voc"); }
     void DrawToolbar();
     void DrawMenus();
+    void DrawRadio();
+    Rect RadioBox() const;
+    Rect RadioButton(int k) const; // 0 previous, 1 play-pause, 2 next, 3 the display, 4 AUTO
+    bool RadioClick(int x, int y);
+    int RadioIndex(const std::string& song) const; // 0..6, or -1
+    bool _radioManual = false;
+    int _radioTrack = 0, _radioPressed = -1;
+    Uint32 _radioPressedAt = 0;
     void DrawWindow(Window& w);
     // EDIT palette
     // One column of 24x24 icons in groups of two split by a line (the tools cut from the original's two-column

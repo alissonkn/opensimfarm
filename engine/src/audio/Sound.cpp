@@ -150,7 +150,7 @@ void SoundPlayer::PlayMusic(const std::string& name, bool loop)
 {
     if (std::getenv("OSF_TRACE_SOUND") && name != _songName)
         std::fprintf(stderr, "music %.2f %s\n", SDL_GetTicks() / 1000.0, name.c_str());
-    if (!_dev || !_mega || name == _songName)
+    if (!_dev || !_mega || (name == _songName && !(loop && MusicEnded())))
         return;
     auto it = _songs.find(name);
     if (it == _songs.end())
@@ -161,6 +161,7 @@ void SoundPlayer::PlayMusic(const std::string& name, bool loop)
     }
     std::lock_guard<std::mutex> g(_lock);
     _songName = name;
+    _songLoop = loop;
     _songPtr = it->second.events.empty() ? nullptr : &it->second;
     _synth.Stop();
     _modernSynth.Stop();
@@ -171,6 +172,12 @@ void SoundPlayer::PlayMusic(const std::string& name, bool loop)
         else
             _synth.Start(_songPtr, loop);
     }
+}
+
+bool SoundPlayer::MusicEnded() const
+{
+    std::lock_guard<std::mutex> g(_lock);
+    return _songPtr && !_songLoop && !(_modern ? _modernSynth.Playing() : _synth.Playing());
 }
 
 void SoundPlayer::StopMusic()
@@ -201,9 +208,9 @@ void SoundPlayer::SetModern(bool on)
     if (_songPtr)
     {
         if (_modern)
-            _modernSynth.Start(_songPtr, true);
+            _modernSynth.Start(_songPtr, _songLoop);
         else
-            _synth.Start(_songPtr, true);
+            _synth.Start(_songPtr, _songLoop);
     }
 }
 

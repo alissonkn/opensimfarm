@@ -269,6 +269,7 @@ void GameUi::DrawMenus()
     _g.Fill(0, 0, _w, kMenuH, kDarkGrey);
     for (const auto& menu : _menus)
         _g.Text(menu.x, 4, menu.title, kWhite);
+    DrawRadio();
     if (_openMenu < 0)
         return;
     const Rect b = MenuBox(_openMenu);
@@ -286,6 +287,148 @@ void GameUi::DrawMenus()
             _g.Text(b.x, y, "^", enabled ? kBlack : kGrey);
         _g.Text(b.x + 8, y, items[i].label, !enabled ? kGrey : hover ? kWhite : kBlack);
     }
+}
+
+// ---------------------------------------------------------------- the radio (an engine addition)
+namespace {
+struct RadioStation { const char* file; const char* title; };
+// the game's songs, with the engine's own descriptive names for when the game plays them
+constexpr RadioStation kStations[GameUi::kRadioSongs] = {
+    { "amain.xmi", "TITLE THEME" }, { "genfarm.xmi", "FARM LIFE" }, { "ffarm.xmi", "GOOD YEARS" },
+    { "dfarm.xmi", "HARD TIMES" },  { "carnival.xmi", "COUNTY FAIR" }, { "rodeo.xmi", "RODEO" },
+    { "cowman.xmi", "CELEBRATION" },
+};
+constexpr int kRadioW = 208, kRadioH = 14; // right after the Help menu at 640 wide; fits "PAUSED CELEBRATION"
+}
+
+Rect GameUi::RadioBox() const { return { _w - kRadioW - 4, 1, kRadioW, kRadioH }; }
+
+Rect GameUi::RadioButton(int k) const
+{
+    const Rect b = RadioBox();
+    if (k < 3)
+        return { b.x + 3 + 16 * k, b.y + 2, 14, 10 };
+    if (k == 4)
+        return { b.x + b.w - 33, b.y + 2, 30, 10 };      // the AUTO button
+    return { b.x + 52, b.y + 2, b.w - 52 - 35, 10 };   // the display
+}
+
+int GameUi::RadioIndex(const std::string& song) const
+{
+    for (int i = 0; i < kRadioSongs; ++i)
+        if (song == kStations[i].file)
+            return i;
+    return -1;
+}
+
+std::string GameUi::RadioSong(const std::string& gameSong)
+{
+    if (!_radioManual)
+        return gameSong;
+    if (_ctx.audio && _ctx.audio->MusicEnded())
+        _radioTrack = (_radioTrack + 1) % kRadioSongs; // a picked song was played to its end: the next one
+    return kStations[_radioTrack].file;
+}
+
+bool GameUi::RadioClick(int x, int y)
+{
+    for (int k = 0; k < 5; ++k)
+    {
+        if (k == 3 || !RadioButton(k).Contains(x, y))
+            continue;
+        Click();
+        const bool musicOn = !musicEnabled || musicEnabled();
+        if (k == 0 || k == 2)
+        {
+            int cur = _radioManual ? _radioTrack : RadioIndex(_ctx.audio ? _ctx.audio->CurrentSong() : "");
+            if (cur < 0)
+                cur = 0;
+            _radioTrack = (cur + (k == 2 ? 1 : kRadioSongs - 1)) % kRadioSongs;
+            if (!_radioManual)
+            {
+                // a hint on the status line only (not kept in its message history)
+                _message = "Radio: your pick. Press AUTO to let the game choose again.";
+                _messageTime = SDL_GetTicks();
+            }
+            _radioManual = true;
+            if (!musicOn && onCommand)
+                onCommand("music"); // skipping to a song plays it
+        }
+        else if (k == 1 && onCommand)
+            onCommand("music");
+        else if (k == 4 && _radioManual)
+        {
+            _radioManual = false;
+            _message = "Radio: the game chooses the music again.";
+            _messageTime = SDL_GetTicks();
+        }
+        _radioPressed = k;
+        _radioPressedAt = SDL_GetTicks();
+        return true;
+    }
+    return RadioBox().Contains(x, y); // the rest of the radio takes the click too
+}
+
+void GameUi::DrawRadio()
+{
+    const Rect b = RadioBox();
+    if (b.x < 428)
+        return; // no room beside the menus
+    _g.Fill(b.x, b.y, b.w, b.h, kBlack);
+    _g.Fill(b.x + 1, b.y + 1, b.w - 2, b.h - 2, kBrown);
+    const bool musicOn = !musicEnabled || musicEnabled();
+    if (_radioPressed >= 0 && SDL_GetTicks() - _radioPressedAt > 150)
+        _radioPressed = -1;
+    // a triangle 4 wide and 7 high pointing right (dir 1) or left (dir -1), its flat side at x
+    auto tri = [&](int x, int cy, int dir) {
+        for (int i = 0; i < 4; ++i)
+            _g.Fill(x + dir * i, cy - 3 + i, 1, 7 - 2 * i, kBlack);
+    };
+    for (int k = 0; k < 3; ++k)
+    {
+        const Rect r = RadioButton(k);
+        const bool down = _radioPressed == k;
+        _g.Fill(r.x, r.y, r.w, r.h, kLightGrey);
+        _g.Bevel(r.x, r.y, r.w, r.h, !down);
+        const int cx = r.x + 7 + (down ? 1 : 0), cy = r.y + 4 + (down ? 1 : 0);
+        if (k == 0)
+        {
+            _g.Fill(cx - 5, cy - 3, 1, 7, kBlack);
+            tri(cx - 1, cy, -1);
+            tri(cx + 3, cy, -1);
+        }
+        else if (k == 2)
+        {
+            tri(cx - 4, cy, 1);
+            tri(cx, cy, 1);
+            _g.Fill(cx + 4, cy - 3, 1, 7, kBlack);
+        }
+        else if (musicOn)
+        {
+            _g.Fill(cx - 3, cy - 3, 2, 7, kBlack); // playing: the pause sign
+            _g.Fill(cx + 1, cy - 3, 2, 7, kBlack);
+        }
+        else
+            tri(cx - 2, cy, 1); // paused: the play sign
+    }
+    // the display: the song's number and name in green; paused: PAUSED in yellow before the name
+    const Rect d = RadioButton(3);
+    _g.Fill(d.x, d.y, d.w, d.h, kBlack);
+    _g.Frame(d.x, d.y, d.w, d.h, kDarkGrey);
+    const int idx = _radioManual ? _radioTrack : RadioIndex(_ctx.audio ? _ctx.audio->CurrentSong() : "");
+    const std::string name = idx >= 0 ? kStations[idx].title : "NO MUSIC";
+    std::string prefix = !musicOn ? "PAUSED " : idx >= 0 ? std::to_string(idx + 1) + "/" + std::to_string(kRadioSongs) + " " : "";
+    if (Gfx::SmallTextWidth(prefix + name) > d.w - 5 && musicOn)
+        prefix.clear(); // a long name: the number gives way
+    _g.SmallText(d.x + 3, d.y + 3, prefix, musicOn ? kGreen : kYellow);
+    _g.SmallText(d.x + 3 + (prefix.empty() ? 0 : Gfx::SmallTextWidth(prefix) + 1), d.y + 3, name, kGreen);
+    // AUTO: lit (yellow, pressed in) while the game chooses the songs; a plain button after the player picked one
+    const Rect a = RadioButton(4);
+    const bool lit = !_radioManual;
+    _g.Fill(a.x, a.y, a.w, a.h, lit ? kYellow : kLightGrey);
+    _g.Bevel(a.x, a.y, a.w, a.h, !lit && _radioPressed != 4);
+    const int tw = Gfx::SmallTextWidth("AUTO");
+    _g.SmallText(a.x + (a.w - tw) / 2 + (lit ? 1 : 0), a.y + (lit ? 3 : 2), "AUTO", lit ? kBlack : kDarkGrey);
 }
 
 // ---------------------------------------------------------------- toolbar, status strip
@@ -1683,6 +1826,13 @@ void GameUi::OpenFieldSchedule(int field)
 bool GameUi::HandleEvent(const SDL_Event& e)
 {
     const int s = _g.Scale();
+    // the radio works at any time, also over an event box or in the air
+    if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_LEFT && e.button.y / s < kMenuH &&
+        RadioClick(e.button.x / s, e.button.y / s))
+    {
+        _openMenu = -1;
+        return true;
+    }
     // where the pointer leaves the window (AutoScroll's held edge, see AutoScroll)
     if (e.type == SDL_MOUSEMOTION)
     {

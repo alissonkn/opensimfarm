@@ -38,7 +38,9 @@ public:
     void SetEnabled(bool on) { _enabled = on; }
     bool Enabled() const { return _enabled; }
     // music: name = an .xmi from the archive; the same song is not restarted
+    // (an ended song that is asked for again with loop starts over)
     void PlayMusic(const std::string& name, bool loop = true);
+    bool MusicEnded() const; // the song was played to its end without looping (the radio's next song)
     void StopMusic();
     void SetMusicEnabled(bool on);
     bool MusicEnabled() const { return _musicOn; }
@@ -71,13 +73,14 @@ private:
     float _lx = 48, _ly = 48, _lhalf = 20;
     std::map<std::string, std::vector<float>> _cache[2]; // [modern] effects at the device rate, float
     std::vector<Voice> _voices;
-    std::mutex _lock;
+    mutable std::mutex _lock;
     std::map<std::string, Song> _songs;
     const Song* _songPtr = nullptr;
     Synth _synth;
     ModernSynth _modernSynth;
     Room _room;
     std::string _songName;
+    bool _songLoop = true;
     std::vector<int32_t> _mixOld;
     std::vector<float> _l, _r, _send;
 };
