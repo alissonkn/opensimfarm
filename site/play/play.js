@@ -163,6 +163,9 @@
     if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {});
     if (started) return;
     started = true;
+    // one count per game started (GoatCounter, loaded by the page; it counts the page visit by itself)
+    if (window.goatcounter && window.goatcounter.count)
+      window.goatcounter.count({ path: "play/started", title: "Browser game started", event: true });
     FS.writeFile(CONFIG + "/gamepath.txt", gameDir + "\n");
     save();
     $("setup").hidden = true;

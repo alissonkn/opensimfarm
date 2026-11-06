@@ -38,6 +38,21 @@
     document.addEventListener("keydown", function (ev) { if (ev.key === "Escape" && !lb.hidden) close(); });
   }
 
+  // ---- counting downloads (GoatCounter, loaded by the page: it counts the page visits by itself). The release links
+  // are made after the page loads, so one listener on the page catches the clicks on any of them.
+  function countEvent(path, title) {
+    if (window.goatcounter && window.goatcounter.count)
+      window.goatcounter.count({ path: path, title: title || path, event: true });
+  }
+  document.addEventListener("click", function (ev) {
+    var a = ev.target.closest ? ev.target.closest("a[href]") : null;
+    if (!a) return;
+    var m = a.href.match(/\/releases\/download\/[^\/]+\/([^\/?#]+)$/);
+    if (m) countEvent("download/" + decodeURIComponent(m[1]), "Download " + decodeURIComponent(m[1]));
+    else if (/\/archive\/refs\/tags\/[^\/]+\.zip$/.test(a.href)) countEvent("download/source", "Download source code");
+    else if (/\/releases\/latest$/.test(a.href)) countEvent("download/releases-page", "Download button (release list not loaded)");
+  });
+
   // ---- what each file is
   var KINDS = [
     { kind: "setup", test: /windows.*setup\.exe$/i, os: "🪟", label: "Windows installer", tab: "win" },
