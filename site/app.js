@@ -19,6 +19,25 @@
     document.querySelectorAll(".panel").forEach(function (p) { p.classList.toggle("active", p.id === "tab-" + name); });
   }
 
+  // ---- screenshots: click opens a large view (Esc, a click or the x closes it)
+  var lb = document.getElementById("lightbox");
+  if (lb) {
+    var lbImg = lb.querySelector("img"), lbCap = lb.querySelector(".lb-cap");
+    document.querySelectorAll(".shot a").forEach(function (a) {
+      a.addEventListener("click", function (ev) {
+        ev.preventDefault();
+        var img = a.querySelector("img"), cap = a.parentNode.querySelector("figcaption");
+        lbImg.src = a.href;
+        lbImg.alt = img ? img.alt : "";
+        lbCap.textContent = cap ? cap.textContent : "";
+        lb.hidden = false;
+      });
+    });
+    var close = function () { lb.hidden = true; lbImg.src = ""; };
+    lb.addEventListener("click", close);
+    document.addEventListener("keydown", function (ev) { if (ev.key === "Escape" && !lb.hidden) close(); });
+  }
+
   // ---- what each file is
   var KINDS = [
     { kind: "setup", test: /windows.*setup\.exe$/i, os: "🪟", label: "Windows installer", tab: "win" },

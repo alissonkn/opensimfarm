@@ -183,3 +183,25 @@ section { padding: 4rem 0; }
   *, *::before, *::after { animation: none !important; transition: none !important; }
   html { scroll-behavior: auto; }
 }
+
+/* ---------- screenshots ---------- */
+.screens { padding-top: 1rem; }
+.gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1rem; }
+.shot { margin: 0; background: var(--card); border-radius: var(--radius); padding: .6rem .6rem .2rem; box-shadow: var(--shadow);
+  transition: transform .2s, box-shadow .2s; }
+.shot:hover { transform: translateY(-4px) rotate(.4deg); box-shadow: 0 16px 36px rgba(20, 40, 80, .18); }
+.shot.big { grid-column: span 2; grid-row: span 2; }
+.shot img { display: block; width: 100%; height: auto; border-radius: 10px; aspect-ratio: 4 / 3; object-fit: contain; background: #1b1b1b; }
+.shot figcaption { text-align: center; font-weight: 700; padding: .5rem 0 .4rem; color: var(--ink-soft); }
+.credit { font-size: .88rem; color: var(--ink-soft); text-align: center; margin-top: 1rem; }
+.lightbox { position: fixed; inset: 0; z-index: 50; background: rgba(10, 20, 35, .9); display: flex; flex-direction: column;
+  align-items: center; justify-content: center; padding: 2rem; cursor: zoom-out; }
+.lightbox[hidden] { display: none; }
+.lightbox img { max-width: 100%; max-height: 85vh; border-radius: 10px; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+.lb-cap { color: #fff; font-weight: 700; margin: .8rem 0 0; }
+.lb-close { position: absolute; top: 1rem; right: 1.4rem; font-size: 2.4rem; line-height: 1; color: #fff; background: none;
+  border: none; cursor: pointer; }
+@media (max-width: 760px) {
+  .gallery { grid-template-columns: 1fr 1fr; }
+  .shot.big { grid-column: span 2; grid-row: auto; }
+}
