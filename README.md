@@ -15,6 +15,9 @@ game behaves and how its files are laid out.
 ## Features
 * The farm, its crops, animals, machines, weather, disasters, market, bank and town, as in the original
 * Loads and saves the original's saved games
+* Zoom (mouse wheel or the + / − buttons) and moving around with the arrow keys or WASD, at any window size
+* A Funds list of every change to your cash (click the funds), and every crop available from the start (the Plant
+  list and the market show all crop files)
 * Window scaling, plus optional extras: smart driving for machines, "Modern Sound" (the game's own sounds,
   cleaned up and played in stereo, and the music played with new instruments) and "Modern Render" (the game's own
   pictures smoothed, and animals, machines and cars gliding from cell to cell)

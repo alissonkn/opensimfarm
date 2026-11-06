@@ -105,6 +105,7 @@ section { padding: 4rem 0; }
   background: color-mix(in srgb, var(--c) 16%, white); }
 .green { --c: var(--grass); } .gold { --c: var(--wheat); } .red { --c: var(--barn); }
 .blue { --c: var(--sky-mid); } .purple { --c: #8e5bd6; } .teal { --c: #19a7a0; }
+.orange { --c: #f28c28; } .pink { --c: #e0558f; } .lime { --c: #8cc63f; }
 
 /* ---------- install ---------- */
 .install { background: linear-gradient(180deg, #eaf7e4, #f6fbef); }
