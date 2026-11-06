@@ -1,0 +1,4 @@
+// OpenSimFarm - an open re-implementation of SimFarm. Copyright (c) 2026 OpenSimFarm developers.
+// Licensed under the GNU General Public License version 3 (see LICENSE.txt).
+// The program icon for Windows (Explorer, taskbar, shortcuts); made by tools/make_icon.py.
+1 ICON "opensimfarm.ico"

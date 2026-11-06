@@ -5,6 +5,7 @@
 //
 // Usage:
 //   opensimfarm [path-to-SimFarm-folder] [farm.SSM|save.SFM]      play (the folder is remembered)
+//   opensimfarm --findgame [folder]                                where SimFarm is found (search of the usual places)
 //   opensimfarm --selftest [folder]                                 load and re-save every prebuilt farm, compare bytes
 //   opensimfarm --simulate DAYS [farm] [folder]                     run DAYS game days without a window and print a report
 // Controls: menus and toolbar with the left button; right/middle drag, arrows or WASD = scroll; wheel = zoom;
@@ -23,6 +24,7 @@
 #include "game/GameState.h"
 #include "game/Simulation.h"
 #include "ui/GameUi.h"
+#include "ui/AppIcon.h"
 #include "ui/Gfx.h"
 #include "ui/MapView.h"
 #include "ui/StartScreen.h"
@@ -1706,6 +1708,49 @@ static int CompareSaves(const std::string& gameDir, const std::string& a, const 
     return 0;
 }
 
+static const char* const kNoDialogText =
+    "No folder dialog is available on this system (install zenity or kdialog),\nso tell OpenSimFarm the "
+    "folder once by starting it as\n  opensimfarm /path/to/SIMFARM\n\nThe folder must contain "
+    "MEGADATA.IDX and MEGADATA.EEA.\nOpenSimFarm does not include any of the original game's files.";
+
+// Asks the player for the SimFarm folder: a box with `problem` (or the plain "not found" text) and the buttons
+// Choose folder... / `cancelLabel`, then the system's folder dialog, until a folder with the game files (it, or one up
+// to two levels below it, not in `skip`) is chosen. Nothing when the player cancels; `noDialog` when the system has
+// no folder dialog.
+static std::optional<std::string> AskPlayerForGameFolder(std::string problem, const char* cancelLabel,
+                                                         const std::vector<std::string>& skip, bool& noDialog)
+{
+    noDialog = false;
+    for (;;)
+    {
+        const SDL_MessageBoxButtonData buttons[] = {
+            { SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 1, "Choose folder..." },
+            { SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 0, cancelLabel },
+        };
+        const std::string text = (problem.empty() ? "OpenSimFarm plays with the files of your own copy of SimFarm,\nbut it could not find them."
+                                                  : problem) +
+            "\n\nChoose the SimFarm folder (the one that holds MEGADATA.IDX\nand MEGADATA.EEA). "
+            "OpenSimFarm only reads the files there\nand remembers the folder.";
+        const SDL_MessageBoxData box = { SDL_MESSAGEBOX_INFORMATION, nullptr, "OpenSimFarm", text.c_str(), 2, buttons, nullptr };
+        int pressed = 0;
+        if (SDL_ShowMessageBox(&box, &pressed) != 0 || pressed != 1)
+            return std::nullopt;
+        bool available = true;
+        const auto chosen = AskGameDirectory(available);
+        if (!available)
+        {
+            noDialog = true;
+            return std::nullopt;
+        }
+        if (!chosen)
+            continue; // the dialog was cancelled: back to the box
+        if (const auto dir = GameDirectoryIn(*chosen, skip))
+            return dir;
+        problem = (GameDirectoryIn(*chosen) ? "That folder holds only SimFarm files that cannot be used:\n"
+                                            : "That folder does not hold SimFarm's files\n(MEGADATA.IDX and MEGADATA.EEA):\n") + *chosen;
+    }
+}
+
 int main(int argc, char** argv)
 {
     // command-line modes without a window
@@ -1739,6 +1784,14 @@ int main(int argc, char** argv)
         auto dir = ResolveGameDirectory(argc > 2 ? 2 : 1, fake);
         if (!dir) { Fatal("game folder unknown", false); return 1; }
         return SelfTest(*dir);
+    }
+    if (argc > 1 && std::strcmp(argv[1], "--findgame") == 0)
+    {
+        // --findgame [FOLDER]: where the game would find SimFarm: in FOLDER (or up to two levels below it), else
+        // by the search of the usual places; prints the folder, changes nothing
+        const auto dir = argc > 2 ? GameDirectoryIn(argv[2]) : SearchGameDirectory();
+        std::printf("%s\n", dir ? dir->c_str() : "not found");
+        return dir ? 0 : 1;
     }
     if (argc > 4 && std::strcmp(argv[1], "--run") == 0)
     {
@@ -2332,24 +2385,63 @@ int main(int argc, char** argv)
                 gameDir = ResolveGameDirectory(2, fake);
             }
     }
-    if (!gameDir)
-    {
-        Fatal("SimFarm game files not found.\n\nTell OpenSimFarm once where your SimFarm installation is: drag its folder onto "
-              "the OpenSimFarm program, start it as\n  opensimfarm /path/to/SIMFARM\nor put the program into that folder.\n\n"
-              "The folder must contain MEGADATA.IDX and MEGADATA.EEA. "
-              "OpenSimFarm does not include any of the original game's files.");
-        SDL_Quit();
-        return 1;
-    }
+    // The folder is checked in full before it is used (the archive opens, the tile sheets and palette load, the
+    // starting farm loads); a folder that fails, was moved or was deleted leads to the search and then to the player,
+    // with the reason, until a usable one is chosen or the player quits.
     Megadata mega;
     std::string err;
     MapGraphics gfx;
-    if (!mega.Open(*gameDir, err) || !LoadMapGraphics(mega, gfx))
+    std::string problem; // why no folder could be used yet (shown in the box)
     {
-        Fatal(err.empty() ? "The tile sheets or palette are missing from MEGADATA.EEA." : err);
-        SDL_Quit();
-        return 1;
+        const std::string remembered = RememberedGameDirectory();
+        if (!gameDir && !remembered.empty())
+            problem = "SimFarm was in\n" + remembered + "\nbut it is no longer there (moved or deleted?).";
     }
+    bool searched = false;
+    std::vector<std::string> failed; // folders that did not pass the full check
+    for (;;)
+    {
+        if (!gameDir && !searched)
+        {
+            searched = true; // once (it reads many folders)
+            if (const auto found = SearchGameDirectory(failed))
+                gameDir = found;
+        }
+        if (!gameDir)
+        {
+            bool noDialog = false;
+            gameDir = AskPlayerForGameFolder(problem, "Quit", failed, noDialog);
+            if (!gameDir)
+            {
+                if (noDialog)
+                    Fatal(kNoDialogText);
+                SDL_Quit();
+                return 1;
+            }
+        }
+        // the full check
+        mega = Megadata();
+        gfx = MapGraphics();
+        err.clear();
+        bool ok = mega.Open(*gameDir, err) && LoadMapGraphics(mega, gfx);
+        if (ok)
+        {
+            GameState probe;
+            const auto scen = FindFileNoCase(*gameDir, "SCEN0.SSM");
+            ok = scen && probe.Load(*gameDir, *scen, err);
+            if (!ok && !scen)
+                err = "SCEN0.SSM is missing.";
+        }
+        else if (err.empty())
+            err = "The tile sheets or palette are missing from MEGADATA.EEA.";
+        if (ok)
+            break;
+        problem = "The SimFarm folder\n" + *gameDir + "\ncannot be used: " + err;
+        failed.push_back(*gameDir);
+        gameDir.reset();
+    }
+    if (*gameDir != RememberedGameDirectory())
+        RememberGameDirectory(*gameDir); // a folder found, chosen or given is remembered once it works
 
     auto state = std::make_unique<GameState>();
     std::string cropArtSig; // the crop files whose pictures are in the tile textures
@@ -2379,6 +2471,13 @@ int main(int argc, char** argv)
                                           SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
     if (window)
     {
+        // the program's own icon (title bar, task bar, window switcher)
+        if (SDL_Surface* icon = SDL_CreateRGBSurfaceWithFormatFrom(const_cast<uint8_t*>(kAppIcon), kAppIconSize, kAppIconSize,
+                                                                   32, kAppIconSize * 4, SDL_PIXELFORMAT_RGBA32))
+        {
+            SDL_SetWindowIcon(window, icon);
+            SDL_FreeSurface(icon);
+        }
         // the window may not shrink below 1280 x 720 (user finding F19: menus and windows got too small to use; 720 rows
         // hold the 400 interface rows at 1.8x), or below what the screen holds when it is smaller than that
         int minW = 1280, minH = 720;
@@ -2664,8 +2763,42 @@ int main(int argc, char** argv)
             e.motion.yrel = static_cast<Sint32>(std::lround(e.motion.yrel * k));
         }
     };
+    // The SimFarm folder may be moved or deleted while the game runs (the pictures and sounds are in memory, but farms,
+    // crop files and new worlds are read from it): it is looked at every 2 seconds, and when it is gone the game
+    // stops and asks for its new place. The farm in memory is kept; "Go on without" plays on until a file is needed.
+    Uint64 lastFolderCheck = SDL_GetTicks64();
+    bool folderLostAsked = false;
+    auto checkGameFolder = [&] {
+        if (SDL_GetTicks64() - lastFolderCheck < 2000)
+            return;
+        lastFolderCheck = SDL_GetTicks64();
+        if (IsGameDirectory(*gameDir))
+        {
+            folderLostAsked = false;
+            return;
+        }
+        if (folderLostAsked)
+            return;
+        folderLostAsked = true;
+        bool noDialog = false;
+        const auto dir = AskPlayerForGameFolder("The SimFarm folder\n" + *gameDir + "\nhas been moved or deleted. Your farm is kept.", "Go on without", {}, noDialog);
+        if (noDialog)
+            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "OpenSimFarm", kNoDialogText, window);
+        if (dir)
+        {
+            gameDir = dir;
+            RememberGameDirectory(*dir);
+            sim->SetGameDir(*dir);
+            ui.SetGameDir(*dir);
+            start.SetGameDir(*dir);
+            folderLostAsked = false;
+        }
+        last = SDL_GetPerformanceCounter(); // the time spent in the box does not count as game time
+        lastFolderCheck = SDL_GetTicks64();
+    };
     while (running)
     {
+        checkGameFolder();
         if (atStart)
         {
             sound.PlayMusic("amain.xmi");

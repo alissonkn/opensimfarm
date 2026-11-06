@@ -21,6 +21,7 @@ class StartScreen
 {
 public:
     StartScreen(Gfx& g, const std::string& gameDir);
+    void SetGameDir(const std::string& d) { _gameDir = d; } // the SimFarm folder was moved (main.cpp)
     // returns "farm:N", "generated" (take the world with World()), either with "load+" in front for LOAD A SAVED GAME,
     // "quit" or an empty string
     std::string HandleEvent(const SDL_Event& e);

@@ -66,6 +66,22 @@ else()
 endif()
 if(WIN32)
     set_target_properties(opensimfarm PROPERTIES WIN32_EXECUTABLE ON)
+    target_link_libraries(opensimfarm PRIVATE shell32 ole32) # the folder dialog for finding SimFarm
+    # the program icon: the resource is compiled by the Windows resource compiler (MSVC, MinGW windres); a
+    # toolchain without one names a command that turns the .rc into a COFF object for the linker (Zig: "zig rc /:output-format coff")
+    set(OSF_RC ${CMAKE_CURRENT_SOURCE_DIR}/packaging/windows/opensimfarm.rc)
+    if(OSF_RC_TO_RES)
+        set(OSF_RES ${CMAKE_CURRENT_BINARY_DIR}/opensimfarm_res.obj)
+        add_custom_command(OUTPUT ${OSF_RES}
+            COMMAND ${OSF_RC_TO_RES} /fo ${OSF_RES} ${OSF_RC}
+            DEPENDS ${OSF_RC} ${CMAKE_CURRENT_SOURCE_DIR}/packaging/windows/opensimfarm.ico
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/packaging/windows VERBATIM)
+        set_source_files_properties(${OSF_RES} PROPERTIES EXTERNAL_OBJECT TRUE GENERATED TRUE)
+        target_sources(opensimfarm PRIVATE ${OSF_RES})
+    else()
+        enable_language(RC)
+        target_sources(opensimfarm PRIVATE ${OSF_RC})
+    endif()
     if(TARGET SDL2::SDL2main)
         target_link_libraries(opensimfarm PRIVATE SDL2::SDL2main)
         if(MINGW OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")

@@ -17,6 +17,17 @@ game behaves and how its files are laid out.
   cleaned up and played in stereo, and the music played with new instruments) and "Modern Render" (the game's own
   pictures smoothed, and animals, machines and cars gliding from cell to cell)
 
+## Install
+Packages are built by `engine/tools/package.sh` into `engine/dist/`:
+- Windows: `OpenSimFarm-VERSION-windows-x64-setup.exe` installs for the current user (no administrator rights),
+  finds your SimFarm folder or lets you choose it, and adds Start menu and desktop shortcuts. The uninstaller
+  keeps your saves and settings. A plain zip is built as well.
+- Linux: `opensimfarm-VERSION-1.x86_64.rpm` (Fedora, openSUSE ...) and `opensimfarm_VERSION-1_amd64.deb`
+  (Debian 12+, Ubuntu 22.04+). They install `/usr/bin/opensimfarm` with a menu entry and icon, and pull in SDL2.
+
+None of them contains anything of the original game. How to build them (tools, one command, checks):
+[engine/README.md, "Building the installers"](engine/README.md#building-the-installers).
+
 ## Build
 Linux (needs CMake and the SDL2 development package, e.g. `libsdl2-dev` or `SDL2-devel`):
 ```
@@ -39,7 +50,10 @@ opensimfarm /path/to/SimFarm             # first start: where your SimFarm is in
 opensimfarm                              # later starts
 opensimfarm /path/to/SimFarm MYFARM.SFM  # open a saved game
 ```
-On Windows, drag your SimFarm folder onto `opensimfarm.exe` once, or put OpenSimFarm into the SimFarm folder.
+At the first start without a folder, OpenSimFarm looks for SimFarm in the usual places (your home folder, the
+drive roots on Windows, `/opt`, `/media` ...). If that fails, it asks you to choose the folder in the system's folder
+dialog (on Linux this needs zenity or kdialog). The folder is remembered. `opensimfarm --findgame` prints what
+the search finds.
 Settings and saved games are kept in `~/.config/opensimfarm/` (Linux) or `%APPDATA%\OpenSimFarm\` (Windows).
 
 ## Tests

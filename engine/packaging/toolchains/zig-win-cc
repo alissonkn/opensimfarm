@@ -1,0 +1,5 @@
+#!/bin/sh
+# OpenSimFarm - an open re-implementation of SimFarm. Copyright (c) 2026 OpenSimFarm developers.
+# Licensed under the GNU General Public License version 3 (see LICENSE.txt).
+# C compiler for Windows x64 (Zig from pip: python3 -m pip install --user ziglang)
+exec python3 -m ziglang cc -target x86_64-windows-gnu "$@"

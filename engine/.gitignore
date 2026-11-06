@@ -1,3 +1,6 @@
 build/
 build-win/
 build-asan/
+build-pkg/
+build-dbg/
+dist/

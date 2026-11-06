@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=OpenSimFarm
+GenericName=Farm simulation
+Comment=Run a farm: an open re-implementation of SimFarm that plays with your own copy of the game
+Exec=opensimfarm
+Icon=opensimfarm
+Terminal=false
+Categories=Game;Simulation;
+Keywords=farm;simulation;simfarm;
