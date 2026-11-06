@@ -3,6 +3,8 @@
 OpenSimFarm is an independent, open-source re-implementation of the 1993 farm simulation game
 SimFarm, written in C++17 with SDL2. It runs on modern Linux and Windows.
 
+Website and downloads: **https://alissonkn.github.io/opensimfarm/**
+
 **You need your own copy of SimFarm.** This repository contains no game files: no pictures, sounds,
 music, maps or texts. At startup the engine reads them from your own SimFarm installation, without copying or
 changing them.

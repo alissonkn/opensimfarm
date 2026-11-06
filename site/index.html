@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenSimFarm: run your farm again, on Windows and Linux</title>
+<meta name="description" content="OpenSimFarm is an open-source re-implementation of the 1993 farm simulation SimFarm for modern Windows and Linux. Bring your own copy of the game.">
+<meta property="og:title" content="OpenSimFarm">
+<meta property="og:description" content="An open-source re-implementation of the 1993 farm simulation SimFarm for modern Windows and Linux.">
+<meta property="og:image" content="assets/icon.png">
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="hero">
+  <div class="sun" aria-hidden="true"></div>
+  <div class="cloud c1" aria-hidden="true"></div>
+  <div class="cloud c2" aria-hidden="true"></div>
+  <div class="cloud c3" aria-hidden="true"></div>
+  <nav class="top">
+    <a class="brand" href="#"><img src="assets/favicon.png" alt="" width="32" height="32"> OpenSimFarm</a>
+    <div class="links">
+      <a href="#features">Features</a>
+      <a href="#install">Install</a>
+      <a href="#releases">Releases</a>
+      <a href="#build">Build</a>
+      <a href="#faq">FAQ</a>
+      <a href="https://github.com/alissonkn/opensimfarm">GitHub</a>
+    </div>
+  </nav>
+  <div class="hero-body">
+    <img class="hero-icon" src="assets/icon.png" alt="OpenSimFarm icon: a red barn and silo" width="200" height="200">
+    <div class="hero-text">
+      <h1>Open<span>Sim</span>Farm</h1>
+      <p class="tagline">Plant, harvest, raise livestock and weather the seasons. The 1993 farm simulation, rebuilt from scratch for today's Windows and Linux.</p>
+      <div class="cta" id="cta">
+        <a class="btn primary" id="cta-main" href="https://github.com/alissonkn/opensimfarm/releases/latest">Download</a>
+        <a class="btn ghost" href="#install">How to install</a>
+      </div>
+      <p class="cta-note" id="cta-note">Free and open source (GPL-3.0). Needs your own copy of SimFarm.</p>
+    </div>
+  </div>
+  <div class="hills" aria-hidden="true">
+    <svg viewBox="0 0 1440 220" preserveAspectRatio="none"><path class="h1" d="M0,120 C240,40 420,40 640,110 C860,180 1080,60 1440,90 L1440,220 L0,220 Z"/><path class="h2" d="M0,170 C300,110 520,150 760,165 C1000,180 1220,120 1440,150 L1440,220 L0,220 Z"/></svg>
+  </div>
+</header>
+
+<main>
+
+<section class="notice">
+  <div class="wrap">
+    <div class="notice-card">
+      <div class="notice-emoji" aria-hidden="true">💾</div>
+      <div>
+        <h2>Bring your own SimFarm</h2>
+        <p>OpenSimFarm contains <strong>none of the original game's files</strong>: no pictures, sounds, music, maps or texts. It reads them, read-only, from your own SimFarm folder (the one with <code>MEGADATA.IDX</code> and <code>MEGADATA.EEA</code>). On the first start it looks for the folder itself, or you choose it once. Your saves from the original game load as they are.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="features" class="features">
+  <div class="wrap">
+    <h2 class="section-title">What's inside</h2>
+    <div class="grid">
+      <article class="card green"><div class="ico" aria-hidden="true">🌾</div><h3>The whole farm</h3><p>Fields and crops, orchards, livestock, machines and buildings, the weather, the market, the bank and the town around you.</p></article>
+      <article class="card gold"><div class="ico" aria-hidden="true">💾</div><h3>Your old saves</h3><p>Loads and saves the original's saved games, so a farm from 1993 picks up where you left it.</p></article>
+      <article class="card red"><div class="ico" aria-hidden="true">🌪️</div><h3>Disasters included</h3><p>Tornadoes, windstorms, droughts, floods, locusts and frost, plus the crop duster, the county fair and the rodeo.</p></article>
+      <article class="card blue"><div class="ico" aria-hidden="true">🔊</div><h3>Modern Sound</h3><p>Optional: the game's own sounds cleaned up and in stereo, and the music played with new instruments.</p></article>
+      <article class="card purple"><div class="ico" aria-hidden="true">✨</div><h3>Modern Render</h3><p>Optional: the game's own pictures smoothed, and animals, machines and cars gliding from cell to cell.</p></article>
+      <article class="card teal"><div class="ico" aria-hidden="true">🚜</div><h3>Smart Driving</h3><p>Optional: machines plan their way to the field and back over roads, gates and bridges. Any window size, from a laptop to a big screen.</p></article>
+    </div>
+  </div>
+</section>
+
+<section id="install" class="install">
+  <div class="wrap">
+    <h2 class="section-title">Install</h2>
+    <p class="lead">Pick your system. The files are on the <a href="#releases">releases</a> below; the newest one is always at the top.</p>
+    <div class="tabs" role="tablist">
+      <button role="tab" class="tab active" data-tab="win" aria-selected="true">🪟 Windows</button>
+      <button role="tab" class="tab" data-tab="deb" aria-selected="false">🐧 Debian / Ubuntu</button>
+      <button role="tab" class="tab" data-tab="rpm" aria-selected="false">🎩 Fedora / openSUSE</button>
+      <button role="tab" class="tab" data-tab="zip" aria-selected="false">📦 Windows zip</button>
+    </div>
+    <div class="panel active" id="tab-win" role="tabpanel">
+      <ol>
+        <li>Download <code class="fname" data-kind="setup">OpenSimFarm-VERSION-windows-x64-setup.exe</code>.</li>
+        <li>Run it. It installs for your user only, so no administrator rights are needed.</li>
+        <li>On the <em>Your SimFarm folder</em> page, check the folder it found, or click <em>Browse</em> and choose it.</li>
+        <li>Start OpenSimFarm from the Start menu or the desktop shortcut.</li>
+      </ol>
+      <p class="tip">The installer is not code-signed, so Windows SmartScreen may warn the first time: click <em>More info</em>, then <em>Run anyway</em>. Uninstalling (Settings → Apps) keeps your saves and settings.</p>
+    </div>
+    <div class="panel" id="tab-deb" role="tabpanel">
+      <ol>
+        <li>Download <code class="fname" data-kind="deb">opensimfarm_VERSION-1_amd64.deb</code> (Debian 12 or newer, Ubuntu 22.04 or newer).</li>
+        <li>Install it, which also installs SDL2:<pre><code>sudo apt install ./<span class="fname" data-kind="deb">opensimfarm_VERSION-1_amd64.deb</span></code></pre></li>
+        <li>Start <em>OpenSimFarm</em> from the menu, or run <code>opensimfarm</code>.</li>
+      </ol>
+      <p class="tip">Remove it with <code>sudo apt remove opensimfarm</code>. Your saves stay in <code>~/.config/opensimfarm</code>.</p>
+    </div>
+    <div class="panel" id="tab-rpm" role="tabpanel">
+      <ol>
+        <li>Download <code class="fname" data-kind="rpm">opensimfarm-VERSION-1.x86_64.rpm</code>.</li>
+        <li>Install it, which also installs SDL2:<pre><code>sudo dnf install ./<span class="fname" data-kind="rpm">opensimfarm-VERSION-1.x86_64.rpm</span></code></pre>On openSUSE: <code>sudo zypper install ./<span class="fname" data-kind="rpm">opensimfarm-VERSION-1.x86_64.rpm</span></code></li>
+        <li>Start <em>OpenSimFarm</em> from the menu, or run <code>opensimfarm</code>.</li>
+      </ol>
+      <p class="tip">Remove it with <code>sudo dnf remove opensimfarm</code>. Your saves stay in <code>~/.config/opensimfarm</code>.</p>
+    </div>
+    <div class="panel" id="tab-zip" role="tabpanel">
+      <ol>
+        <li>Download <code class="fname" data-kind="zip">OpenSimFarm-VERSION-windows-x64.zip</code> and unzip it anywhere.</li>
+        <li>Double-click <code>opensimfarm.exe</code>. If it doesn't find SimFarm by itself, it asks you to choose the folder once.</li>
+      </ol>
+      <p class="tip">Handy for a USB stick or for trying it out. Settings and saves go to <code>%APPDATA%\OpenSimFarm</code>.</p>
+    </div>
+    <div class="first-start">
+      <h3>🧭 First start</h3>
+      <p>OpenSimFarm searches the usual places for your SimFarm folder (your home folder, the drive roots on Windows, <code>/opt</code>, <code>/media</code>, …). If it can't find it, it asks you to choose it with the system's folder dialog. On Linux that dialog needs <em>zenity</em> or <em>kdialog</em>. The folder is remembered. If you move or delete it later, OpenSimFarm notices and asks for its new place.</p>
+    </div>
+  </div>
+</section>
+
+<section id="releases" class="releases">
+  <div class="wrap">
+    <h2 class="section-title">Releases</h2>
+    <p class="lead">Every version with its downloads and notes, straight from GitHub.</p>
+    <div id="release-list" class="release-list" aria-live="polite">
+      <p class="loading">Loading releases…</p>
+    </div>
+    <noscript><p class="lead">See all releases on <a href="https://github.com/alissonkn/opensimfarm/releases">GitHub</a>.</p></noscript>
+  </div>
+</section>
+
+<section id="build" class="build">
+  <div class="wrap">
+    <h2 class="section-title">Build it yourself</h2>
+    <div class="two">
+      <div class="box">
+        <h3>Play from source</h3>
+        <p>You need CMake, a C++17 compiler and the SDL2 development package (<code>libsdl2-dev</code> or <code>SDL2-devel</code>).</p>
+<pre><code>git clone https://github.com/alissonkn/opensimfarm.git
+cd opensimfarm/engine
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j
+./build/opensimfarm /path/to/SimFarm</code></pre>
+      </div>
+      <div class="box">
+        <h3>Make the installers</h3>
+        <p>One script builds all of them on Linux, including the Windows installer (cross-compiled with Zig, packed with NSIS):</p>
+<pre><code>cd opensimfarm/engine
+tools/package.sh          # or: windows / rpm / deb</code></pre>
+        <p>The tools to install first and the details are in <a href="https://github.com/alissonkn/opensimfarm/blob/main/engine/README.md#building-the-installers">Building the installers</a>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="faq" class="faq">
+  <div class="wrap">
+    <h2 class="section-title">Questions</h2>
+    <details><summary>Do I need the original game?</summary><p>Yes. OpenSimFarm is a new program that plays with the files of your own copy of SimFarm, so the pictures, sounds and maps all come from it. Nothing of the original game is included or downloaded.</p></details>
+    <details><summary>Is any of the original code in it?</summary><p>No. The engine was written from scratch in C++17, from a description of how the game behaves and how its files are laid out.</p></details>
+    <details><summary>Will it change my SimFarm files?</summary><p>No. It only reads them. Settings and saved games go to your own settings folder: <code>%APPDATA%\OpenSimFarm</code> on Windows, <code>~/.config/opensimfarm</code> on Linux.</p></details>
+    <details><summary>Does it look and play like the original?</summary><p>That's the aim: the same rules, screens and timing, checked side by side against the original. A few things are better on purpose (any window size, clearer messages, a full price list), and the Modern options are there if you want them, all switchable in the Options menu.</p></details>
+    <details><summary>Something doesn't work. Where do I report it?</summary><p>Open an issue on <a href="https://github.com/alissonkn/opensimfarm/issues">GitHub</a>, with your system, the version and what happened.</p></details>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="fields" aria-hidden="true"></div>
+  <div class="wrap">
+    <p><strong>OpenSimFarm</strong> · free software under the <a href="https://github.com/alissonkn/opensimfarm/blob/main/engine/LICENSE.txt">GNU GPL version 3</a> · <a href="https://github.com/alissonkn/opensimfarm">source on GitHub</a></p>
+    <p class="small">SimFarm is a trademark of its respective owner. OpenSimFarm is an independent project, not affiliated with or endorsed by the owners of SimFarm.</p>
+  </div>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
