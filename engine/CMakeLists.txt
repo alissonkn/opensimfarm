@@ -53,6 +53,7 @@ add_executable(opensimfarm
     src/ui/GameUi.cpp
     src/ui/Gfx.cpp
     src/ui/MapView.cpp
+    src/ui/PixelArt.cpp
     src/ui/StartScreen.cpp
     src/ui/Windows.cpp
 )

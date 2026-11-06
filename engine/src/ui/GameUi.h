@@ -87,7 +87,7 @@ public:
     }
     // the left edge of the forecast box in the toolbar: the picture's place (304) in a 640 window, else as far right as
     // leaves room for the weather summary before the date / funds part
-    int ForecastX() const { return std::max(256, _w - 240 - 96 - 52); } // may go left up to the last button (Q16c)
+    int ForecastX() const { return 256; } // right after the last button at any width (user, Q16d)
     bool MessagesOn() const { return _messagesOn; }
     void SetMessagesOn(bool on) { _messagesOn = on; }
     bool ToolNamesOn() const { return _toolNames; }

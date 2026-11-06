@@ -7,12 +7,18 @@
 #include <SDL.h>
 
 #include <cmath>
+#include <map>
+#include <unordered_map>
+#include <vector>
 
 namespace osf {
 
 // Draws the 96x96 world with the original tiles at any window size: free zoom (pixel-art scaling),
 // scrolling by dragging, arrow keys or the window edge. Cell rule: plain tile,
 // then the masked overlay tile when the cell's object flag is set.
+// Modern Render (an engine option): the tiles are redrawn smoothly for the zoom in use (ui/PixelArt.h), and the
+// things that walk or drive (animals, machines, cars) glide from cell to cell instead of jumping. Only the drawing
+// changes: the simulation, the cells and the player's files stay as they are.
 class MapView
 {
 public:
@@ -20,6 +26,14 @@ public:
     void SetPlainTiles(SDL_Renderer* renderer, const MapGraphics& gfx);   // after crop pictures changed
     void SetEventTiles(SDL_Renderer* renderer, const MapGraphics& gfx);   // after a palette change
     ~MapView();
+    void SetModern(bool on);
+    bool Modern() const { return _modern; }
+    // a thing drawn over the map at cells (cx, cy) with size w x h cells (the tornado, the swarm): its window
+    // rectangle, gliding to a new position like the map's movers when Modern Render is on. `id` names the thing
+    SDL_Rect SmoothCellRect(int id, int cx, int cy, int w, int h) { return SmoothCellRectAt(id, cx, cy, w, h, Now()); }
+    SDL_Rect SmoothCellRectAt(int id, int cx, int cy, int w, int h, double now);
+    // headless check of the smoothing and of the glide tracking (--graphicstest); 0 when all is well
+    static int SelfTest(const MapGraphics& gfx);
     void SetWorld(const World* world) { _world = world; }
     void SetEventBank(int bank) { _eventBank = bank; } // the rodeo (1) / fair (2) pictures of the event ground, 0 = none
 
@@ -49,7 +63,46 @@ public:
 
 private:
     SDL_Texture* BuildAtlas(SDL_Renderer* renderer, const TileSheet& sheet, const Palette& pal, bool transparent7);
+    SDL_Texture* BuildSmoothAtlas(SDL_Renderer* renderer, const TileSheet& sheet, const Palette& pal, bool transparent7, int size);
     void ClampCamera();
+    void DropSmooth(bool plainOnly);
+    // movers: a cell's moving thing changed; finds where each one went and starts its glide
+    void TrackMovers(double now);
+    bool GlidePosition(int cell, double now, float& px, float& py) const; // world pixels; false when not gliding
+    static int MoverKind(int overlay);                                      // -1 for things that do not move
+    struct Glide;
+    static bool GlideAt(const Glide& g, int cell, double now, float& px, float& py);
+    static double Now();
+
+    // smooth atlases for one shown tile size (lazily built; plain and event tiles change with the palette and crops)
+    struct Smooth
+    {
+        SDL_Texture* plain = nullptr;
+        SDL_Texture* masked = nullptr;
+        SDL_Texture* events = nullptr;
+    };
+    struct Glide
+    {
+        float fromX = 0, fromY = 0; // world pixels at the start
+        double start = 0, duration = 0;
+    };
+    struct Drift
+    {
+        float x = 0, y = 0, fromX = 0, fromY = 0;
+        double start = 0, duration = 0, lastMove = -1;
+        bool known = false;
+    };
+    SDL_Renderer* _renderer = nullptr;
+    bool _modern = false;
+    MapGraphics _src;                       // the sheets and palettes the atlases were last made from
+    Palette _maskedPal{};
+    std::map<int, Smooth> _smooth;          // by tile size in pixels
+    std::vector<uint16_t> _prevMover;       // per cell: the moving thing's overlay tile at the last frame (0 none)
+    std::vector<double> _arrived;           // per cell: when a glide into it started
+    std::unordered_map<int, Glide> _glides; // by destination cell
+    std::map<int, double> _pace;            // by mover kind: the usual time between two steps
+    const World* _trackedWorld = nullptr;
+    std::map<int, Drift> _drifts;           // SmoothCellRect's things
 
     const World* _world = nullptr;
     SDL_Texture* _plain = nullptr;

@@ -13,8 +13,9 @@ game behaves and how its files are laid out.
 ## Features
 * The farm, its crops, animals, machines, weather, disasters, market, bank and town, as in the original
 * Loads and saves the original's saved games
-* Window scaling, plus optional extras: smart driving for machines and "Modern Sound" (the game's own sounds,
-  cleaned up and played in stereo, and the music played with new instruments)
+* Window scaling, plus optional extras: smart driving for machines, "Modern Sound" (the game's own sounds,
+  cleaned up and played in stereo, and the music played with new instruments) and "Modern Render" (the game's own
+  pictures smoothed, and animals, machines and cars gliding from cell to cell)
 
 ## Build
 Linux (needs CMake and the SDL2 development package, e.g. `libsdl2-dev` or `SDL2-devel`):
@@ -47,6 +48,7 @@ Settings and saved games are kept in `~/.config/opensimfarm/` (Linux) or `%APPDA
 ./build/opensimfarm --toolstest     # editing tools
 ./build/opensimfarm --newgametest   # world creation
 ./build/opensimfarm --audiotest     # sound and music rendering
+./build/opensimfarm --graphicstest  # picture smoothing and movement
 ```
 
 ## Licence

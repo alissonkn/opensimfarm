@@ -1720,6 +1720,19 @@ int main(int argc, char** argv)
         if (!mega.Open(*dir, err)) { std::printf("%s\n", err.c_str()); return 1; }
         return SoundPlayer::SelfTest(mega);
     }
+    if (argc > 1 && std::strcmp(argv[1], "--graphicstest") == 0)
+    {
+        // Modern Render in memory: the tile smoothing on the player's tiles and the glide tracking, nothing written
+        char* fake[2] = { argv[0], argc > 2 ? argv[2] : nullptr };
+        auto dir = ResolveGameDirectory(argc > 2 ? 2 : 1, fake);
+        if (!dir) { Fatal("game folder unknown", false); return 1; }
+        Megadata mega;
+        std::string err;
+        if (!mega.Open(*dir, err)) { std::printf("%s\n", err.c_str()); return 1; }
+        MapGraphics gfx;
+        if (!LoadMapGraphics(mega, gfx)) { std::printf("tiles could not be read\n"); return 1; }
+        return MapView::SelfTest(gfx);
+    }
     if (argc > 1 && std::strcmp(argv[1], "--selftest") == 0)
     {
         char* fake[2] = { argv[0], argc > 2 ? argv[2] : nullptr };
@@ -2454,6 +2467,11 @@ int main(int argc, char** argv)
     if (settings.count("music"))
         sound.SetMusicEnabled(settings["music"] != 0);
     sound.SetModern(!settings.count("modernsound") || settings["modernsound"] != 0); // on unless turned off
+    // on unless turned off; "moderngraphics" is the setting's earlier name (the option was renamed Modern Render)
+    {
+        const char* key = settings.count("modernrender") ? "modernrender" : "moderngraphics";
+        view.SetModern(!settings.count(key) || settings[key] != 0);
+    }
     if (settings.count("musicvolume"))
         sound.SetMusicVolume(settings["musicvolume"]);
     if (settings.count("sfxvolume"))
@@ -2542,6 +2560,12 @@ int main(int argc, char** argv)
             sound.SetModern(!sound.Modern());
             ui.ShowMessage(sound.Modern() ? "Modern sound on: cleaner effects placed on the map, new instruments for the music."
                                           : "Modern sound off: the sound as the original plays it.");
+        }
+        else if (cmd == "modernrender")
+        {
+            view.SetModern(!view.Modern());
+            ui.ShowMessage(view.Modern() ? "Modern render on: smoothed pictures, and animals, machines and cars glide from cell to cell."
+                                         : "Modern render off: the pictures and the movement as the original draws them.");
         }
         else if (cmd == "newgame")
             atStart = true;
@@ -2860,7 +2884,7 @@ int main(int argc, char** argv)
         std::ofstream out(std::filesystem::path(ConfigDir()) / "settings.txt");
         out << "scale=" << uiScale << "\nsfx=" << sound.Enabled() << "\nmusic=" << sound.MusicEnabled() << "\nmessages=" << ui.MessagesOn()
             << "\ntoolnames=" << ui.ToolNamesOn() << "\nsmartdriving=" << Machines::smartDriving
-            << "\nmodernsound=" << sound.Modern() << "\nmusicvolume=" << sound.MusicVolume() << "\nsfxvolume=" << sound.EffectsVolume() << "\n";
+            << "\nmodernsound=" << sound.Modern() << "\nmodernrender=" << view.Modern() << "\nmusicvolume=" << sound.MusicVolume() << "\nsfxvolume=" << sound.EffectsVolume() << "\n";
     }
     return 0;
 }

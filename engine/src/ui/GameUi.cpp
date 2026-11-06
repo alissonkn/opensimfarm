@@ -35,7 +35,7 @@ void GameUi::BuildMenus()
                        { "Load Game", "win:13" }, { "Quit", "quit" } }, 0, 128, 75 }, // no Load Crop: the PLANT list loads crops
         { "Options", 64, { { "Music", "music" }, { "Sound Effects", "sfx" }, { "AutoBuy", "opt:opt_autobuy" }, { "AutoScroll", "opt:opt_autoscroll" },
                            { "AutoDoze", "opt:opt_autodoze" }, { "AutoGoto", "opt:opt_autogoto" }, { "Messages", "msgs" }, { "AutoLease", "opt:menu_6" },
-                           { "Smart Driving", "smartdrive" }, { "Modern Sound", "modernsound" }, { "Sound Volume", "win:20" } }, 64, 120, 136 },
+                           { "Smart Driving", "smartdrive" }, { "Modern Sound", "modernsound" }, { "Modern Render", "modernrender" }, { "Sound Volume", "win:20" } }, 64, 136, 148 },
         { "Speed", 144, { { "Ultra", "speed:0" }, { "Fast", "speed:1" }, { "Normal", "speed:2" }, { "Slow", "speed:3" }, { "Pause", "speed:4" } }, 144, 64, 64 },
         { "Windows", 208, { { "Buy", "win:0" }, { "Sell", "win:1" }, { "Evaluation", "win:5" }, { "Map", "win:3" }, { "Weather", "win:4" },
                             { "Balance Sheet", "win:9" }, { "Bank", "win:10" }, { "Market Value", "win:8" },
@@ -150,6 +150,8 @@ bool GameUi::ItemChecked(const std::string& cmd) const
         return musicEnabled && musicEnabled();
     if (cmd == "modernsound")
         return _ctx.audio && _ctx.audio->Modern();
+    if (cmd == "modernrender")
+        return _ctx.view && _ctx.view->Modern();
     if (cmd.rfind("dis:", 0) == 0 && _ctx.sim)
     {
         static const int ids[6] = { 1, 4, 2, 3, 5, 6 };
@@ -1363,12 +1365,12 @@ void GameUi::DrawHazards()
     Disasters& d = _ctx.sim->Hazards();
     if (d.Active(Disasters::kTornado))
     {
-        const SDL_Rect c = _ctx.view->CellRect(d.TornadoX() - 1, d.TornadoY() - 2, 3, 3);
+        const SDL_Rect c = _ctx.view->SmoothCellRect(0, d.TornadoX() - 1, d.TornadoY() - 2, 3, 3);
         _g.DrawSprite("tornado.spr", d.Frame(), c);
     }
     if (d.Active(Disasters::kLocusts))
     {
-        const SDL_Rect c = _ctx.view->CellRect(d.SwarmX(), d.SwarmY(), 4, 2);
+        const SDL_Rect c = _ctx.view->SmoothCellRect(1, d.SwarmX(), d.SwarmY(), 4, 2);
         _g.DrawSprite("swarm.spr", d.Frame(), SDL_Rect{ c.x, c.y, c.w, c.h * 5 / 4 });
     }
 }
@@ -1439,9 +1441,9 @@ void GameUi::UpdateCursor()
 
 void GameUi::AutoScroll()
 {
-    // AutoScroll option: the farm view moves 2 cells at a time while the pointer is on the
-    // outermost pixel of the left or top screen edge or within the last 16 pixels of the right or bottom edge (the
-    // original's zones, in interface pixels). Under DOS the pointer cannot leave the screen, so pushing it against
+    // AutoScroll option: the farm view moves 2 cells at a time while the pointer is within 4 pixels of
+    // the left or top edge (the original: the outermost pixel) or within the last 16 pixels of the right or bottom
+    // edge (the original's zones), in interface pixels. Under DOS the pointer cannot leave the screen, so pushing it against
     // an edge keeps it there; a window lets it leave, so a pointer that left the focused window through an edge
     // counts as held on that edge until it comes back. The original steps once per pass of its main loop, so its
     // pace follows the machine; the engine takes a step every 50 ms (40 cells a second) whatever the frame rate
@@ -1457,11 +1459,14 @@ void GameUi::AutoScroll()
         MouseState(&mx, &my);
         const int s = _g.Scale();
         const int ix = mx / s, iy = my / s;
-        if (ix <= 0)
+        // the left and top zones are 4 pixels wide here, not the original's one (user finding F47: in a window the
+        // outermost pixel is hard to hit, so the left side hardly scrolled): they cover only the palette's border
+        // (its icons start at x 4) and the empty rows of the menu bar above its names (text from y 4)
+        if (ix < 4)
             dx = -2;
         if (ix > _w - 17)
             dx = 2;
-        if (iy <= 0)
+        if (iy < 4)
             dy = -2;
         if (iy > _h - 17)
             dy = 2;
