@@ -23,7 +23,7 @@ public:
     StartScreen(Gfx& g, const std::string& gameDir);
     void SetGameDir(const std::string& d) { _gameDir = d; } // the SimFarm folder was moved (main.cpp)
     // returns "farm:N", "generated" (take the world with World()), either with "load+" in front for LOAD A SAVED GAME,
-    // "quit" or an empty string
+    // "language:<code>" after a language was chosen (already set), "quit" or an empty string
     std::string HandleEvent(const SDL_Event& e);
     void Draw(int pixelsW, int pixelsH);
     GameState& World() { return _world; }
@@ -37,6 +37,10 @@ private:
     void DrawDesign();
     void ToggleMapSize();
     void DrawMapSizeButton();
+    void DrawLanguage();               // the language button under the panel, and its list when open
+    bool LanguageClick(int x, int y);  // true when the click was the button's or the list's
+    void DrawTranslatedRegion();       // the region picture's words in the chosen language
+    void DrawTranslatedDesign();       // the same for the design picture
     void Climate(int gx, int gy);
     bool Valid(int gx, int gy) const; // the region grid's valid cells
     void Generate(bool byButton = false);
@@ -62,6 +66,8 @@ private:
     bool _haveWorld = false;
     std::vector<uint32_t> _preview;
     int _previewSide = 192;
+    bool _languageOpen = false;  // the language list is open
+    std::string _changedLanguage; // set by a choice in the list, handed to main.cpp as "language:<code>"
 };
 
 } // namespace osf

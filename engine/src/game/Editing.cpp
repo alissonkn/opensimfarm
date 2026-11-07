@@ -1,6 +1,7 @@
 // OpenSimFarm - an open re-implementation of SimFarm. Copyright (c) 2026 OpenSimFarm developers.
 // Licensed under the GNU General Public License version 3 (see LICENSE.txt).
 #include "game/Editing.h"
+#include "core/Lang.h"
 
 #include "game/Machines.h"
 
@@ -103,13 +104,13 @@ bool FieldClear(GameState& s, Simulation& sim, int x0, int y0, std::string& why)
         {
             const bool inside = x >= x0 && x < x0 + 8 && y >= y0 && y < y0 + 8;
             if (!s.world.In(x, y))
-                why = "A field does not fit at the edge of the map.";
+                why = Tr("A field does not fit at the edge of the map.");
             else if (sim.FieldIndexAt(x, y) != 0)
-                why = inside ? "There is already a field there." : "Fields need one free cell between them.";
+                why = inside ? Tr("There is already a field there.") : Tr("Fields need one free cell between them.");
             else if (inside && !Owned(s, x, y))
-                why = "A field must be on your own land.";
+                why = Tr("A field must be on your own land.");
             else if (inside && (HasObject(s, x, y) || !Buildable(Id(s, x, y))))
-                why = "A field needs 8 x 8 cells of clear ground.";
+                why = Tr("A field needs 8 x 8 cells of clear ground.");
         }
     return why.empty();
 }
@@ -120,21 +121,21 @@ const ToolInfo& GetToolInfo(Tool t)
 {
     static const ToolInfo info[] = {
         { "", 0, -1 },
-        { "Move", 0, -1 },
-        { "Examine", 0, 198 },
-        { "Paved Road", 30, 151 },
-        { "Dirt Road", 20, 162 },
-        { "Fence", 50, 178 },
-        { "Fence Gate", 75, 188 },
-        { "Irrigation Ditch", 80, 99 },
-        { "Ditch Valve", 35, 122 },
-        { "Livestock Feed", 100, 172 },
-        { "Water Trough", 15, 176 },
-        { "Trees", 10, 131 },
-        { "Bulldoze", 25, 199 },
-        { "Plant", 0, 816 },
-        { "Spray", 0, -1 },
-        { "Place", 0, -1 },
+        { N_("Move"), 0, -1 },
+        { N_("Examine"), 0, 198 },
+        { N_("Paved Road"), 30, 151 },
+        { N_("Dirt Road"), 20, 162 },
+        { N_("Fence"), 50, 178 },
+        { N_("Fence Gate"), 75, 188 },
+        { N_("Irrigation Ditch"), 80, 99 },
+        { N_("Ditch Valve"), 35, 122 },
+        { N_("Livestock Feed"), 100, 172 },
+        { N_("Water Trough"), 15, 176 },
+        { N_("Trees"), 10, 131 },
+        { N_("Bulldoze"), 25, 199 },
+        { N_("Plant"), 0, 816 },
+        { N_("Spray"), 0, -1 },
+        { N_("Place"), 0, -1 },
     };
     return info[static_cast<int>(t)];
 }
@@ -340,7 +341,7 @@ EditResult ApplyTool(GameState& s, Simulation& sim, Tool tool, int cx, int cy, i
     {
         const int fi = sim.FieldIndexAt(cx, cy);
         if (fi == 0)
-            return Refuse("Click on a field to spray it.");
+            return Refuse(Tr("Click on a field to spray it."));
         Field f = s.FieldAt(fi);
         std::string why;
         if (!sim.StartSpray(f, param, why))
@@ -349,7 +350,7 @@ EditResult ApplyTool(GameState& s, Simulation& sim, Tool tool, int cx, int cy, i
         // into this week's cell of the field's timeline (confirmed against the original's save, 2026-10-31)
         f.SetSub(1);
         s.SetScheduleCode(s.cal.AbsWeek(), fi, 0x393 - (param - 6));
-        return { true, "The job is scheduled.", "ploptool.voc" };
+        return { true, Tr("The job is scheduled."), "ploptool.voc" };
     }
     if (tool == Tool::Plant)
     {
@@ -358,7 +359,7 @@ EditResult ApplyTool(GameState& s, Simulation& sim, Tool tool, int cx, int cy, i
             // planting on an existing, idle field
             Field f = s.FieldAt(fi);
             if (f.State() != 0)
-                return Refuse("The field is in use.");
+                return Refuse(Tr("The field is in use."));
             std::string why;
             if (!sim.StartPlanting(f, param, why))
                 return Refuse(why);
@@ -372,7 +373,7 @@ EditResult ApplyTool(GameState& s, Simulation& sim, Tool tool, int cx, int cy, i
             if (!s.FieldAt(i).InUse())
                 index = i;
         if (!index)
-            return Refuse("There is no room for another field.");
+            return Refuse(Tr("There is no room for another field."));
         // the original's field creation: the listed bytes are written, the rest of a reused record (moisture, tile
         // word, ...) keeps its old values; the soil counters come from the zone bytes of the plot under the field's
         // centre (N = A = byte 6, pests = byte 2, disease = byte 3, weeds = byte 4), B = 65, C = 80
@@ -426,7 +427,7 @@ EditResult ApplyTool(GameState& s, Simulation& sim, Tool tool, int cx, int cy, i
         return {};
 
     if (!Owned(s, cx, cy))
-        return Refuse("You do not own this land.");
+        return Refuse(Tr("You do not own this land."));
 
     if (tool == Tool::Bulldoze)
     {
@@ -437,7 +438,7 @@ EditResult ApplyTool(GameState& s, Simulation& sim, Tool tool, int cx, int cy, i
             if (param == 1)
             {
                 if (!sim.Spend(-1, 25))
-                    return Refuse("Not enough money.");
+                    return Refuse(Tr("Not enough money."));
                 sim.DeleteField(fi);
                 return { true, "", "bulldoze.voc" };
             }
@@ -470,10 +471,10 @@ EditResult ApplyTool(GameState& s, Simulation& sim, Tool tool, int cx, int cy, i
                         return { true, "The machine was sold for " + std::to_string(value) + ".", "bulldoze.voc" };
                     }
                 }
-                return Refuse("That machine is busy.");
+                return Refuse(Tr("That machine is busy."));
             }
             if (o < kHayTile || o > kHayTile + 4)
-                return Refuse("That cannot be bulldozed.");
+                return Refuse(Tr("That cannot be bulldozed."));
         }
         else if (!(kPaved.Has(id) || kDirt.Has(id) || kFence.Has(id) || kGate.Has(id) || kDitchEmpty.Has(id) || kDitchFull.Has(id) ||
                    kValve.Has(id) || kTrees.Has(id) || kTrough.Has(id) || kRocks.Has(id) ||
@@ -482,7 +483,7 @@ EditResult ApplyTool(GameState& s, Simulation& sim, Tool tool, int cx, int cy, i
                    id == 172 || id == 173 || id == 192 || id == 193 || id == 73 || id == 74 || id == 113 || id == 114))
             return Refuse();
         if (!sim.Spend(-1, info.cost))
-            return Refuse("Not enough money.");
+            return Refuse(Tr("Not enough money."));
         if (const int it = sim.ItemAt(cx, cy, 300))
             sim.RemoveItem(it);
         if (const int it = sim.ItemAt(cx, cy, 299))
@@ -521,7 +522,7 @@ EditResult ApplyTool(GameState& s, Simulation& sim, Tool tool, int cx, int cy, i
     {
         // AutoDoze: clear a rock or tree first at the bulldoze price; roads, fences and ditches stay
         if (!sim.Spend(-1, GetToolInfo(Tool::Bulldoze).cost))
-            return Refuse("Not enough money.");
+            return Refuse(Tr("Not enough money."));
         SetBase(s, cx, cy, GroundTile(s, sim.SoilWetness(), cx, cy));
         ReshapeAround(s, cx, cy);
         fits = true;
@@ -529,7 +530,7 @@ EditResult ApplyTool(GameState& s, Simulation& sim, Tool tool, int cx, int cy, i
     if (!fits || HasObject(s, cx, cy))
         return Refuse();
     if (!sim.Spend(-1, info.cost))
-        return Refuse("Not enough money.");
+        return Refuse(Tr("Not enough money."));
 
     switch (tool)
     {

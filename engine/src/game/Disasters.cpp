@@ -1,6 +1,7 @@
 // OpenSimFarm - an open re-implementation of SimFarm. Copyright (c) 2026 OpenSimFarm developers.
 // Licensed under the GNU General Public License version 3 (see LICENSE.txt).
 #include "game/Disasters.h"
+#include "core/Lang.h"
 
 #include "game/Machines.h"
 #include "game/Simulation.h"
@@ -37,7 +38,7 @@ void Disasters::Stop(int id)
     _active &= ~(1 << id);
     switch (id)
     {
-    case kTornado: _sim.DisasterEvent(20, 63, "The tornado has passed."); break;
+    case kTornado: _sim.DisasterEvent(20, 63, Tr("The tornado has passed.")); break;
     case kFlood:
         // the water goes back: cells flooded outside the water's reach become dry bed again (flags cleared)
         for (auto& c : _s.world.cells)
@@ -50,9 +51,9 @@ void Disasters::Stop(int id)
                     c.base = kDryBed;
             }
         _sim.Shorelines();
-        _sim.DisasterEvent(56, 62, "The flood waters are going down.");
+        _sim.DisasterEvent(56, 62, Tr("The flood waters are going down."));
         break;
-    case kWindstorm: _sim.DisasterEvent(57, 57, "The wind is back to normal."); break;
+    case kWindstorm: _sim.DisasterEvent(57, 57, Tr("The wind is back to normal.")); break;
     case kDrought:
         // the ponds fill again: every cell in the water's reach becomes water
         for (auto& c : _s.world.cells)
@@ -64,7 +65,7 @@ void Disasters::Stop(int id)
                 c.base |= 0x2000;
             }
         _sim.Shorelines();
-        _sim.DisasterEvent(58, 58, "Rain has ended the drought.");
+        _sim.DisasterEvent(58, 58, Tr("Rain has ended the drought."));
         break;
     default: break;
     }
@@ -103,13 +104,13 @@ bool Disasters::Start(int id)
         _tMoveStamp = _sim.RawTicks();
         _tCount = 0;
         _tStamp = _sim.RawTicks(); // the original stamps the raw timer after the warning box (the engine's clock stands still under the box)
-        _sim.DisasterEvent(52, 63, "Tornado warning: a tornado has been sighted.", true); // the only box Messages does not hide
+        _sim.DisasterEvent(52, 63, Tr("Tornado warning: a tornado has been sighted."), true); // the only box Messages does not hide
         _sim.AutoGoto(_tx, _ty);
         _sim.PlaySound("tornado.voc", _tx, _ty);
         break;
     case kDrought:
     {
-        _sim.DisasterEvent(53, 58, "Drought warning: ponds and ditches are drying up.");
+        _sim.DisasterEvent(53, 58, Tr("Drought warning: ponds and ditches are drying up."));
         // sweep in place: shores recede
         for (int x = 0; x < _s.world.size; ++x)
             for (int y = 0; y < _s.world.size; ++y)
@@ -132,7 +133,7 @@ bool Disasters::Start(int id)
     case kFlood:
         _floodDays = 0;
         _floodPos = 0;
-        _sim.DisasterEvent(54, 62, "Flood warning: the river has burst its banks.");
+        _sim.DisasterEvent(54, 62, Tr("Flood warning: the river has burst its banks."));
         _sim.PlaySound("flood.voc");
         break;
     case kLocusts:
@@ -154,7 +155,7 @@ bool Disasters::Start(int id)
         _ly0 = _ly = f.Y();
         _lStamp = _lMoveStamp = _sim.RawTicks(); // stamped after the box
         _lCount = 0;
-        _sim.DisasterEvent(55, 47, "Locusts: a swarm is over your fields.");
+        _sim.DisasterEvent(55, 47, Tr("Locusts: a swarm is over your fields."));
         _sim.AutoGoto(_lx0, _ly0); // the target field's corner
         _sim.PlaySound("swarm.voc", _lx0, _ly0);
         break;
@@ -168,12 +169,12 @@ bool Disasters::Start(int id)
             if (f.InUse() && _s.crops[f.Crop() & 15].FrostShift() != 0)
                 f.SetStress(std::min(65535, f.Stress() + 255));
         }
-        _sim.DisasterEvent(49, 56, "Frost warning: a hard frost has hit your crops.");
+        _sim.DisasterEvent(49, 56, Tr("Frost warning: a hard frost has hit your crops."));
         break;
     }
     case kWindstorm:
         _sim.RaiseGust(40);
-        _sim.DisasterEvent(48, 57, "Windstorm warning: strong winds are blowing away your topsoil.");
+        _sim.DisasterEvent(48, 57, Tr("Windstorm warning: strong winds are blowing away your topsoil."));
         _sim.PlaySound("wind.voc");
         break;
     default: break;
@@ -191,7 +192,7 @@ void Disasters::FloodCell(int x, int y)
         if (f.State() == 0 || f.State() == 4)
         {
             _sim.DeleteField(fi);
-            _sim.Notify("The flood has washed a field away.");
+            _sim.Notify(Tr("The flood has washed a field away."));
         }
     }
     MapCell& c = _s.world.At(x, y);
@@ -203,13 +204,13 @@ void Disasters::FloodCell(int x, int y)
             if (m.InUse() && m.X() == x && m.Y() == y)
             {
                 _sim.Fleet().Remove(i);
-                _sim.Notify("The flood has destroyed a machine.");
+                _sim.Notify(Tr("The flood has destroyed a machine."));
             }
         }
     if (const int st = _sim.StructureAt(x, y))
     {
         _sim.RemoveStructure(st, false); // washed away: nothing is paid back
-        _sim.Notify("The flood has destroyed a building.");
+        _sim.Notify(Tr("The flood has destroyed a building."));
     }
     if (c.BaseTile() != 172 && c.BaseTile() != 173)
         c.base |= 0x2000; // flooded (the tile word's flag)

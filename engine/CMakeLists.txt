@@ -31,9 +31,19 @@ else()
     find_package(SDL2 REQUIRED CONFIG)
 endif()
 
+# the translations (lang/*.po) are built into the program
+file(GLOB OSF_LANG_FILES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/lang/*.po)
+list(SORT OSF_LANG_FILES)
+set(OSF_LANG_CPP ${CMAKE_CURRENT_BINARY_DIR}/lang_builtin.cpp)
+add_custom_command(OUTPUT ${OSF_LANG_CPP}
+    COMMAND ${CMAKE_COMMAND} -DOUT=${OSF_LANG_CPP} "-DFILES=${OSF_LANG_FILES}" -P ${CMAKE_CURRENT_SOURCE_DIR}/tools/EmbedLang.cmake
+    DEPENDS ${OSF_LANG_FILES} ${CMAKE_CURRENT_SOURCE_DIR}/tools/EmbedLang.cmake VERBATIM)
+
 add_executable(opensimfarm
     src/main.cpp
     src/core/Paths.cpp
+    src/core/Lang.cpp
+    ${OSF_LANG_CPP}
     src/assets/Megadata.cpp
     src/assets/Graphics.cpp
     src/assets/Picture.cpp
@@ -56,12 +66,15 @@ add_executable(opensimfarm
     src/game/WorldGen.cpp
     src/ui/GameUi.cpp
     src/ui/Gfx.cpp
+    src/ui/PictureText.cpp
+    src/ui/LangTest.cpp
     src/ui/MapView.cpp
     src/ui/PixelArt.cpp
     src/ui/StartScreen.cpp
     src/ui/Windows.cpp
 )
 target_include_directories(opensimfarm PRIVATE src)
+target_compile_definitions(opensimfarm PRIVATE OSF_VERSION="${PROJECT_VERSION}")
 target_link_libraries(opensimfarm PRIVATE SDL2::SDL2)
 if(MSVC)
     target_compile_options(opensimfarm PRIVATE /W4 /utf-8)

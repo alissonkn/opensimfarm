@@ -3,6 +3,7 @@
 #include "ui/StartScreen.h"
 
 #include "assets/Megadata.h"
+#include "core/Lang.h"
 #include "core/Paths.h"
 #include "game/GameState.h"
 
@@ -21,6 +22,9 @@ bool In(const Button& b, int x, int y) { return x >= b.x && y >= b.y && x < b.x 
 // the map size of a designed world, under the design picture (an engine addition: 96 x 96 as the original, or
 // 144 x 144 for more land). The region screen stays as the original: its worlds are 96 x 96.
 constexpr Button kMapSizeButton{ 229, 342, 150, 22 };
+// the language button (an engine addition), centred under the panel in the black part of the picture, and its list
+constexpr Button kLanguageButton{ 200, 350, 240, 20 };
+constexpr int kLanguageRowH = 14;
 // the eight prebuilt farms on the region map: 17x17 boxes at (248 + 16 gx, 40 + 16 gy)
 constexpr int kFarmGx[8] = { 0, 1, 1, 3, 9, 11, 13, 15 }, kFarmGy[8] = { 8, 11, 3, 6, 7, 6, 11, 8 };
 } // namespace
@@ -117,6 +121,14 @@ std::string StartScreen::HandleEvent(const SDL_Event& e)
     int x, y;
     if (!ToPicture(e.button.x, e.button.y, x, y))
         return {};
+    if (!_design && LanguageClick(x, y))
+    {
+        std::string c;
+        if (!_changedLanguage.empty())
+            c = "language:" + _changedLanguage;
+        _changedLanguage.clear();
+        return c;
+    }
     if (_design)
         return DesignEvent(x, y);
     // the farm USE THIS REGION starts: a place on the map gets a world generated with its climate and the design
@@ -247,7 +259,7 @@ void StartScreen::DrawMapSizeButton()
     _g.Fill(b.x, b.y, b.w, b.h, kBlack);
     _g.Fill(b.x + 1, b.y + 1, b.w - 2, b.h - 2, kLightGrey);
     _g.Bevel(b.x + 1, b.y + 1, b.w - 2, b.h - 2, true);
-    _g.TextCentre(b.x + b.w / 2, b.y + 7, _designMapSize == kLargeMapSize ? "MAP 144 x 144" : "MAP 96 x 96", kBlack);
+    _g.TextCentre(b.x + b.w / 2, b.y + 7, _designMapSize == kLargeMapSize ? Tr("MAP 144 x 144") : Tr("MAP 96 x 96"), kBlack);
 }
 
 std::string StartScreen::DesignEvent(int x, int y)
@@ -380,6 +392,7 @@ void StartScreen::Draw(int w, int h)
         SDL_RenderSetViewport(r, &vp);
         const int saved = _g.Scale();
         _g.SetScale(_scale);
+        DrawTranslatedDesign();
         DrawDesign();
         _g.SetScale(saved);
         SDL_RenderSetViewport(r, nullptr);
@@ -397,6 +410,7 @@ void StartScreen::Draw(int w, int h)
     SDL_RenderSetViewport(r, &vp);
     const int saved = _g.Scale();
     _g.SetScale(_scale);
+    DrawTranslatedRegion();
     // the three sliders: rainfall, temperature, wind
     const int sliderY[3] = { 101, 149, 197 };
     for (int k = 0; k < 3; ++k)
@@ -418,8 +432,150 @@ void StartScreen::Draw(int w, int h)
         _g.Frame(248 + 16 * _cellX, 40 + 16 * _cellY, 17, 17, kGreen);
     if (!_note.empty())
         _g.Text(96, 460, _note, kYellow);
+    DrawLanguage();
     _g.SetScale(saved);
     SDL_RenderSetViewport(r, nullptr);
+}
+
+
+// ---------------------------------------------------------------- language (an engine addition)
+void StartScreen::DrawLanguage()
+{
+    const Button& b = kLanguageButton;
+    const auto langs = AvailableLanguages();
+    std::string current = "English";
+    for (const LanguageInfo& l : langs)
+        if (l.code == CurrentLanguage())
+            current = l.name;
+    _g.Fill(b.x, b.y, b.w, b.h, kBlack);
+    _g.Fill(b.x + 1, b.y + 1, b.w - 2, b.h - 2, kLightGrey);
+    _g.Bevel(b.x + 1, b.y + 1, b.w - 2, b.h - 2, !_languageOpen);
+    // "Language" in the chosen language, and the language's own name
+    const std::string label = std::string(Tr("Language")) + ": " + current;
+    _g.TextCentre(b.x + b.w / 2 - 4, b.y + 6, label, kBlack);
+    // a small arrow: the button opens a list
+    for (int k = 0; k < 4; ++k)
+        _g.Fill(b.x + b.w - 16 + k, b.y + 8 + k, 7 - 2 * k, 1, kBlack);
+    if (!_languageOpen)
+        return;
+    const int n = static_cast<int>(langs.size());
+    const int ly = b.y + b.h + 1;
+    _g.Fill(b.x, ly, b.w, n * kLanguageRowH + 4, kBlack);
+    _g.Fill(b.x + 1, ly + 1, b.w - 2, n * kLanguageRowH + 2, kWhite);
+    for (int i = 0; i < n; ++i)
+    {
+        const bool chosen = langs[static_cast<size_t>(i)].code == CurrentLanguage();
+        const int ry = ly + 2 + i * kLanguageRowH;
+        if (chosen)
+            _g.Fill(b.x + 2, ry, b.w - 4, kLanguageRowH, kNavy);
+        _g.TextCentre(b.x + b.w / 2, ry + 3, langs[static_cast<size_t>(i)].name, chosen ? kWhite : kBlack);
+    }
+}
+
+bool StartScreen::LanguageClick(int x, int y)
+{
+    const Button& b = kLanguageButton;
+    if (In(b, x, y))
+    {
+        _languageOpen = !_languageOpen;
+        return true;
+    }
+    if (!_languageOpen)
+        return false;
+    _languageOpen = false;
+    const auto langs = AvailableLanguages();
+    const int ly = b.y + b.h + 1 + 2;
+    if (x >= b.x && x < b.x + b.w && y >= ly && y < ly + static_cast<int>(langs.size()) * kLanguageRowH)
+    {
+        const std::string& code = langs[static_cast<size_t>((y - ly) / kLanguageRowH)].code;
+        if (code != CurrentLanguage())
+        {
+            SetLanguage(code);
+            _changedLanguage = code;
+        }
+    }
+    return true; // a click elsewhere only closes the list
+}
+
+namespace {
+// a word of the picture covered with the panel's grey and written again in the chosen language
+struct Cover
+{
+    int x, y, w, h;   // the area covered
+    const char* text; // English (translated when drawn); '\n' starts a second line
+    int cx, ty;       // the text's centre and top (a title is drawn twice the size)
+    bool big;
+};
+} // namespace
+
+static void DrawCovers(Gfx& g, int scale, const Cover* covers, size_t n)
+{
+    for (size_t i = 0; i < n; ++i)
+    {
+        const Cover& c = covers[i];
+        g.Fill(c.x, c.y, c.w, c.h, kLightGrey);
+        const std::string t = Tr(c.text);
+        if (!c.big)
+        {
+            if (Gfx::TextWidth(t) <= c.w - 2)
+                g.TextCentre(c.cx, c.ty, t, kBlack);
+            else
+                g.TextFit(c.x + 1, c.ty, c.w - 2, t, kBlack, 1); // tighter letters when the place is too narrow
+            continue;
+        }
+        // a title: the font at twice the size (drawn at half the coordinates with the scale doubled), blue over a
+        // dark shadow, one or two lines
+        const size_t nl = t.find('\n');
+        const std::string lines[2] = { t.substr(0, nl), nl == std::string::npos ? std::string() : t.substr(nl + 1) };
+        g.SetScale(scale * 2);
+        for (int l = 0; l < 2; ++l)
+        {
+            const int x = (c.cx - Gfx::TextWidth(lines[l])) / 2, y = (c.ty + 22 * l) / 2;
+            g.Text(x + 1, y + 1, lines[l], kNavy);
+            g.Text(x, y, lines[l], kBlue);
+        }
+        g.SetScale(scale);
+    }
+}
+
+void StartScreen::DrawTranslatedRegion()
+{
+    if (CurrentLanguage() == "en")
+        return; // the picture's own words
+    static const Cover kCovers[] = {
+        { 100, 30, 136, 44, N_("CHOOSE\nA REGION"), 166, 32, true },
+        { 93, 86, 147, 10, N_("RAINFALL"), 166, 87, false },
+        { 93, 134, 147, 10, N_("TEMPERATURE"), 166, 135, false },
+        { 93, 182, 147, 10, N_("WIND SPEED"), 166, 183, false },
+        { 92, 113, 36, 11, N_("Low"), 108, 114, false }, { 200, 113, 41, 11, N_("High"), 224, 114, false },
+        { 92, 160, 36, 11, N_("Low"), 108, 161, false }, { 200, 160, 41, 11, N_("High"), 224, 161, false },
+        { 92, 209, 36, 11, N_("Low"), 108, 210, false }, { 200, 209, 41, 11, N_("High"), 224, 210, false },
+        { 100, 239, 134, 10, N_("PLAY THIS REGION"), 167, 240, false },
+        { 100, 263, 134, 10, N_("MAKE YOUR OWN"), 167, 264, false },
+        { 100, 288, 134, 10, N_("OPEN A SAVED GAME"), 167, 289, false },
+        { 100, 313, 134, 10, N_("QUIT"), 167, 314, false },
+    };
+    DrawCovers(_g, _scale, kCovers, sizeof(kCovers) / sizeof(kCovers[0]));
+}
+
+void StartScreen::DrawTranslatedDesign()
+{
+    if (CurrentLanguage() == "en")
+        return;
+    static const Cover kCovers[] = {
+        { 140, 42, 326, 24, N_("MAKE YOUR LAND"), 307, 46, true },
+        { 150, 87, 100, 10, N_("RAINFALL"), 200, 89, false },
+        { 140, 146, 120, 10, N_("TEMPERATURE"), 200, 148, false },
+        { 140, 205, 120, 10, N_("WIND SPEED"), 200, 207, false },
+        { 150, 120, 36, 11, N_("Low"), 168, 122, false }, { 206, 120, 44, 11, N_("High"), 230, 122, false },
+        { 150, 178, 36, 11, N_("Low"), 169, 180, false }, { 206, 178, 44, 11, N_("High"), 231, 180, false },
+        { 150, 237, 36, 11, N_("Low"), 170, 239, false }, { 206, 237, 44, 11, N_("High"), 232, 239, false },
+        { 178, 265, 44, 10, N_("RIVER"), 200, 267, false },
+        { 178, 292, 44, 10, N_("LAKE"), 201, 294, false },
+        { 268, 292, 118, 10, N_("NEW RANDOM WORLD"), 327, 294, false },
+        { 403, 292, 44, 10, N_("PLAY!"), 426, 294, false },
+    };
+    DrawCovers(_g, _scale, kCovers, sizeof(kCovers) / sizeof(kCovers[0]));
 }
 
 } // namespace osf

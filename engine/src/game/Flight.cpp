@@ -1,6 +1,7 @@
 // OpenSimFarm - an open re-implementation of SimFarm. Copyright (c) 2026 OpenSimFarm developers.
 // Licensed under the GNU General Public License version 3 (see LICENSE.txt).
 #include "game/Flight.h"
+#include "core/Lang.h"
 
 #include "game/Machines.h"
 #include "game/Simulation.h"
@@ -52,11 +53,11 @@ std::string Flight::Buy()
     // (plot x + slot, plot y + 6) and the bit set; all hangars taken -> event 19
     if (_s.scalars["airports"] == 0)
     {
-        _sim.Event(26, 74, "There is no airport in town for a crop duster.");
-        return "There is no airport in town.";
+        _sim.Event(26, 74, Tr("There is no airport in town for a crop duster."));
+        return Tr("There is no airport in town.");
     }
     if (_s.cash < 6000)
-        return "Not enough money.";
+        return Tr("Not enough money.");
     for (int col = 0; col < _s.Plots(); ++col)
         for (int row = 0; row < _s.Plots(); ++row)
         {
@@ -71,7 +72,7 @@ std::string Flight::Buy()
                 if (!Machine(_s.machines, i).InUse())
                     index = i;
             if (!index)
-                return "You have too many machines.";
+                return Tr("You have too many machines.");
             const int hx = col * 8 + slot, hy = row * 8 + 6;
             for (size_t o = 0; o < 56; ++o)
                 _s.machines[B(index) + o] = 0;
@@ -89,11 +90,11 @@ std::string Flight::Buy()
             _s.scalars["airplanes"]++;
             _s.SetPlotType(col, row, type | (slot == 3 ? 0x20 : 0x40));
             Park(index, true);
-            _sim.Event(29, 75, "Your crop duster is waiting at the town airport.");
+            _sim.Event(29, 75, Tr("Your crop duster is waiting at the town airport."));
             return {};
         }
-    _sim.Event(19, 74, "The airport has no room for another plane.");
-    return "The airport is full.";
+    _sim.Event(19, 74, Tr("The airport has no room for another plane."));
+    return Tr("The airport is full.");
 }
 
 bool Flight::Refuel(int m)
@@ -164,7 +165,7 @@ void Flight::End()
     if ((_s.PlotType(cx / 8, cy / 8) & 15) == 5)
     {
         Park(m, true);
-        _sim.Notify("The crop duster has landed safely.");
+        _sim.Notify(Tr("The crop duster has landed safely."));
         return;
     }
     // anywhere else: a crash: wreck tiles 73 74 / 113 114 under the plane, the
@@ -188,7 +189,7 @@ void Flight::End()
     _s.scalars["asset_machinery"] = std::max<int64_t>(0, _s.scalars["asset_machinery"] - 6000);
     _s.SetCatalogOwn(8, std::max(0, _s.CatalogOwn(8) - 1));
     _sim.PlaySound("explode.voc");
-    _sim.Notify("The crop duster has crashed!");
+    _sim.Notify(Tr("The crop duster has crashed!"));
 }
 
 void Flight::Tick()
@@ -297,7 +298,7 @@ void Flight::Pass()
         if (dx * dx + dy * dy < 5)
             _ending = true;
         else if (dx * dx + dy * dy < 50)
-            _sim.Notify("Danger: the tornado is close!");
+            _sim.Notify(Tr("Danger: the tornado is close!"));
     }
 }
 

@@ -1,6 +1,7 @@
 // OpenSimFarm - an open re-implementation of SimFarm. Copyright (c) 2026 OpenSimFarm developers.
 // Licensed under the GNU General Public License version 3 (see LICENSE.txt).
 #include "game/Machines.h"
+#include "core/Lang.h"
 
 #include "game/Simulation.h"
 
@@ -417,7 +418,7 @@ bool Machines::Drive(Machine& m)
             std::printf("tow %d type %d to %d,%d\n", m.index, m.Type(), m.TargetX(), m.TargetY());
         if (_tick - _lastStuckNote > 2000) // the hint once in a while, not for every machine
         {
-            _sim.Notify("A stuck machine was towed to where it was going. Roads help.");
+            _sim.Notify(Tr("A stuck machine was towed to where it was going. Roads help."));
             _lastStuckNote = _tick;
         }
         return false;
@@ -694,10 +695,10 @@ int Machines::Dispatch(int type, int x, int y)
     else if (!best && _tick - _lastMachineNote > 2000)
     {
         // the original waits without a word; the engine says why the job does not start (user finding F39)
-        static const char* const kName[8] = { "tractor", "plow", "planter", "sprayer", "harvester", "trailer", "machine", "truck" };
-        const std::string name = type >= 0 && type < 8 ? kName[type] : "machine";
-        _sim.Notify(!_s.scalars["menu_6"] ? "A job waits for a free " + name + ": buy one or turn on Options > AutoLease."
-                                          : "A job waits for a " + name + ": there is not enough money to lease one.");
+        static const char* const kName[8] = { N_("tractor"), N_("plow"), N_("planter"), N_("sprayer"), N_("harvester"), N_("trailer"), N_("machine"), N_("truck") };
+        const std::string name = Tr(type >= 0 && type < 8 ? kName[type] : "machine");
+        _sim.Notify(!_s.scalars["menu_6"] ? TrF("A job waits for a machine ({0}): buy one or turn on Options > AutoLease.", name)
+                                          : TrF("A job waits for a machine ({0}): there is not enough money to lease one.", name));
         _lastMachineNote = _tick;
     }
     if (best)
@@ -1041,7 +1042,7 @@ void Machines::StepField(int fi)
                 f.SetSub(11);
             else if (_tick - _lastPickerNote > 2000)
             {
-                _sim.Notify("Not enough money to pay the pickers.");
+                _sim.Notify(Tr("Not enough money to pay the pickers."));
                 _lastPickerNote = _tick;
             }
             break;
@@ -1162,7 +1163,7 @@ void Machines::Week()
                         c.base = static_cast<uint16_t>((c.base & 0xF800) | Simulation::GroundTileFor(_sim.SoilWetness(), c));
                         _sim.Puff(x + dx, y + dy);
                     }
-            _sim.Notify("A machine has been lost: it was worn out.");
+            _sim.Notify(Tr("A machine has been lost: it was worn out."));
         }
     }
 }

@@ -1,6 +1,7 @@
 // OpenSimFarm - an open re-implementation of SimFarm. Copyright (c) 2026 OpenSimFarm developers.
 // Licensed under the GNU General Public License version 3 (see LICENSE.txt).
 #include "game/Shop.h"
+#include "core/Lang.h"
 
 #include "game/Editing.h"
 #include "game/Machines.h"
@@ -58,10 +59,10 @@ constexpr int kMachinePicture[9] = { 34, 35, 36, 37, 38, 39, 40, 40, 41 };
 constexpr int kBuildingPicture[9] = { 42, 42, 43, 43, 44, 44, 51, 45, 50 };
 constexpr int kAnimalRecord[4] = { 45, 46, 47, 48 };   // horse, cow, pig, sheep
 constexpr int kAnimalPicture[4] = { 30, 32, 28, 26 };
-constexpr const char* kAnimalName[4] = { "Horse", "Cow", "Pig", "Sheep" };
-constexpr const char* kMachineName[9] = { "Tractor", "Plow", "Planter", "Sprayer", "Harvester", "Trailer", "", "Truck", "Crop Duster" };
-constexpr const char* kBuildingName[9] = { "Small Silo", "Large Silo", "Small Shed", "Large Shed", "Small Barn", "Large Barn", "Water Pump", "Windmill", "Water Tower" };
-constexpr const char* kSupplyName[4] = { "Fertilizer", "Pesticide", "Herbicide", "Fungicide" };
+constexpr const char* kAnimalName[4] = { N_("Horse"), N_("Cow"), N_("Pig"), N_("Sheep") };
+constexpr const char* kMachineName[9] = { N_("Tractor"), N_("Plow"), N_("Planter"), N_("Sprayer"), N_("Harvester"), N_("Trailer"), "", N_("Truck"), N_("Crop Duster") };
+constexpr const char* kBuildingName[9] = { N_("Small Silo"), N_("Large Silo"), N_("Small Shed"), N_("Large Shed"), N_("Small Barn"), N_("Large Barn"), N_("Water Pump"), N_("Windmill"), N_("Water Tower") };
+constexpr const char* kSupplyName[4] = { N_("Fertilizer"), N_("Pesticide"), N_("Herbicide"), N_("Fungicide") };
 
 // picture of a crop by its file name (alltiles.btl records 0-23)
 int CropPicture(const std::string& file, int slot)
@@ -140,18 +141,20 @@ int ShopMapTile(int rec)
 
 bool ShopNeedsPlacing(int rec) { return rec != 8; } // seed too: its bag goes into a building
 
+std::string CropName(const GameState& s, int slot) { return CropName(s.crops[static_cast<size_t>(slot & 15)]); }
+
 std::string ShopName(const GameState& s, int rec)
 {
     if (rec <= 8)
-        return kMachineName[rec];
+        return Tr(kMachineName[rec]);
     if (rec >= 12 && rec <= 20)
-        return kBuildingName[rec - 12];
+        return Tr(kBuildingName[rec - 12]);
     if (rec >= 21 && rec <= 36)
-        return s.crops[rec - 21].name + " seed";
+        return TrF("{0} seed", CropName(s, rec - 21));
     if (rec >= 45 && rec <= 48)
-        return kAnimalName[rec - 45];
+        return Tr(kAnimalName[rec - 45]);
     if (rec >= 82 && rec <= 85)
-        return kSupplyName[rec - 82];
+        return Tr(kSupplyName[rec - 82]);
     return "";
 }
 
@@ -173,17 +176,17 @@ EditResult ShopBuy(GameState& s, Simulation& sim, int rec, int x, int y)
     const int cat = CatalogId(s, rec);
     auto own = [&] { s.SetCatalogOwn(ShopOwnRecord(rec), s.CatalogOwn(ShopOwnRecord(rec)) + 1); };
     if (s.cash < price)
-        return { false, "Not enough money.", "uhoh.voc" };
+        return { false, Tr("Not enough money."), "uhoh.voc" };
 
     if (rec == 8)
     {
         const std::string why = sim.Plane().Buy();
-        return { why.empty(), why.empty() ? "The crop duster waits at the town airport." : why, why.empty() ? "plopitem.voc" : "uhoh.voc" };
+        return { why.empty(), why.empty() ? std::string(Tr("The crop duster waits at the town airport.")) : why, why.empty() ? "plopitem.voc" : "uhoh.voc" };
     }
     if (x < 0 || y < 0 || x >= s.world.size || y >= s.world.size)
         return { false, "", "uhoh.voc" };
     if (s.PlotOwner(x / 8, y / 8) != 1)
-        return { false, "You do not own this land.", "uhoh.voc" };
+        return { false, Tr("You do not own this land."), "uhoh.voc" };
     if (rec >= 21 && rec <= 36)
     {
         // seed: a bag (item 0xC0 + crop, 10 in it) placed into a free slot of a building, open or closed, of any
@@ -192,14 +195,14 @@ EditResult ShopBuy(GameState& s, Simulation& sim, int rec, int x, int y)
         bool open = false;
         const int st = BuildingCovering(s, x, y, open);
         if (!st)
-            return { false, "Seed is kept in a building.", "uhoh.voc" };
+            return { false, Tr("Seed is kept in a building."), "uhoh.voc" };
         const int bag = sim.NewItem(0xC0 + crop, 10, x, y);
         if (!bag)
-            return { false, "There is no room there.", "uhoh.voc" };
+            return { false, Tr("There is no room there."), "uhoh.voc" };
         if (!StoreIn(s, sim, st, 0xC0 + crop, bag, 0x340 + crop))
         {
             sim.RemoveItem(bag);
-            return { false, "There is no room there.", "uhoh.voc" };
+            return { false, Tr("There is no room there."), "uhoh.voc" };
         }
         sim.Spend(192 + crop, price);
         own();
@@ -211,12 +214,12 @@ EditResult ShopBuy(GameState& s, Simulation& sim, int rec, int x, int y)
         if (rec == 8)
         {
             const std::string why = sim.Plane().Buy();
-            return { why.empty(), why.empty() ? "The crop duster waits at the town airport." : why, why.empty() ? "plopitem.voc" : "uhoh.voc" };
+            return { why.empty(), why.empty() ? std::string(Tr("The crop duster waits at the town airport.")) : why, why.empty() ? "plopitem.voc" : "uhoh.voc" };
         }
         if (!sim.Fleet().FootprintFree(rec, x, y))
-            return { false, "There is no room here.", "uhoh.voc" };
+            return { false, Tr("There is no room here."), "uhoh.voc" };
         if (!sim.Fleet().Create(rec, x, y))
-            return { false, "You have too many machines.", "uhoh.voc" };
+            return { false, Tr("You have too many machines."), "uhoh.voc" };
         sim.Spend(rec, price);
         s.scalars["asset_machinery"] += price;
         own();
@@ -225,7 +228,7 @@ EditResult ShopBuy(GameState& s, Simulation& sim, int rec, int x, int y)
     if (rec >= 45 && rec <= 48)
     {
         if (!sim.Herds().Place(x, y, rec - 45))
-            return { false, "There is no room here.", "uhoh.voc" };
+            return { false, Tr("There is no room here."), "uhoh.voc" };
         sim.Spend(cat, price);
         s.scalars["asset_livestock"] += price;
         own();
@@ -235,7 +238,7 @@ EditResult ShopBuy(GameState& s, Simulation& sim, int rec, int x, int y)
     {
         MapCell& c = s.world.At(x, y);
         if (c.HasObject() || !Buildable(c.BaseTile(), s.scalars["opt_autodoze"] != 0))
-            return { false, "There is no room here.", "uhoh.voc" };
+            return { false, Tr("There is no room here."), "uhoh.voc" };
         AutoDoze(s, sim, x, y, 1, 1);
         for (int i = 1; i < 127; ++i)
         {
@@ -255,7 +258,7 @@ EditResult ShopBuy(GameState& s, Simulation& sim, int rec, int x, int y)
             own();
             return { true, "", "plopitem.voc" };
         }
-        return { false, "There is no room for more supplies.", "uhoh.voc" };
+        return { false, Tr("There is no room for more supplies."), "uhoh.voc" };
     }
     if (rec >= 12 && rec <= 20)
     {
@@ -264,14 +267,14 @@ EditResult ShopBuy(GameState& s, Simulation& sim, int rec, int x, int y)
             for (int cy = y; cy < y + h; ++cy)
                 if (cx >= s.world.size || cy >= s.world.size || s.PlotOwner(cx / 8, cy / 8) != 1 || s.world.At(cx, cy).HasObject() ||
                     !Buildable(s.world.At(cx, cy).BaseTile(), s.scalars["opt_autodoze"] != 0) || sim.FieldIndexAt(cx, cy))
-                    return { false, "There is no room here.", "uhoh.voc" };
+                    return { false, Tr("There is no room here."), "uhoh.voc" };
         AutoDoze(s, sim, x, y, w, h);
         int index = 0;
         for (int i = 1; i < 127 && !index; ++i)
             if (!(Rd8(s.structures, static_cast<size_t>(i) * 70 + 2) & 0x20))
                 index = i;
         if (!index)
-            return { false, "You have too many buildings.", "uhoh.voc" };
+            return { false, Tr("You have too many buildings."), "uhoh.voc" };
         const size_t b = static_cast<size_t>(index) * 70;
         for (size_t o = 0; o < 70; ++o)
             s.structures[b + o] = 0;
@@ -333,7 +336,7 @@ std::vector<SaleItem> SaleList(GameState& s, Simulation& sim, int kind)
             const int crop = type - 0xA8;
             const int age = Rd16(s.items, b + 4);
             const int64_t value = age > 51000 ? 0 : static_cast<int64_t>(Rd16(s.items, b + 2)) * (s.MarketPrice(crop) / 10) * (65535 - age) / 65536;
-            out.push_back({ 0, i, s.crops[crop].name, value, CropPicture(s.crops[crop].fileName, crop), 3 - std::min(3, age >> 14), 50 + crop });
+            out.push_back({ 0, i, CropName(s, crop), value, CropPicture(s.crops[crop].fileName, crop), 3 - std::min(3, age >> 14), 50 + crop });
         }
     }
     else if (kind == 1)
@@ -344,7 +347,7 @@ std::vector<SaleItem> SaleList(GameState& s, Simulation& sim, int kind)
             if (!m.InUse() || m.Leased() || m.Type() > 8 || m.Type() == 6) // the crop duster is listed too (seen live)
                 continue;
             const int64_t value = s.CatalogPrice(m.Type()) >> (m.Wear() >> 6);
-            out.push_back({ 1, i, kMachineName[m.Type()], value, kMachinePicture[m.Type()], 3 - (m.Wear() >> 6), m.Type() });
+            out.push_back({ 1, i, Tr(kMachineName[m.Type()]), value, kMachinePicture[m.Type()], 3 - (m.Wear() >> 6), m.Type() });
         }
     }
     else
@@ -360,7 +363,7 @@ std::vector<SaleItem> SaleList(GameState& s, Simulation& sim, int kind)
             static const int factor[4] = { 3, 5, 3, 2 };
             const int64_t raw = s.CatalogPrice(kAnimalRecord[sp]) + static_cast<int64_t>(factor[sp]) * Rd16(s.animals, b + 0x0A);
             const int64_t value = raw >> (3 - (Rd8(s.animals, b + 8) >> 6));
-            out.push_back({ 2, i, kAnimalName[sp], value, kAnimalPicture[sp], Rd8(s.animals, b + 8) >> 6, kAnimalRecord[sp] });
+            out.push_back({ 2, i, Tr(kAnimalName[sp]), value, kAnimalPicture[sp], Rd8(s.animals, b + 8) >> 6, kAnimalRecord[sp] });
         }
     }
     (void)sim;
@@ -387,7 +390,7 @@ EditResult ShopSell(GameState& s, Simulation& sim, const SaleItem& it)
     {
         Machine m(s.machines, it.index);
         if (m.Flags() & 0x0B)
-            return { false, "That machine is busy.", "uhoh.voc" };
+            return { false, Tr("That machine is busy."), "uhoh.voc" };
         const int type = m.Type();
         sim.Fleet().Remove(it.index);
         s.scalars["asset_machinery"] = std::max<int64_t>(0, s.scalars["asset_machinery"] - s.CatalogPrice(type));
@@ -405,7 +408,7 @@ EditResult ShopSell(GameState& s, Simulation& sim, const SaleItem& it)
         sim.Credit(0xA0 + sp, it.value);
         s.scalars["yearly_income"] += it.value;
     }
-    return { true, it.label + " sold for " + std::to_string(it.value) + ".", "plopitem.voc" };
+    return { true, TrF("{0} sold for {1}.", it.label, it.value), "plopitem.voc" };
 }
 
 // the building covering a cell: its record index, and whether its inside is shown (flag bit 0)
@@ -447,12 +450,12 @@ bool PickObject(GameState& s, Simulation& sim, int x, int y, int& kind, int& ind
         bool open = false;
         if (m.Flags() & 0x03)
         {
-            why = "That machine is busy.";
+            why = Tr("That machine is busy.");
             return false;
         }
         if (BuildingCovering(s, x, y, open) && !open)
         {
-            why = "Open the building first: right click on it.";
+            why = Tr("Open the building first: right click on it.");
             return false;
         }
         kind = kMoveMachine;
@@ -500,7 +503,7 @@ bool PickObject(GameState& s, Simulation& sim, int x, int y, int& kind, int& ind
         index = item;
         return true;
     }
-    why = "Choose a machine, an animal, a barrel or a stored thing to move.";
+    why = Tr("Choose a machine, an animal, a barrel or a stored thing to move.");
     return false;
 }
 
@@ -596,8 +599,8 @@ bool BareGround(int t) { return t >= 15 && t <= 31; }
 EditResult DropObject(GameState& s, Simulation& sim, int kind, int index, int fromX, int fromY, int x, int y)
 {
     if (x < 0 || y < 0 || x >= s.world.size || y >= s.world.size || s.PlotOwner(x / 8, y / 8) != 1)
-        return { false, "You can only move things onto your own land.", "uhoh.voc" };
-    const EditResult refused{ false, "There is no room there.", "uhoh.voc" };
+        return { false, Tr("You can only move things onto your own land."), "uhoh.voc" };
+    const EditResult refused{ false, Tr("There is no room there."), "uhoh.voc" };
     const EditResult done{ true, "", "plopitem.voc" };
     MapCell& to = s.world.At(x, y);
     MapCell& from = s.world.At(fromX, fromY);
@@ -609,7 +612,7 @@ EditResult DropObject(GameState& s, Simulation& sim, int kind, int index, int fr
     {
     case kMoveMachine:
         if (Machine(s.machines, index).Flags() & 0x03)
-            return { false, "That machine is busy.", "uhoh.voc" };
+            return { false, Tr("That machine is busy."), "uhoh.voc" };
         sim.Fleet().PlayerMove(index, x, y);
         return done;
     case kMoveAnimal:
@@ -742,19 +745,19 @@ bool ExamineCardAt(const GameState& s, int x, int y, ExamineCard& card)
     if (base == 0x49 || base == 0x4A || base == 0x71 || base == 0x72)
     {
         card.picture = 0x29;
-        card.text = "A wrecked aircraft, damaged beyond any repair.";
+        card.text = Tr("A wrecked aircraft, damaged beyond any repair.");
         return true;
     }
     if (base >= 0x53 && base <= 0x56)
     {
         card.picture = 0x32;
-        card.text = "The inside of a water tower: the blue part shows how much water it holds.";
+        card.text = Tr("The inside of a water tower: the blue part shows how much water it holds.");
         return true;
     }
     if (c.overlay & 0x4000)
     {
         card.picture = 0x4A;
-        card.text = "Part of the town, where all sorts of things go on.";
+        card.text = Tr("Part of the town, where all sorts of things go on.");
         return true;
     }
     auto scalar = [&](const char* k) {
@@ -877,7 +880,7 @@ bool ExamineCardAt(const GameState& s, int x, int y, ExamineCard& card)
     {
         card.kind = ExamineCard::kLine;
         card.picture = 0x4A;
-        card.text = "A town building";
+        card.text = Tr("A town building");
         return true;
     }
     // the terrain: the tile family holding the tile
@@ -891,19 +894,19 @@ bool ExamineCardAt(const GameState& s, int x, int y, ExamineCard& card)
         if (FamilyStart(f) <= tile && tile < FamilyStart(f) + kSize[f])
             family = f;
     if (tile == 0xD9)
-        card.kind = ExamineCard::kLine, card.text = "A free storage slot";
+        card.kind = ExamineCard::kLine, card.text = Tr("A free storage slot");
     else if (tile >= FamilyStart(125) && tile <= FamilyStart(125) + 8)
-        card.text = "One of the game's programmers walking home after a long night of work on the farm.";
+        card.text = Tr("One of the game's programmers walking home after a long night of work on the farm.");
     else if (family < 0)
-        card.kind = ExamineCard::kLine, card.text = "No description";
+        card.kind = ExamineCard::kLine, card.text = Tr("No description");
     else if (((family >= 87 && family <= 102) || (family >= 109 && family <= 124)) && s.crops[(family - (family >= 109 ? 109 : 87)) & 15].loaded)
     {
         // a crop slot's icon (a stored stack or seed bag): the text of the crop loaded in that slot. The records of
         // itemtext.dat hold the default 16 crops; the original shows a crop loaded into another slot under its own
         // name (seen live: Oranges loaded over Peanuts is "Oranges" in BUY). User finding F30.
         const CropDef& crop = s.crops[(family - (family >= 109 ? 109 : 87)) & 15];
-        card.text = crop.name + "~~";
-        for (const std::string& line : crop.help)
+        card.text = CropName(crop) + "~~";
+        for (const std::string& line : CropHelp(crop))
             card.text += line + " ";
     }
     else

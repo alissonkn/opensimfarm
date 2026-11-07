@@ -104,8 +104,11 @@ public:
     // (wrapping); a picked song plays to its end and the next one follows. The AUTO button (lit while the game
     // chooses) gives the choice back to the game. Play-pause is the Options > Music switch (the song stops where it is).
     static constexpr int kRadioSongs = 7;
+    static constexpr int kRadioWidth = 208;
     std::string RadioSong(const std::string& gameSong); // what to play now; also moves on after a picked song ends
     bool RadioManual() const { return _radioManual; }
+    // the language was changed (the menus are laid out again for the new words)
+    void LanguageChanged() { BuildMenus(); }
 
 private:
     bool _resumeNormal = false; // a Save / Load dialog paused the game; closing it resumes at Normal speed

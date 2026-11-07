@@ -14,6 +14,8 @@
 #include "assets/Graphics.h"
 #include "audio/Sound.h"
 #include "assets/Megadata.h"
+#include "core/Lang.h"
+#include "ui/LangTest.h"
 #include "core/Paths.h"
 #include "game/Editing.h"
 #include "game/Flight.h"
@@ -63,7 +65,7 @@ static void Fatal(const std::string& msg, bool gui = true)
 {
     std::fprintf(stderr, "OpenSimFarm: %s\n", msg.c_str());
     if (gui)
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "OpenSimFarm", msg.c_str(), nullptr);
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "OpenSimFarm", Latin1ToUtf8(msg).c_str(), nullptr);
 }
 
 static std::string ResolveFarm(const std::string& gameDir, const std::string& arg)
@@ -1793,10 +1795,10 @@ static int CompareSaves(const std::string& gameDir, const std::string& a, const 
     return 0;
 }
 
-static const char* const kNoDialogText =
+static const char* const kNoDialogText = N_(
     "No folder dialog is available on this system (install zenity or kdialog),\nso tell OpenSimFarm the "
     "folder once by starting it as\n  opensimfarm /path/to/SIMFARM\n\nThe folder must contain "
-    "MEGADATA.IDX and MEGADATA.EEA.\nOpenSimFarm does not include any of the original game's files.";
+    "MEGADATA.IDX and MEGADATA.EEA.\nOpenSimFarm does not include any of the original game's files.");
 
 // Asks the player for the SimFarm folder: a box with `problem` (or the plain "not found" text) and the buttons
 // Choose folder... / `cancelLabel`, then the system's folder dialog, until a folder with the game files (it, or one up
@@ -1810,19 +1812,19 @@ static std::optional<std::string> AskPlayerForGameFolder(std::string problem, co
     // in the browser the page chooses the files; no folder dialog here
     (void)cancelLabel;
     (void)skip;
-    ReportGameFilesProblem(problem.empty() ? "The SimFarm files could not be found." : problem.c_str());
+    ReportGameFilesProblem(Latin1ToUtf8(problem.empty() ? Tr("The SimFarm files could not be found.") : problem).c_str());
     return std::nullopt;
 #endif
     for (;;)
     {
+        const std::string choose = Latin1ToUtf8(Tr("Choose folder...")), cancel = Latin1ToUtf8(Tr(cancelLabel));
         const SDL_MessageBoxButtonData buttons[] = {
-            { SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 1, "Choose folder..." },
-            { SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 0, cancelLabel },
+            { SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 1, choose.c_str() },
+            { SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 0, cancel.c_str() },
         };
-        const std::string text = (problem.empty() ? "OpenSimFarm plays with the files of your own copy of SimFarm,\nbut it could not find them."
-                                                  : problem) +
-            "\n\nChoose the SimFarm folder (the one that holds MEGADATA.IDX\nand MEGADATA.EEA). "
-            "OpenSimFarm only reads the files there\nand remembers the folder.";
+        const std::string text = Latin1ToUtf8((problem.empty() ? std::string(Tr("OpenSimFarm plays with the files of your own copy of SimFarm,\nbut it could not find them."))
+                                                               : problem) + "\n\n" +
+            Tr("Choose the SimFarm folder (the one that holds MEGADATA.IDX\nand MEGADATA.EEA). OpenSimFarm only reads the files there\nand remembers the folder."));
         const SDL_MessageBoxData box = { SDL_MESSAGEBOX_INFORMATION, nullptr, "OpenSimFarm", text.c_str(), 2, buttons, nullptr };
         int pressed = 0;
         if (SDL_ShowMessageBox(&box, &pressed) != 0 || pressed != 1)
@@ -1838,8 +1840,8 @@ static std::optional<std::string> AskPlayerForGameFolder(std::string problem, co
             continue; // the dialog was cancelled: back to the box
         if (const auto dir = GameDirectoryIn(*chosen, skip))
             return dir;
-        problem = (GameDirectoryIn(*chosen) ? "That folder holds only SimFarm files that cannot be used:\n"
-                                            : "That folder does not hold SimFarm's files\n(MEGADATA.IDX and MEGADATA.EEA):\n") + *chosen;
+        problem = (GameDirectoryIn(*chosen) ? TrF("That folder holds only SimFarm files that cannot be used:\n{0}", *chosen)
+                                            : TrF("That folder does not hold SimFarm's files\n(MEGADATA.IDX and MEGADATA.EEA):\n{0}", *chosen));
     }
 }
 
@@ -1856,6 +1858,17 @@ int main(int argc, char** argv)
         std::string err;
         if (!mega.Open(*dir, err)) { std::printf("%s\n", err.c_str()); return 1; }
         return SoundPlayer::SelfTest(mega);
+    }
+    if (argc > 1 && std::strcmp(argv[1], "--langtest") == 0)
+    {
+        // the built-in translations: characters, placeholders and the words that must fit the pictures
+        char* fake[2] = { argv[0], argc > 2 ? argv[2] : nullptr };
+        auto dir = ResolveGameDirectory(argc > 2 ? 2 : 1, fake);
+        if (!dir) { Fatal("game folder unknown", false); return 1; }
+        Megadata mega;
+        std::string err;
+        if (!mega.Open(*dir, err)) { std::printf("%s\n", err.c_str()); return 1; }
+        return LangSelfTest(mega);
     }
     if (argc > 1 && std::strcmp(argv[1], "--graphicstest") == 0)
     {
@@ -2497,6 +2510,17 @@ int main(int argc, char** argv)
         std::fprintf(stderr, "SDL_Init failed: %s\n", SDL_GetError());
         return 1;
     }
+    // the language: the one chosen before (settings.txt), else the system's when the program has it
+    {
+        std::ifstream in(std::filesystem::path(ConfigDir()) / "settings.txt");
+        std::string line, lang;
+        while (std::getline(in, line))
+            if (line.rfind("language=", 0) == 0)
+                lang = line.substr(9);
+        while (!lang.empty() && (lang.back() == '\r' || lang.back() == ' '))
+            lang.pop_back();
+        SetLanguage(lang.empty() ? SystemLanguage() : lang);
+    }
     auto gameDir = ResolveGameDirectory(argc, argv);
     if (!gameDir)
     {
@@ -2525,7 +2549,7 @@ int main(int argc, char** argv)
     {
         const std::string remembered = RememberedGameDirectory();
         if (!gameDir && !remembered.empty())
-            problem = "SimFarm was in\n" + remembered + "\nbut it is no longer there (moved or deleted?).";
+            problem = TrF("SimFarm was in\n{0}\nbut it is no longer there (moved or deleted?).", remembered);
     }
     bool searched = false;
     std::vector<std::string> failed; // folders that did not pass the full check
@@ -2540,11 +2564,11 @@ int main(int argc, char** argv)
         if (!gameDir)
         {
             bool noDialog = false;
-            gameDir = AskPlayerForGameFolder(problem, "Quit", failed, noDialog);
+            gameDir = AskPlayerForGameFolder(problem, N_("Quit"), failed, noDialog);
             if (!gameDir)
             {
                 if (noDialog)
-                    Fatal(kNoDialogText);
+                    Fatal(Tr(kNoDialogText));
                 SDL_Quit();
                 return 1;
             }
@@ -2560,13 +2584,13 @@ int main(int argc, char** argv)
             const auto scen = FindFileNoCase(*gameDir, "SCEN0.SSM");
             ok = scen && probe.Load(*gameDir, *scen, err);
             if (!ok && !scen)
-                err = "SCEN0.SSM is missing.";
+                err = Tr("SCEN0.SSM is missing.");
         }
         else if (err.empty())
-            err = "The tile sheets or palette are missing from MEGADATA.EEA.";
+            err = Tr("The tile sheets or palette are missing from MEGADATA.EEA.");
         if (ok)
             break;
-        problem = "The SimFarm folder\n" + *gameDir + "\ncannot be used: " + err;
+        problem = TrF("The SimFarm folder\n{0}\ncannot be used: {1}", *gameDir, err);
         failed.push_back(*gameDir);
         gameDir.reset();
     }
@@ -2661,7 +2685,7 @@ int main(int argc, char** argv)
     MapView view;
     if (!renderer || !view.Init(renderer, gfx))
     {
-        Fatal(std::string("Cannot create the window: ") + SDL_GetError());
+        Fatal(TrF("Cannot create the window: {0}", SDL_GetError()));
         return 1;
     }
     view.SetWorld(&state->world);
@@ -2670,7 +2694,7 @@ int main(int argc, char** argv)
     Gfx gfxUi;
     if (!gfxUi.Init(renderer, mega, gfx))
     {
-        Fatal("The interface pictures or the font are missing from MEGADATA.EEA.");
+        Fatal(Tr("The interface pictures or the font are missing from MEGADATA.EEA."));
         return 1;
     }
     // interface settings of the last session (settings.txt in the settings folder: key=value lines)
@@ -2731,7 +2755,7 @@ int main(int argc, char** argv)
         const std::string path = ResolveFarm(*gameDir, name);
         if (path.empty() || !next->Load(*gameDir, path, err))
         {
-            ui.ShowMessage("Could not load " + name);
+            ui.ShowMessage(TrF("Could not load {0}", name));
             return;
         }
         farmName = name;
@@ -2753,7 +2777,7 @@ int main(int argc, char** argv)
         ui.SetCurrentSave(path);
         // the original shows nothing after a load or a start from the region screen; the engine-only quick load says so
         if (announce)
-            ui.ShowMessage("Loaded " + std::filesystem::path(name).filename().string());
+            ui.ShowMessage(TrF("Loaded {0}", std::filesystem::path(name).filename().string()));
     };
     ui.onCommand = [&](const std::string& cmd) {
         if (cmd == "quit")
@@ -2763,7 +2787,7 @@ int main(int argc, char** argv)
             const auto dir = std::filesystem::path(ConfigDir()) / "saves";
             std::filesystem::create_directories(dir);
             const auto path = (dir / "QUICKSAVE.SFM").string();
-            ui.ShowMessage(state->Save(path, err) ? "Saved " + path : "Save failed: " + err);
+            ui.ShowMessage(state->Save(path, err) ? TrF("Saved {0}", path) : TrF("Save failed: {0}", err));
         }
         else if (cmd == "load")
             loadFarm("QUICKSAVE.SFM", true);
@@ -2789,14 +2813,14 @@ int main(int argc, char** argv)
         else if (cmd == "modernsound")
         {
             sound.SetModern(!sound.Modern());
-            ui.ShowMessage(sound.Modern() ? "Modern sound on: cleaner effects placed on the map, new instruments for the music."
-                                          : "Modern sound off: the sound as the original plays it.");
+            ui.ShowMessage(sound.Modern() ? Tr("Modern sound on: cleaner effects placed on the map, new instruments for the music.")
+                                          : Tr("Modern sound off: the sound as the original plays it."));
         }
         else if (cmd == "modernrender")
         {
             view.SetModern(!view.Modern());
-            ui.ShowMessage(view.Modern() ? "Modern render on: smoothed pictures, and animals, machines and cars glide from cell to cell."
-                                         : "Modern render off: the pictures and the movement as the original draws them.");
+            ui.ShowMessage(view.Modern() ? Tr("Modern render on: smoothed pictures, and animals, machines and cars glide from cell to cell.")
+                                         : Tr("Modern render off: the pictures and the movement as the original draws them."));
         }
         else if (cmd == "newgame")
             atStart = true;
@@ -2916,9 +2940,9 @@ int main(int argc, char** argv)
             return;
         folderLostAsked = true;
         bool noDialog = false;
-        const auto dir = AskPlayerForGameFolder("The SimFarm folder\n" + *gameDir + "\nhas been moved or deleted. Your farm is kept.", "Go on without", {}, noDialog);
+        const auto dir = AskPlayerForGameFolder(TrF("The SimFarm folder\n{0}\nhas been moved or deleted. Your farm is kept.", *gameDir), N_("Go on without"), {}, noDialog);
         if (noDialog)
-            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "OpenSimFarm", kNoDialogText, window);
+            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "OpenSimFarm", Latin1ToUtf8(Tr(kNoDialogText)).c_str(), window);
         if (dir)
         {
             gameDir = dir;
@@ -2937,7 +2961,7 @@ int main(int argc, char** argv)
         std::ostringstream out;
         out << "scale=" << uiScale << "\nsfx=" << sound.Enabled() << "\nmusic=" << sound.MusicEnabled() << "\nmessages=" << ui.MessagesOn()
             << "\ntoolnames=" << ui.ToolNamesOn() << "\nsmartdriving=" << Machines::smartDriving
-            << "\nmodernsound=" << sound.Modern() << "\nmodernrender=" << view.Modern() << "\nmusicvolume=" << sound.MusicVolume() << "\nsfxvolume=" << sound.EffectsVolume() << "\n";
+            << "\nmodernsound=" << sound.Modern() << "\nmodernrender=" << view.Modern() << "\nmusicvolume=" << sound.MusicVolume() << "\nsfxvolume=" << sound.EffectsVolume() << "\nlanguage=" << CurrentLanguage() << "\n";
         return out.str();
     };
     auto writeSettings = [&]() {
@@ -2979,6 +3003,11 @@ int main(int argc, char** argv)
                     cmd = cmd.substr(5);
                 if (cmd == "quit")
                     running = false;
+                else if (cmd.rfind("language:", 0) == 0)
+                {
+                    sound.Play("click.voc");
+                    ui.LanguageChanged(); // (the start screen has set the language; settings.txt keeps it)
+                }
                 else if (cmd == "generated")
                 {
                     sound.Play("click.voc");

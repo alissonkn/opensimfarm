@@ -2,7 +2,12 @@
 // Licensed under the GNU General Public License version 3 (see LICENSE.txt).
 #include <algorithm>
 #include "ui/Gfx.h"
+#include "ui/PictureText.h"
+
+#include <functional>
 #include "ui/SmallFont.h"
+#include <array>
+#include <cctype>
 #include <cmath>
 
 #include "assets/Megadata.h"
@@ -55,6 +60,137 @@ SDL_Texture* Gfx::MakeTexture(const Picture& p, int transparent)
     return t;
 }
 
+
+namespace {
+
+// Latin-1 letters for the translations (an engine addition): the original font holds only ASCII, so accented
+// letters are made from its own letters with marks drawn for OpenSimFarm. A small letter keeps its shape and gets
+// the mark in the two free rows above it; a capital drops two of its repeated rows to make room for the mark.
+enum Mark { kNoMark, kGrave, kAcute, kCirc, kTilde, kDiaer, kRing, kCedilla };
+struct Composed
+{
+    unsigned char code;
+    char base;
+    Mark mark;
+};
+constexpr Composed kComposed[] = {
+    { 0xC0, 'A', kGrave }, { 0xC1, 'A', kAcute }, { 0xC2, 'A', kCirc }, { 0xC3, 'A', kTilde }, { 0xC4, 'A', kDiaer },
+    { 0xC5, 'A', kRing }, { 0xC7, 'C', kCedilla }, { 0xC8, 'E', kGrave }, { 0xC9, 'E', kAcute }, { 0xCA, 'E', kCirc },
+    { 0xCB, 'E', kDiaer }, { 0xCC, 'I', kGrave }, { 0xCD, 'I', kAcute }, { 0xCE, 'I', kCirc }, { 0xCF, 'I', kDiaer },
+    { 0xD1, 'N', kTilde }, { 0xD2, 'O', kGrave }, { 0xD3, 'O', kAcute }, { 0xD4, 'O', kCirc }, { 0xD5, 'O', kTilde },
+    { 0xD6, 'O', kDiaer }, { 0xD9, 'U', kGrave }, { 0xDA, 'U', kAcute }, { 0xDB, 'U', kCirc }, { 0xDC, 'U', kDiaer },
+    { 0xDD, 'Y', kAcute },
+    { 0xE0, 'a', kGrave }, { 0xE1, 'a', kAcute }, { 0xE2, 'a', kCirc }, { 0xE3, 'a', kTilde }, { 0xE4, 'a', kDiaer },
+    { 0xE5, 'a', kRing }, { 0xE7, 'c', kCedilla }, { 0xE8, 'e', kGrave }, { 0xE9, 'e', kAcute }, { 0xEA, 'e', kCirc },
+    { 0xEB, 'e', kDiaer }, { 0xEC, 'i', kGrave }, { 0xED, 'i', kAcute }, { 0xEE, 'i', kCirc }, { 0xEF, 'i', kDiaer },
+    { 0xF1, 'n', kTilde }, { 0xF2, 'o', kGrave }, { 0xF3, 'o', kAcute }, { 0xF4, 'o', kCirc }, { 0xF5, 'o', kTilde },
+    { 0xF6, 'o', kDiaer }, { 0xF9, 'u', kGrave }, { 0xFA, 'u', kAcute }, { 0xFB, 'u', kCirc }, { 0xFC, 'u', kDiaer },
+    { 0xFD, 'y', kAcute }, { 0xFF, 'y', kDiaer },
+};
+// the marks for the 8 x 8 font: two rows above the letter (the cedilla: one row below it)
+constexpr uint8_t kMark8[8][2] = { { 0, 0 }, { 0x30, 0x18 }, { 0x0C, 0x18 }, { 0x3C, 0x66 }, { 0x76, 0xDC },
+                                   { 0x66, 0x00 }, { 0x18, 0x18 }, { 0x18, 0x00 } };
+// thinner marks for capitals, whose tops have no free row under the mark
+constexpr uint8_t kMarkCap[8][2] = { { 0, 0 }, { 0x20, 0x10 }, { 0x04, 0x08 }, { 0x18, 0x24 }, { 0x3A, 0x5C },
+                                     { 0x24, 0x00 }, { 0x18, 0x18 }, { 0x18, 0x00 } };
+// and for the small font: four pixels wide (high nibble), drawn in the two rows above the letter
+constexpr uint8_t kMarkSmall[8][2] = { { 0, 0 }, { 0xC0, 0x60 }, { 0x30, 0x60 }, { 0x60, 0x90 }, { 0x50, 0xA0 },
+                                       { 0x00, 0x90 }, { 0x60, 0x60 }, { 0x60, 0x00 } };
+
+const Composed* FindComposed(unsigned char c)
+{
+    for (const Composed& k : kComposed)
+        if (k.code == c)
+            return &k;
+    return nullptr;
+}
+
+void AddLatin1(Font8& f)
+{
+    for (const Composed& k : kComposed)
+    {
+        const auto& base = f.glyphs[static_cast<unsigned char>(k.base)];
+        std::array<uint8_t, 8> g = base;
+        if (k.mark == kCedilla)
+            g[7] = kMark8[kCedilla][0];
+        else if (std::islower(static_cast<unsigned char>(k.base)))
+        {
+            g[0] = kMark8[k.mark][0]; // (replaces the dot of the i)
+            g[1] = kMark8[k.mark][1];
+        }
+        else
+        {
+            // a capital keeps six of its seven rows (a pointed top goes first, as on the A, so the mark sits on a
+            // flat top; then a row that repeats the one above it, the last such first): the mark's lower row is the
+            // cell's top row and its upper row is drawn in the row above the cell (glyph 0x80 + mark, its row 7)
+            std::vector<uint8_t> rows(base.begin(), base.begin() + 7);
+            auto bits = [](uint8_t v) { int n = 0; for (; v; v &= static_cast<uint8_t>(v - 1)) ++n; return n; };
+            if (bits(rows[0]) < bits(rows[1]))
+                rows.erase(rows.begin());
+            while (rows.size() > 6)
+            {
+                size_t drop = rows.size() / 2;
+                for (size_t i = rows.size() - 1; i >= 1; --i)
+                    if (rows[i] == rows[i - 1])
+                    {
+                        drop = i;
+                        break;
+                    }
+                rows.erase(rows.begin() + static_cast<long>(drop));
+            }
+            g = {};
+            g[0] = kMarkCap[k.mark][1];
+            for (size_t r = 0; r < 6; ++r)
+                g[1 + r] = rows[r];
+            f.glyphs[0x80 + k.mark] = {};
+            f.glyphs[0x80 + k.mark][7] = kMarkCap[k.mark][0];
+            Gfx::SetCapitalMark(k.code, 0x80 + k.mark);
+        }
+        f.glyphs[k.code] = g;
+    }
+    auto flipped = [&](char c, bool mirror) {
+        std::array<uint8_t, 8> g{};
+        for (int r = 0; r < 7; ++r)
+        {
+            uint8_t v = f.glyphs[static_cast<unsigned char>(c)][6 - r], m = 0;
+            for (int b = 0; b < 8 && mirror; ++b)
+                if (v & (1 << b))
+                    m |= static_cast<uint8_t>(0x80 >> b);
+            g[r] = mirror ? static_cast<uint8_t>(m >> 1) : v;
+        }
+        return g;
+    };
+    f.glyphs[0xA1] = flipped('!', false);                                      // inverted exclamation mark
+    f.glyphs[0xBF] = flipped('?', true);                                       // inverted question mark
+    f.glyphs[0xB0] = { 0x38, 0x28, 0x38, 0, 0, 0, 0, 0 };                      // degree sign
+    f.glyphs[0xAA] = { 0x3C, 0x6C, 0x3C, 0x00, 0x7C, 0, 0, 0 };                // feminine ordinal
+    f.glyphs[0xBA] = { 0x38, 0x6C, 0x38, 0x00, 0x7C, 0, 0, 0 };                // masculine ordinal
+    f.glyphs[0xAB] = { 0, 0x36, 0x6C, 0xD8, 0x6C, 0x36, 0, 0 };                // left guillemet
+    f.glyphs[0xBB] = { 0, 0xD8, 0x6C, 0x36, 0x6C, 0xD8, 0, 0 };                // right guillemet
+    f.glyphs[0xB7] = { 0, 0, 0, 0x18, 0x18, 0, 0, 0 };                         // middle dot
+    f.glyphs[0xD7] = { 0, 0x66, 0x3C, 0x18, 0x3C, 0x66, 0, 0 };                // multiplication sign
+}
+
+} // namespace
+
+void Gfx::PrepareFont(Font8& font)
+{
+    AddLatin1(font);
+    for (int c = 0; c < 256; ++c)
+    {
+        uint8_t bits = 0;
+        for (const uint8_t row : font.glyphs[c])
+            bits |= row;
+        int l = 0, r = 7;
+        while (l < 8 && !(bits & (0x80 >> l)))
+            ++l;
+        while (r > l && !(bits & (0x80 >> r)))
+            --r;
+        s_ink[c][0] = static_cast<uint8_t>(l < 8 ? l : 0);
+        s_ink[c][1] = static_cast<uint8_t>(l < 8 ? r : 3);
+    }
+}
+
 bool Gfx::Init(SDL_Renderer* r, const Megadata& mega, const MapGraphics& map)
 {
     _r = r;
@@ -65,6 +201,7 @@ bool Gfx::Init(SDL_Renderer* r, const Megadata& mega, const MapGraphics& map)
     Font8 font;
     if (!DecodeFont(mega.Read("egafont.fnt"), font))
         return false;
+    PrepareFont(font);
     std::vector<uint32_t> glyphs(128 * 128, 0);
     for (int c = 0; c < 256; ++c)
         for (int y = 0; y < 8; ++y)
@@ -249,6 +386,7 @@ void Gfx::DrawPicture(const std::string& name, int x, int y)
     SDL_QueryTexture(t, nullptr, nullptr, &w, &h);
     const SDL_Rect dst = R(x, y, w, h);
     SDL_RenderCopy(_r, t, nullptr, &dst);
+    DrawPictureText(*this, name, x, y);
 }
 
 void Gfx::DrawPicturePart(const std::string& name, int sx, int sy, int w, int h, int x, int y)
@@ -259,6 +397,7 @@ void Gfx::DrawPicturePart(const std::string& name, int sx, int sy, int w, int h,
     const SDL_Rect src{ sx, sy, w, h };
     const SDL_Rect dst = R(x, y, w, h);
     SDL_RenderCopy(_r, t, &src, &dst);
+    DrawPictureText(*this, name, x, y, sx, sy, w, h);
 }
 
 void Gfx::DrawFullScreen(const std::string& file, const std::string& palette, const SDL_Rect& dst)
@@ -341,15 +480,99 @@ void Gfx::Text(int x, int y, const std::string& s, int c)
         const SDL_Rect src{ (ch % 16) * 8, (ch / 16) * 8, 8, 8 };
         const SDL_Rect dst = R(x + static_cast<int>(i) * 8, y, 8, 8);
         SDL_RenderCopy(_r, _font, &src, &dst);
+        DrawCapitalMark(ch, x + static_cast<int>(i) * 8, y);
     }
+}
+
+// the ink columns of each glyph (a blank glyph counts as columns 0..3), for TextFit's tight spacing
+uint8_t Gfx::s_ink[256][2] = {};
+uint8_t Gfx::s_capMark[256] = {};
+
+void Gfx::DrawCapitalMark(unsigned char ch, int x, int y)
+{
+    if (const int m = s_capMark[ch])
+    {
+        const SDL_Rect src{ (m % 16) * 8, (m / 16) * 8 + 7, 8, 1 };
+        const SDL_Rect dst = R(x, y - 1, 8, 1);
+        SDL_RenderCopy(_r, _font, &src, &dst);
+    }
+}
+
+// spacing used by TextFit: 8 = monospaced, else the gap in pixels between the letters' ink
+static int FitGap(const std::string& s, int room, int& width)
+{
+    width = static_cast<int>(s.size()) * 8;
+    if (width <= room)
+        return 8;
+    for (int gap = 1; gap >= 0; --gap)
+    {
+        width = 0;
+        for (const char ch : s)
+        {
+            const auto u = static_cast<unsigned char>(ch);
+            width += Gfx::InkWidth(u) + gap;
+        }
+        width -= gap;
+        if (width <= room || gap == 0)
+            return gap;
+    }
+    return 0;
+}
+
+int Gfx::FitWidth(const std::string& s, int room)
+{
+    int width = 0;
+    FitGap(s, room, width);
+    return width;
+}
+
+void Gfx::TextFit(int x, int y, int room, const std::string& s, int c, int align)
+{
+    int width = 0;
+    const int gap = FitGap(s, room, width);
+    int pen = align == 1 ? x + (room - width) / 2 : align == 2 ? x + room - width : x;
+    if (gap == 8)
+    {
+        Text(pen, y, s, c);
+        return;
+    }
+    SDL_SetTextureColorMod(_font, _pal[c][0], _pal[c][1], _pal[c][2]);
+    for (const char ch : s)
+    {
+        const auto u = static_cast<unsigned char>(ch);
+        if (u > 0x20)
+        {
+            const SDL_Rect src{ (u % 16) * 8, (u / 16) * 8, 8, 8 };
+            const SDL_Rect dst = R(pen - s_ink[u][0], y, 8, 8);
+            SDL_RenderCopy(_r, _font, &src, &dst);
+            DrawCapitalMark(u, pen - s_ink[u][0], y);
+        }
+        pen += InkWidth(u) + gap;
+    }
+}
+
+// an accented letter in the small font is its plain capital with a mark above it (see AddLatin1)
+static unsigned char SmallBase(unsigned char ch, Mark& mark)
+{
+    mark = kNoMark;
+    if (const Composed* k = ch >= 0xC0 ? FindComposed(ch) : nullptr)
+    {
+        mark = k->mark;
+        return static_cast<unsigned char>(std::toupper(static_cast<unsigned char>(k->base)));
+    }
+    return ch;
 }
 
 int Gfx::SmallTextWidth(const std::string& s)
 {
     int w = 0;
-    for (const char ch : s)
-        if (static_cast<unsigned char>(ch) >= 32 && static_cast<unsigned char>(ch) <= 126)
-            w += kSmallFont[static_cast<unsigned char>(ch) - 32].w + kSmallFontGap;
+    Mark mark;
+    for (const char chr : s)
+    {
+        const unsigned char ch = SmallBase(static_cast<unsigned char>(chr), mark);
+        if (ch >= 32 && ch <= 126)
+            w += kSmallFont[ch - 32].w + kSmallFontGap;
+    }
     return w > 0 ? w - kSmallFontGap : 0;
 }
 
@@ -359,7 +582,8 @@ void Gfx::SmallText(int x, int y, const std::string& s, int c)
     std::vector<SDL_Rect> px;
     for (const char chr : s)
     {
-        const auto ch = static_cast<unsigned char>(chr);
+        Mark mark;
+        const unsigned char ch = SmallBase(static_cast<unsigned char>(chr), mark);
         if (ch < 32 || ch > 126)
             continue;
         const SmallGlyph& gl = kSmallFont[ch - 32];
@@ -367,6 +591,14 @@ void Gfx::SmallText(int x, int y, const std::string& s, int c)
             for (int b = 0; b < gl.w; ++b)
                 if (gl.rows[r] & (0x80 >> b))
                     px.push_back(R(x + b, y + r, 1, 1));
+        if (mark != kNoMark)
+        {
+            const int mx = x + (gl.w - 4) / 2;
+            for (int r = 0; r < 2; ++r)
+                for (int b = 0; b < 4; ++b)
+                    if (kMarkSmall[mark][r] & (0x80 >> b))
+                        px.push_back(mark == kCedilla ? R(mx + b, y + kSmallFontH + r, 1, 1) : R(mx + b, y - 2 + r, 1, 1));
+        }
         x += gl.w + kSmallFontGap;
     }
     SDL_SetRenderDrawColor(_r, _pal[c][0], _pal[c][1], _pal[c][2], 255);
@@ -390,9 +622,14 @@ void Gfx::DimRect(int x, int y, int w, int h, int alpha)
 // '@' padding and '~' before it), goes to a new row when 8 x length + column + 8 passes the width, and is drawn
 // after one blank cell. Blanks, '@' and characters above 'z' are skipped; '~' starts a new row; '`' is a blank.
 // So a word that does not fit can move down a row before the '~' that comes ahead of it.
-void Gfx::Wrap(int x, int y, int w, const std::string& text, int colour)
+// the text box's layout: each word with its position (draw may be empty); returns the height used
+static int WrapLayout(int w, const std::string& text, const std::function<void(int, int, const std::string&)>& draw)
 {
-    auto sep = [](char c) { return c == '@' || static_cast<unsigned char>(c) <= ' ' || static_cast<unsigned char>(c) > 'z'; };
+    // (the Latin-1 letters of a translation, 0xA0 and up, belong to words)
+    auto sep = [](char c) {
+        const auto u = static_cast<unsigned char>(c);
+        return c == '@' || u <= ' ' || (u > 'z' && u < 0xA0);
+    };
     size_t p = 0;
     int cx = 0, cy = 0;
     while (p < text.size() && text[p])
@@ -414,7 +651,8 @@ void Gfx::Wrap(int x, int y, int w, const std::string& text, int colour)
         std::string word;
         while (p < text.size() && text[p] && text[p] != '~' && !sep(text[p]))
             word += text[p] == '`' ? ' ' : text[p], ++p;
-        Text(x + cx, y + cy, word, colour);
+        if (draw)
+            draw(cx, cy, word);
         cx += 8 * static_cast<int>(word.size());
         if (p < text.size() && text[p] == '~')
         {
@@ -423,6 +661,14 @@ void Gfx::Wrap(int x, int y, int w, const std::string& text, int colour)
             ++p;
         }
     }
+    return cx > 0 ? cy + 8 : cy;
 }
+
+void Gfx::Wrap(int x, int y, int w, const std::string& text, int colour)
+{
+    WrapLayout(w, text, [&](int cx, int cy, const std::string& word) { Text(x + cx, y + cy, word, colour); });
+}
+
+int Gfx::WrapHeight(int w, const std::string& text) { return WrapLayout(w, text, nullptr); }
 
 } // namespace osf

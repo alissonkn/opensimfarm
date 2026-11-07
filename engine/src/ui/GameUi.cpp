@@ -6,6 +6,7 @@
 #include "assets/Graphics.h"
 #include "assets/Megadata.h"
 #include "audio/Sound.h"
+#include "core/Lang.h"
 #include "core/Paths.h"
 #include "game/Crops.h"
 
@@ -20,9 +21,9 @@
 
 namespace osf {
 
-static const char* const kMonthShort[12] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+static const char* const kMonthShort[12] = { N_("Jan"), N_("Feb"), N_("Mar"), N_("Apr"), N_("May"), N_("Jun"), N_("Jul"), N_("Aug"), N_("Sep"), N_("Oct"), N_("Nov"), N_("Dec") };
 static constexpr int kItemH = 12;
-static const char* const kSprayNames[4] = { "Fertilize", "Pesticide", "Herbicide", "Fungicide" };
+static const char* const kSprayNames[4] = { N_("Fertilize"), N_("Pesticide"), N_("Herbicide"), N_("Fungicide") };
 static constexpr int kToolbarRightPart = 240; // the date / funds part of the toolbar picture (x 400..639)
 
 void GameUi::BuildMenus()
@@ -31,20 +32,52 @@ void GameUi::BuildMenus()
         // the original's menus, item for item, and a Help menu (the engine's extras are on keys: F1 help, F5 / F9 quick save / load,
         // Ctrl+1/2/3 interface size; the prebuilt farms are on the region screen of New Game), each with the drop-down
         // box (x, width, height) measured on the original
-        { "File", 8, { { "About SimFarm", "win:17" }, { "New Game", "newgame" }, { "Save", "savecurrent" }, { "Save As", "win:12" },
-                       { "Load Game", "win:13" }, { "Quit", "quit" } }, 0, 128, 75 }, // no Load Crop: the PLANT list loads crops
-        { "Options", 64, { { "Music", "music" }, { "Sound Effects", "sfx" }, { "AutoBuy", "opt:opt_autobuy" }, { "AutoScroll", "opt:opt_autoscroll" },
-                           { "AutoDoze", "opt:opt_autodoze" }, { "AutoGoto", "opt:opt_autogoto" }, { "Messages", "msgs" }, { "AutoLease", "opt:menu_6" },
-                           { "Smart Driving", "smartdrive" }, { "Modern Sound", "modernsound" }, { "Modern Render", "modernrender" }, { "Sound Volume", "win:20" } }, 64, 136, 148 },
-        { "Speed", 144, { { "Ultra", "speed:0" }, { "Fast", "speed:1" }, { "Normal", "speed:2" }, { "Slow", "speed:3" }, { "Pause", "speed:4" } }, 144, 64, 64 },
-        { "Windows", 208, { { "Buy", "win:0" }, { "Sell", "win:1" }, { "Evaluation", "win:5" }, { "Map", "win:3" }, { "Weather", "win:4" },
-                            { "Balance Sheet", "win:9" }, { "Bank", "win:10" }, { "Market Value", "win:8" },
-                            { "Farm Expert", "win:6" } }, 208, 120, 116 }, // no Edit item: the farm view always shows its tools
-        { "Disasters", 288, { { "Tornado", "dis:0" }, { "Locusts", "dis:1" }, { "Drought", "dis:2" }, { "Flood", "dis:3" }, { "Frost", "dis:4" },
-                              { "Windstorm", "dis:5" }, { "Disable", "dis:6" } }, 288, 104, 88 },
+        { N_("File"), 8, { { N_("About SimFarm"), "win:17" }, { N_("New Game"), "newgame" }, { N_("Save"), "savecurrent" }, { N_("Save As"), "win:12" },
+                       { N_("Load Game"), "win:13" }, { N_("Quit"), "quit" } }, 0, 128, 75 }, // no Load Crop: the PLANT list loads crops
+        { N_("Options"), 64, { { N_("Music"), "music" }, { N_("Sound Effects"), "sfx" }, { N_("AutoBuy"), "opt:opt_autobuy" }, { N_("AutoScroll"), "opt:opt_autoscroll" },
+                           { N_("AutoDoze"), "opt:opt_autodoze" }, { N_("AutoGoto"), "opt:opt_autogoto" }, { N_("Messages"), "msgs" }, { N_("AutoLease"), "opt:menu_6" },
+                           { N_("Smart Driving"), "smartdrive" }, { N_("Modern Sound"), "modernsound" }, { N_("Modern Render"), "modernrender" }, { N_("Sound Volume"), "win:20" } }, 64, 136, 148 },
+        { N_("Speed"), 144, { { N_("Ultra"), "speed:0" }, { N_("Fast"), "speed:1" }, { N_("Normal"), "speed:2" }, { N_("Slow"), "speed:3" }, { N_("Pause"), "speed:4" } }, 144, 64, 64 },
+        { N_("Windows"), 208, { { N_("Buy"), "win:0" }, { N_("Sell"), "win:1" }, { N_("Evaluation"), "win:5" }, { N_("Map"), "win:3" }, { N_("Weather"), "win:4" },
+                            { N_("Balance Sheet"), "win:9" }, { N_("Bank"), "win:10" }, { N_("Market Value"), "win:8" },
+                            { N_("Farm Expert"), "win:6" } }, 208, 120, 116 }, // no Edit item: the farm view always shows its tools
+        { N_("Disasters"), 288, { { N_("Tornado"), "dis:0" }, { N_("Locusts"), "dis:1" }, { N_("Drought"), "dis:2" }, { N_("Flood"), "dis:3" }, { N_("Frost"), "dis:4" },
+                              { N_("Windstorm"), "dis:5" }, { N_("Disable"), "dis:6" } }, 288, 104, 88 },
         // engine addition: the legend of the tools (also F1)
-        { "Help", 392, { { "Tool Help", "win:18" } }, 392, 104, 15 },
+        { N_("Help"), 392, { { N_("Tool Help"), "win:18" } }, 392, 104, 15 },
     };
+    if (CurrentLanguage() == "en")
+        return;
+    // a translation: the words, and the titles placed one after the other with a gap (smaller when they would
+    // reach the radio), each box as wide as its longest item
+    for (auto& m : _menus)
+    {
+        m.title = Tr(m.title);
+        for (auto& it : m.items)
+            it.label = Tr(it.label);
+    }
+    const int radioLeft = 640 - kRadioWidth - 4;
+    int gap = 24;
+    for (; gap > 8; gap -= 4)
+    {
+        int x = 8;
+        for (const auto& m : _menus)
+            x += Gfx::TextWidth(m.title) + gap;
+        if (x - gap + 8 <= radioLeft)
+            break;
+    }
+    int x = 8;
+    for (size_t i = 0; i < _menus.size(); ++i)
+    {
+        Menu& m = _menus[i];
+        m.x = x;
+        int widest = 0;
+        for (const auto& it : m.items)
+            widest = std::max(widest, Gfx::TextWidth(it.label));
+        m.boxW = std::max(m.boxW, widest + 16);
+        m.boxX = std::min(i == 0 ? 0 : x, 640 - m.boxW);
+        x += Gfx::TextWidth(m.title) + gap;
+    }
 }
 
 void GameUi::SetScreenSize(int pw, int ph)
@@ -79,7 +112,7 @@ void GameUi::OpenWindow(int kind)
     auto w = MakeWindow(kind);
     if (!w)
     {
-        ShowMessage("This window is not available yet.");
+        ShowMessage(Tr("This window is not available yet."));
         return;
     }
     // the original opens each window at its own place (measured at 640x480: outer top-left of the title bar);
@@ -202,8 +235,8 @@ void GameUi::Execute(const std::string& cmd)
     {
         // the engine's route planner for machines (on) or the original's step-by-step steering (off)
         Machines::smartDriving = !Machines::smartDriving;
-        ShowMessage(Machines::smartDriving ? "Smart driving on: machines plan their way to the field and back."
-                                           : "Smart driving off: machines steer as in the original.");
+        ShowMessage(Machines::smartDriving ? Tr("Smart driving on: machines plan their way to the field and back.")
+                                           : Tr("Smart driving off: machines steer as in the original."));
     }
     else if (cmd == "quit")
         AskQuit();
@@ -218,7 +251,7 @@ void GameUi::Execute(const std::string& cmd)
         else if (_ctx.state && _ctx.state->Save(_ctx.currentSave, err))
             Saved(std::filesystem::path(_ctx.currentSave).filename().string());
         else
-            ShowMessage("Save failed: " + err);
+            ShowMessage(TrF("Save failed: {0}", err));
     }
     else if (cmd.rfind("dis:", 0) == 0 && _ctx.sim)
     {
@@ -294,11 +327,11 @@ namespace {
 struct RadioStation { const char* file; const char* title; };
 // the game's songs, with the engine's own descriptive names for when the game plays them
 constexpr RadioStation kStations[GameUi::kRadioSongs] = {
-    { "amain.xmi", "TITLE THEME" }, { "genfarm.xmi", "FARM LIFE" }, { "ffarm.xmi", "GOOD YEARS" },
-    { "dfarm.xmi", "HARD TIMES" },  { "carnival.xmi", "COUNTY FAIR" }, { "rodeo.xmi", "RODEO" },
-    { "cowman.xmi", "CELEBRATION" },
+    { "amain.xmi", N_("TITLE THEME") }, { "genfarm.xmi", N_("FARM LIFE") }, { "ffarm.xmi", N_("GOOD YEARS") },
+    { "dfarm.xmi", N_("HARD TIMES") },  { "carnival.xmi", N_("COUNTY FAIR") }, { "rodeo.xmi", N_("RODEO") },
+    { "cowman.xmi", N_("CELEBRATION") },
 };
-constexpr int kRadioW = 208, kRadioH = 14; // right after the Help menu at 640 wide; fits "PAUSED CELEBRATION"
+constexpr int kRadioW = GameUi::kRadioWidth, kRadioH = 14; // right after the Help menu at 640 wide; fits "PAUSED CELEBRATION"
 }
 
 Rect GameUi::RadioBox() const { return { _w - kRadioW - 4, 1, kRadioW, kRadioH }; }
@@ -347,7 +380,7 @@ bool GameUi::RadioClick(int x, int y)
             if (!_radioManual)
             {
                 // a hint on the status line only (not kept in its message history)
-                _message = "Radio: your pick. Press AUTO to let the game choose again.";
+                _message = Tr("Radio: your pick. Press AUTO to let the game choose again.");
                 _messageTime = SDL_GetTicks();
             }
             _radioManual = true;
@@ -359,7 +392,7 @@ bool GameUi::RadioClick(int x, int y)
         else if (k == 4 && _radioManual)
         {
             _radioManual = false;
-            _message = "Radio: the game chooses the music again.";
+            _message = Tr("Radio: the game chooses the music again.");
             _messageTime = SDL_GetTicks();
         }
         _radioPressed = k;
@@ -416,8 +449,8 @@ void GameUi::DrawRadio()
     _g.Fill(d.x, d.y, d.w, d.h, kBlack);
     _g.Frame(d.x, d.y, d.w, d.h, kDarkGrey);
     const int idx = _radioManual ? _radioTrack : RadioIndex(_ctx.audio ? _ctx.audio->CurrentSong() : "");
-    const std::string name = idx >= 0 ? kStations[idx].title : "NO MUSIC";
-    std::string prefix = !musicOn ? "PAUSED " : idx >= 0 ? std::to_string(idx + 1) + "/" + std::to_string(kRadioSongs) + " " : "";
+    const std::string name = idx >= 0 ? Tr(kStations[idx].title) : Tr("NO MUSIC");
+    std::string prefix = !musicOn ? std::string(Tr("PAUSED")) + " " : idx >= 0 ? std::to_string(idx + 1) + "/" + std::to_string(kRadioSongs) + " " : "";
     if (Gfx::SmallTextWidth(prefix + name) > d.w - 5 && musicOn)
         prefix.clear(); // a long name: the number gives way
     _g.SmallText(d.x + 3, d.y + 3, prefix, musicOn ? kGreen : kYellow);
@@ -427,8 +460,8 @@ void GameUi::DrawRadio()
     const bool lit = !_radioManual;
     _g.Fill(a.x, a.y, a.w, a.h, lit ? kYellow : kLightGrey);
     _g.Bevel(a.x, a.y, a.w, a.h, !lit && _radioPressed != 4);
-    const int tw = Gfx::SmallTextWidth("AUTO");
-    _g.SmallText(a.x + (a.w - tw) / 2 + (lit ? 1 : 0), a.y + (lit ? 3 : 2), "AUTO", lit ? kBlack : kDarkGrey);
+    const int tw = Gfx::SmallTextWidth(Tr("AUTO"));
+    _g.SmallText(a.x + (a.w - tw) / 2 + (lit ? 1 : 0), a.y + (lit ? 3 : 2), Tr("AUTO"), lit ? kBlack : kDarkGrey);
 }
 
 // ---------------------------------------------------------------- toolbar, status strip
@@ -479,15 +512,15 @@ void GameUi::DrawToolbar()
     // a short weather summary right of the forecast (an engine addition, user finding Q16): today's sky, today's
     // temperature (the WEATHER window's figures) and the wind, in the small text
     {
-        static const char* const kSky[5] = { "Clear", "Fair", "Cloudy", "Rain", "Snow" };
+        static const char* const kSky[5] = { N_("Clear"), N_("Fair"), N_("Cloudy"), N_("Rain"), N_("Snow") };
         const int tf = _ctx.sim->DailyTemperature() > -1000 ? _ctx.sim->DailyTemperature() : _ctx.sim->Temperature();
-        _g.SmallText(fx + 77, kToolbarY + 5, kSky[std::clamp(_ctx.sim->TodaySky(), 0, 4)], kBlack);
+        _g.SmallText(fx + 77, kToolbarY + 5, Tr(kSky[std::clamp(_ctx.sim->TodaySky(), 0, 4)]), kBlack);
         _g.SmallText(fx + 77, kToolbarY + 13, std::to_string(tf) + "F " + std::to_string((tf - 32) >> 1) + "C", kBlack);
-        _g.SmallText(fx + 77, kToolbarY + 21, std::to_string(_ctx.sim->Wind()) + " mph", kBlack);
+        _g.SmallText(fx + 77, kToolbarY + 21, TrF("{0} mph", _ctx.sim->Wind()), kBlack);
     }
     // the original shows its event boxes inside the day step, after the week has moved on but before the toolbar
     // is drawn again, so the old date stays up behind the month-change, fair, rodeo and year-end boxes
-    const std::string date = "Week " + std::to_string(s.cal.week + 1) + " of " + kMonthShort[s.cal.month] + " " + std::to_string(s.cal.year);
+    const std::string date = TrF("Week {0} of {1} {2}", s.cal.week + 1, Tr(kMonthShort[s.cal.month]), s.cal.year);
     // the lost auction asks its question inside that step too, so the date and the funds from before it stay up
     // behind its boxes until the program ends (seen live: Week 4 of Oct and 0 behind all three boxes)
     const bool lost = _ctx.sim->Bankrupt();
@@ -512,7 +545,7 @@ void GameUi::ShowMessage(const std::string& m)
         return;
     std::string date;
     if (_ctx.state)
-        date = "W" + std::to_string(_ctx.state->cal.week + 1) + " " + kMonthShort[_ctx.state->cal.month % 12] + " " + std::to_string(_ctx.state->cal.year);
+        date = TrF("W{0} {1} {2}", _ctx.state->cal.week + 1, Tr(kMonthShort[_ctx.state->cal.month % 12]), _ctx.state->cal.year);
     if (!_history.empty() && _history.back().second == m)
         _history.back().first = date; // the same message again: one line, with its latest date
     else
@@ -531,7 +564,7 @@ void GameUi::DrawHistory()
     const int n = static_cast<int>(_history.size());
     _historyTop = std::clamp(_historyTop, 0, std::max(0, n - kHistoryRows));
     if (n == 0)
-        _g.Text(b.x + 6, b.y + 4, "No messages yet.", kBlack);
+        _g.Text(b.x + 6, b.y + 4, Tr("No messages yet."), kBlack);
     const int chars = std::max(0, (b.w - 12 - 96) / 8);
     for (int r = 0; r < kHistoryRows && _historyTop + r < n; ++r)
     {
@@ -549,32 +582,37 @@ void GameUi::DrawStatus()
     if (_ctx.sim->Plane().Flying())
     {
         const Flight& f = _ctx.sim->Plane();
-        text = std::string("Flying  height ") + std::to_string(f.Altitude()) + (f.Spraying() ? "  SPRAYING" : "") +
-               "   Arrows fly, F sprays, Enter lands";
+        text = TrF("Flying  height {0}", f.Altitude()) + (f.Spraying() ? std::string("  ") + Tr("SPRAYING") : std::string()) + "   " +
+               Tr("Arrows fly, F sprays, Enter lands");
     }
     else if (!_message.empty() && SDL_GetTicks() - _messageTime < 6000)
         text = _message;
     else if (_ctx.sim->GetSpeed() == Speed::Paused)
-        text = "Game Paused...";
+        text = Tr("Game Paused...");
     else if (_tool != Tool::None)
     {
         const ToolInfo& info = GetToolInfo(_tool);
-        text = _tool == Tool::Plant ? "Plant " + _ctx.state->crops[_toolParam & 15].name + "  Seed: " +
-                                          std::to_string(std::max(5, _ctx.state->MarketPrice(_toolParam & 15) >> 2))
-               : _tool == Tool::Spray ? std::string(kSprayNames[_toolParam - 6]) + ": click a field"
-               : _tool == Tool::Examine ? std::string("Examine: click a field or an object")
-               : _tool == Tool::Move ? std::string(_moveKind ? "Move: click the new place" : "Move: choose a machine, a barrel or a stored thing")
-               : _tool == Tool::Place ? "Place " + ShopName(*_ctx.state, _toolParam) + "  Price: " + std::to_string(ShopPrice(*_ctx.state, _toolParam))
-               : info.cost ? std::string(info.name) + "  Cost: " + std::to_string(info.cost)
-                           : std::string(info.name) + ": not available yet";
+        text = _tool == Tool::Plant ? TrF("Plant {0}  Seed: {1}", CropName(*_ctx.state, _toolParam & 15),
+                                          std::max(5, _ctx.state->MarketPrice(_toolParam & 15) >> 2))
+               : _tool == Tool::Spray ? TrF("{0}: click a field", Tr(kSprayNames[_toolParam - 6]))
+               : _tool == Tool::Examine ? std::string(Tr("Examine: click a field or an object"))
+               : _tool == Tool::Move ? std::string(_moveKind ? Tr("Move: click the new place") : Tr("Move: choose a machine, a barrel or a stored thing"))
+               : _tool == Tool::Place ? TrF("Place {0}  Price: {1}", ShopName(*_ctx.state, _toolParam), ShopPrice(*_ctx.state, _toolParam))
+               : info.cost ? TrF("{0}  Cost: {1}", Tr(info.name), info.cost)
+                           : TrF("{0}: not available yet", Tr(info.name));
     }
     const int tx = MapLeft() + 20; // right of the status row's arrow button
     // the game speed at the right end of the status row, in the small text (an engine addition, user finding Q23)
-    static const char* const kSpeedName[5] = { "Speed: Ultra", "Speed: Fast", "Speed: Normal", "Speed: Slow", "Paused" };
-    const std::string speed = kSpeedName[std::clamp(static_cast<int>(_ctx.sim->GetSpeed()), 0, 4)];
+    static const char* const kSpeedName[5] = { N_("Speed: Ultra"), N_("Speed: Fast"), N_("Speed: Normal"), N_("Speed: Slow"), N_("Paused") };
+    const std::string speed = Tr(kSpeedName[std::clamp(static_cast<int>(_ctx.sim->GetSpeed()), 0, 4)]);
     const int sx = _w - kScrollBar - 4 - Gfx::SmallTextWidth(speed);
     _g.SmallText(sx, kStatusY + 4, speed, kNavy);
-    _g.Text(tx, kStatusY + 3, text.substr(0, static_cast<size_t>(std::max(0, (sx - 8 - tx) / 8))), kBlack);
+    // a text too long for the row is drawn with tighter letters, and cut only when even that does not fit
+    const int room = sx - 8 - tx;
+    if (Gfx::TextWidth(text) > room && Gfx::FitWidth(text, room) <= room)
+        _g.TextFit(tx, kStatusY + 3, room, text, kBlack);
+    else
+        _g.Text(tx, kStatusY + 3, text.substr(0, static_cast<size_t>(std::max(0, room / 8))), kBlack);
 }
 
 // ---------------------------------------------------------------- EDIT window frame
@@ -711,9 +749,9 @@ void GameUi::ArrowRepeat()
 // >> / << button at the foot shows or hides the tool names beside the icons.
 static const Tool kPaletteGrid[6][2] = { { Tool::Move, Tool::Examine }, { Tool::PavedRoad, Tool::DirtRoad }, { Tool::Fence, Tool::Gate },
                                          { Tool::Ditch, Tool::Valve }, { Tool::Hay, Tool::Trough }, { Tool::Trees, Tool::Bulldoze } };
-static const char* const kToolNames[12] = { "Move", "Examine", "Paved Road", "Dirt Road", "Fence", "Gate",
-                                            "Ditch", "Valve", "Feed", "Trough", "Trees", "Bulldoze" };
-static const char* const kButtonNames[2] = { "Plant", "Spray" };
+static const char* const kToolNames[12] = { N_("Move"), N_("Examine"), N_("Paved Road"), N_("Dirt Road"), N_("Fence"), N_("Gate"),
+                                            N_("Ditch"), N_("Valve"), N_("Feed"), N_("Trough"), N_("Trees"), N_("Bulldoze") };
+static const char* const kButtonNames[2] = { N_("Plant"), N_("Spray") };
 // the palette in groups (separated by a line): move/examine, roads, fences, water, livestock, trees/bulldoze, crops
 static bool GroupStart(int i) { return i > 0 && i % 2 == 0; }
 static constexpr int kToggleH = 16;
@@ -762,7 +800,7 @@ void GameUi::DrawPalette()
                 // finding Q30): the icon's own right edge is covered by the button face, the bevel goes round both
                 _g.Fill(r.x + 22, r.y + 1, r.w - 22, 23, kLightGrey);
                 _g.Fill(r.x, r.y, r.w, 1, kBlack);
-                _g.SmallText(r.x + 28 + (pressed ? 1 : 0), r.y + 10 + (pressed ? 1 : 0), i < 12 ? kToolNames[i] : kButtonNames[i - 12], kBlack);
+                _g.SmallText(r.x + 28 + (pressed ? 1 : 0), r.y + 10 + (pressed ? 1 : 0), Tr(i < 12 ? kToolNames[i] : kButtonNames[i - 12]), kBlack);
                 IconBevel(r.x, r.y, pressed, r.w);
             }
             else if (i >= 12 || pressed)
@@ -785,7 +823,7 @@ void GameUi::DrawPalette()
         const Rect b = PopupBox();
         _g.Fill(b.x, b.y, b.w, b.h, kLightGrey);
         _g.Frame(b.x, b.y, b.w, b.h, kBlack);
-        _g.Text(b.x + 16, b.y + 4, _popup == 1 ? "Plant Field" : "Spray Field", kBlack);
+        _g.Text(b.x + 16, b.y + 4, _popup == 1 ? Tr("Plant Field") : Tr("Spray Field"), kBlack);
         const auto& pal = _g.Pal();
         auto argb = [&](int v) {
             const auto& p = pal[static_cast<size_t>(v & 15)];
@@ -818,7 +856,7 @@ void GameUi::DrawPalette()
             else
             {
                 _g.DrawAnyTile(848 + 67 - i, r.x, r.y);
-                _g.Text(r.x + 16, r.y + 4, kSprayNames[i], ink);
+                _g.Text(r.x + 16, r.y + 4, Tr(kSprayNames[i]), ink);
             }
         }
         _g.Frame(b.x, b.y, b.w, b.h, kBlack); // the frame stays over the pictures of the first column
@@ -876,15 +914,10 @@ void GameUi::BuildPlantList()
     if (!_ctx.state)
         return;
     for (int i = 0; i < 16 && i < static_cast<int>(_ctx.state->crops.size()); ++i)
-        _plantList.push_back({ _ctx.state->crops[static_cast<size_t>(i)].name, i, -1 });
+        _plantList.push_back({ CropName(*_ctx.state, i), i, -1 });
     for (size_t k = 0; k < _spareCrops.size(); ++k)
-        _plantList.push_back({ _spareCrops[k].name, -1, static_cast<int>(k) });
-    auto lower = [](std::string t) {
-        for (char& ch : t)
-            ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
-        return t;
-    };
-    std::stable_sort(_plantList.begin(), _plantList.end(), [&](const PlantEntry& a, const PlantEntry& b) { return lower(a.name) < lower(b.name); });
+        _plantList.push_back({ CropNameFor(_spareCrops[k].file, _spareCrops[k].name), -1, static_cast<int>(k) });
+    std::stable_sort(_plantList.begin(), _plantList.end(), [&](const PlantEntry& a, const PlantEntry& b) { return SortKey(a.name) < SortKey(b.name); });
 }
 
 void GameUi::PlantSpareCrop(int k)
@@ -895,16 +928,16 @@ void GameUi::PlantSpareCrop(int k)
     std::string why;
     if (slot < 0)
     {
-        ShowMessage("Every crop slot is in use: sell or plant over a crop to make room for " + _spareCrops[static_cast<size_t>(k)].name + ".");
+        ShowMessage(TrF("Every crop slot is in use: sell or plant over a crop to make room for {0}.", CropNameFor(_spareCrops[static_cast<size_t>(k)].file, _spareCrops[static_cast<size_t>(k)].name)));
         return;
     }
-    const std::string replaced = _ctx.state->crops[static_cast<size_t>(slot)].name;
+    const std::string replaced = CropName(*_ctx.state, slot);
     if (!_ctx.sim->ReplaceCrop(slot, _spareCrops[static_cast<size_t>(k)].file, why))
     {
         ShowMessage(why);
         return;
     }
-    ShowMessage(_spareCrops[static_cast<size_t>(k)].name + " loaded in place of " + replaced + ": click a field");
+    ShowMessage(TrF("{0} loaded in place of {1}: click a field", CropNameFor(_spareCrops[static_cast<size_t>(k)].file, _spareCrops[static_cast<size_t>(k)].name), replaced));
     _tool = Tool::Plant;
     _toolParam = slot;
 }
@@ -1036,7 +1069,7 @@ void GameUi::UseTool(int px, int py, bool first)
             {
                 _moveFromX = cx;
                 _moveFromY = cy;
-                ShowMessage("Now click where it should go.");
+                ShowMessage(Tr("Now click where it should go."));
             }
             else
             {
@@ -1228,7 +1261,8 @@ void GameUi::DrawTitleBar(int x, int y, int w, const std::string& title, bool ac
     _g.DrawTile(active ? 2 : 119, x + w - 16, y);
     _g.DrawTile(closeBox ? 0 : active ? 75 : 76, x, y); // without a close box: the plain left end
     // centred in whole characters, rounding to the right: x + ceil((w / 8 - length) / 2) * 8
-    _g.Text(x + (w / 8 - static_cast<int>(title.size()) + 1) / 2 * 8, y + 4, title, kWhite);
+    const std::string shown = Tr(title);
+    _g.Text(x + (w / 8 - static_cast<int>(shown.size()) + 1) / 2 * 8, y + 4, shown, kWhite);
 }
 
 void GameUi::DrawWindow(Window& w)
@@ -1355,7 +1389,7 @@ void GameUi::YearEvaluation()
 // thumbs-up farmer (75) after every save; the button faces are buttons.til 10 YES, 3 CANCEL, 11 NO, 0 OK
 void GameUi::AskQuit()
 {
-    GameEvent e{ -80, 74, "Do you want to save your farm before you leave SimFarm?" };
+    GameEvent e{ -80, 74, Tr("Do you want to save your farm before you leave SimFarm?") };
     e.faces = { 10, 3, 11 };
     e.uiAction = 1;
     e.timeoutButton = 2; // no answer: the program ends without saving
@@ -1376,7 +1410,7 @@ void GameUi::AskNewGame()
 
 void GameUi::Saved(const std::string& name)
 {
-    GameEvent e{ -82, 75, "Your game has been saved as " + name + "." };
+    GameEvent e{ -82, 75, TrF("Your game has been saved as {0}.", name) };
     e.faces = { 0 };
     e.uiAction = 3;
     e.escButton = 0;
@@ -1462,7 +1496,17 @@ void GameUi::DrawEventBox()
     _g.DrawBank("alltiles.btl", dance ? 0x4B : e.picture, b.x + 72, b.y + 24);
     const int textId = e.textId >= 0 ? e.textId : e.id;
     std::string text = textId < 0 ? e.text : std::string(); // the engine's own boxes carry their text
-    if (textId >= 0)
+    if (const std::string tr = textId >= 0 ? TrId("event:" + std::to_string(textId), "") : std::string(); !tr.empty())
+    {
+        // a translation ("event:<id>"): '~' starts a new line; a first line ended by '~' is a title, centred like
+        // the original's (the box holds lines of (width - 8) / 8 characters, '`' prints as a blank)
+        text = tr;
+        const size_t cut = tr.find('~');
+        const int chars = ((dance ? 184 : 224) - 8) / 8;
+        if (cut != std::string::npos && static_cast<int>(cut) < chars)
+            text = std::string(static_cast<size_t>((chars - static_cast<int>(cut)) / 2), '`') + tr;
+    }
+    else if (textId >= 0)
         for (const std::string& l : EventText(_ctx.mega, textId))
             text += l + "\n";
     _g.Wrap(b.x + (dance ? 8 : 16), b.y + 96, dance ? 184 : 224, text, kBlack);
@@ -1694,7 +1738,7 @@ Rect GameUi::FlightButton(int k) const
 }
 
 // only SPRAY and LAND (user: the turns and the height stay on the keys)
-static const char* const kFlightButtons[2] = { "SPRAY", "LAND" };
+static const char* const kFlightButtons[2] = { N_("SPRAY"), N_("LAND") };
 static const int kFlightKeys[2] = { 'S', 'E' };
 
 void GameUi::DrawFlightPanel()
@@ -1706,11 +1750,11 @@ void GameUi::DrawFlightPanel()
     _g.Bevel(p.x, p.y, p.w, p.h, true);
     const int plane = f.PlaneIndex();
     const int values[3] = { Flight::Fuel(*_ctx.state, plane), Flight::Load(*_ctx.state, plane), Flight::Wear(*_ctx.state, plane) };
-    static const char* const kGauge[3] = { "FUEL", "SPRAY", "DAMAGE" };
+    static const char* const kGauge[3] = { N_("FUEL"), N_("SPRAY"), N_("DAMAGE") };
     for (int i = 0; i < 3; ++i)
     {
         const int y = p.y + 5 + 9 * i;
-        _g.SmallText(p.x + 6, y, kGauge[i], kBlack);
+        _g.SmallText(p.x + 6, y, Tr(kGauge[i]), kBlack);
         const int bx = p.x + 50, bw = 128;
         _g.Frame(bx, y - 1, bw + 2, 7, kBlack);
         _g.Fill(bx + 1, y, bw, 5, kWhite);
@@ -1727,7 +1771,7 @@ void GameUi::DrawFlightPanel()
         _g.Frame(b.x - 1, b.y - 1, b.w + 2, b.h + 2, kBlack);
         _g.Fill(b.x, b.y, b.w, b.h, down ? kGrey : kLightGrey);
         _g.Bevel(b.x, b.y, b.w, b.h, !down);
-        const std::string t = kFlightButtons[k];
+        const std::string t = Tr(kFlightButtons[k]);
         _g.SmallText(b.x + (b.w - Gfx::SmallTextWidth(t)) / 2, b.y + 13, t, kBlack);
     }
 }
@@ -2081,7 +2125,7 @@ bool GameUi::HandleEvent(const SDL_Event& e)
         {
             auto& v = _ctx.state->scalars["opt_autoscroll"];
             v = v ? 0 : 1;
-            ShowMessage(v ? "Edge scrolling on: the map moves when the pointer is at a side." : "Edge scrolling off.");
+            ShowMessage(v ? Tr("Edge scrolling on: the map moves when the pointer is at a side.") : Tr("Edge scrolling off."));
             Click();
             return true;
         }
@@ -2126,7 +2170,7 @@ bool GameUi::HandleEvent(const SDL_Event& e)
                 const int kind = ToolbarWindow(b);
                 Execute("win:" + std::to_string(kind));
                 if (!ItemEnabled("win:" + std::to_string(kind)))
-                    ShowMessage("This window is not available yet.");
+                    ShowMessage(Tr("This window is not available yet."));
             }
             return true;
         }

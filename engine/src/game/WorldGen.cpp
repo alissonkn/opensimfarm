@@ -1,6 +1,7 @@
 // OpenSimFarm - an open re-implementation of SimFarm. Copyright (c) 2026 OpenSimFarm developers.
 // Licensed under the GNU General Public License version 3 (see LICENSE.txt).
 #include "game/WorldGen.h"
+#include "core/Lang.h"
 
 #include "assets/Megadata.h"
 #include "core/Paths.h"
@@ -86,7 +87,7 @@ bool GenerateWorld(const std::string& gameDir, const Megadata& mega, const GameS
     if (!ReadTable(mega, "rain" + std::to_string(opt.rain & 3) + ".dat", rain) || !ReadTable(mega, "temp" + std::to_string(opt.temperature & 3) + ".dat", temp) ||
         !ReadTable(mega, "wind" + std::to_string(opt.wind & 3) + ".dat", wind))
     {
-        error = "The climate tables are missing from MEGADATA.EEA.";
+        error = Tr("The climate tables are missing from MEGADATA.EEA.");
         return false;
     }
     for (int w = 0; w < 240; ++w)

@@ -22,6 +22,8 @@ bool ShopNeedsPlacing(int record);                        // false: bought at on
 // the cells a placed item covers from its top-left cell (the BUY pointer frame, user finding F28)
 void ShopFootprint(const GameState& s, int record, int& w, int& h);
 std::string ShopName(const GameState& s, int record);
+// the name of the crop in slot 0..15, in the chosen language
+std::string CropName(const GameState& s, int slot);
 
 // Buys one item; placed items go to cell (x, y).
 EditResult ShopBuy(GameState& s, Simulation& sim, int record, int x = -1, int y = -1);

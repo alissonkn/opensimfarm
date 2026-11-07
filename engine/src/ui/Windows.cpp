@@ -4,6 +4,7 @@
 // The windows draw their original background picture and put live values into the boxes of that picture.
 // Box positions were measured on the pictures; every label is part of the picture itself.
 #include "ui/Windows.h"
+#include "core/Lang.h"
 #include "audio/Sound.h"
 
 #include "assets/Megadata.h"
@@ -21,10 +22,19 @@
 #include <filesystem>
 #include "core/Paths.h"
 #include <cmath>
+#include <cstring>
 
 namespace osf {
 
-static const char* const kMonthShort[12] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+// the MAP window's caption: the original's x for English; a translation is centred in the caption area (x 8..151)
+static int Caption(int x, const char* english)
+{
+    if (CurrentLanguage() == "en")
+        return x;
+    return std::max(8, 8 + (144 - Gfx::TextWidth(Tr(english))) / 2);
+}
+
+static const char* const kMonthShort[12] = { N_("Jan"), N_("Feb"), N_("Mar"), N_("Apr"), N_("May"), N_("Jun"), N_("Jul"), N_("Aug"), N_("Sep"), N_("Oct"), N_("Nov"), N_("Dec") };
 
 static std::string Num(int64_t v) { return std::to_string(v); }
 
@@ -32,7 +42,7 @@ static std::string Num(int64_t v) { return std::to_string(v); }
 class BalanceWindow : public Window
 {
 public:
-    BalanceWindow() : Window(kWinBalance, "BALANCE SHEET", "cashflow.bmp", 400, 224) {}
+    BalanceWindow() : Window(kWinBalance, N_("BALANCE SHEET"), "cashflow.bmp", 400, 224) {}
     Rect CloseButton() const override { return { 329, 185, 46, 22 }; }
 
     void DrawContent(Gfx& g, UiContext& ctx) override
@@ -94,7 +104,7 @@ public:
 class MarketWindow : public Window
 {
 public:
-    MarketWindow() : Window(kWinMarket, "MARKET VALUE", "futures.bmp", 320, 208) {}
+    MarketWindow() : Window(kWinMarket, N_("MARKET VALUE"), "futures.bmp", 320, 208) {}
     Rect CloseButton() const override { return { 259, 174, 46, 22 }; }
 
     void DrawContent(Gfx& g, UiContext& ctx) override
@@ -270,16 +280,11 @@ private:
         _list.clear();
         _loadedNames = LoadedNames(s);
         for (int i = 0; i < 16 && i < static_cast<int>(s.crops.size()); ++i)
-            _list.push_back({ s.crops[static_cast<size_t>(i)].name, i, -1 });
+            _list.push_back({ CropName(s, i), i, -1 });
         const auto& spares = ctx.sim->SpareMarket();
         for (size_t k = 0; k < spares.size(); ++k)
-            _list.push_back({ spares[k].name, -1, static_cast<int>(k) });
-        auto lower = [](std::string t) {
-            for (char& ch : t)
-                ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
-            return t;
-        };
-        std::stable_sort(_list.begin(), _list.end(), [&](const Entry& x, const Entry& y) { return lower(x.name) < lower(y.name); });
+            _list.push_back({ CropNameFor(spares[k].file, spares[k].name), -1, static_cast<int>(k) });
+        std::stable_sort(_list.begin(), _list.end(), [&](const Entry& x, const Entry& y) { return SortKey(x.name) < SortKey(y.name); });
         _sel = 0;
         for (size_t i = 0; i < _list.size(); ++i)
             if ((chosen.empty() && _list[i].slot == _crop) || (!chosen.empty() && _list[i].name == chosen))
@@ -294,7 +299,7 @@ private:
 class WeatherWindow : public Window
 {
 public:
-    WeatherWindow() : Window(kWinWeather, "WEATHER", "weather.bmp", 336, 192) {}
+    WeatherWindow() : Window(kWinWeather, N_("WEATHER"), "weather.bmp", 336, 192) {}
 
     void DrawContent(Gfx& g, UiContext& ctx) override
     {
@@ -307,8 +312,8 @@ public:
         const int weeksTill = ((seasonStart[next] - s.cal.AbsWeek()) % 48 + 48) % 48;
 
         g.DrawTile(seasonIcon[season], 16, 4);
-        g.Text(40, 8, "Week " + Num(s.cal.week + 1) + " of " + kMonthShort[s.cal.month], kBlack);
-        g.Text(176, 8, Num(weeksTill) + (weeksTill == 1 ? " Week Till" : " Weeks Till"), kBlack);
+        g.Text(40, 8, TrF("Week {0} of {1}", s.cal.week + 1, Tr(kMonthShort[s.cal.month])), kBlack);
+        g.Text(176, 8, weeksTill == 1 ? TrF("{0} Week Till", weeksTill) : TrF("{0} Weeks Till", weeksTill), kBlack);
         g.DrawTile(seasonIcon[next], 302, 4);
 
         // thermometer: today's temperature; the Celsius figure is the original's (F - 32) / 2
@@ -338,8 +343,10 @@ public:
 
         // evaporation: the dial is fldgrph.til face 15 + temperature / 32
         g.DrawPicture("fldgrph.til$" + std::to_string(15 + std::clamp(tf >> 5, 0, 4)), 24, 104);
-        static const char* const kEvaporation[5] = { "Slow", "Slow", "Average", "Fast", "Fast" }; // by temperature / 32
-        g.Text(12, 174, kEvaporation[std::clamp(tf >> 5, 0, 4)], kBlack);
+        static const char* const kEvaporation[5] = { N_("evaporation:Slow"), N_("evaporation:Slow"), N_("evaporation:Average"),
+                                                     N_("evaporation:Fast"), N_("evaporation:Fast") }; // by temperature / 32
+        const char* evaporation = kEvaporation[std::clamp(tf >> 5, 0, 4)];
+        g.TextFit(12, 174, 76, TrId(evaporation, std::strchr(evaporation, ':') + 1), kBlack);
 
         // the wind rotor: its two frames of wethvane.til swap whenever more timer ticks have passed than
         // the delay of the wind speed (table by wind / 8), so it spins faster in a stronger wind and stops in a pause
@@ -353,7 +360,7 @@ public:
             _vaneTick = sim.TimerTicks();
         }
         g.DrawPicture("wethvane.til$" + std::to_string(_vaneFrame), 272, 104);
-        g.Text(262, 174, Num(sim.Wind()) + " Mph", kBlack);
+        g.Text(262, 174, TrF("{0} Mph", sim.Wind()), kBlack);
 
         // five-day forecast from the rest of this week and the next one
         static const int skyIcon[5] = { 204, 205, 206, 207, 208 };
@@ -374,7 +381,7 @@ private:
 class BankWindow : public Window
 {
 public:
-    BankWindow() : Window(kWinBank, "BANK", "bankterm.bmp", 288, 224) {}
+    BankWindow() : Window(kWinBank, N_("BANK"), "bankterm.bmp", 288, 224) {}
     Rect CloseButton() const override { return { 185, 177, 46, 21 }; }
 
     void DrawContent(Gfx& g, UiContext& ctx) override
@@ -415,7 +422,7 @@ public:
                 if (keys[k] == 'C')
                     _entry.clear();
                 else if (keys[k] == '?')
-                    _note = "Borrow up to your limit.";
+                    _note = Tr("Borrow up to your limit.");
                 else if (_entry.size() < 7 && !(_entry.empty() && keys[k] == '0'))
                     _entry += keys[k];
                 return;
@@ -425,16 +432,16 @@ public:
             // nothing typed: the whole debt, as the original; an amount: that much (engine extension)
             const int64_t balance = ctx.sim->LoanBalance();
             const int64_t amount = _entry.empty() ? balance : std::min<int64_t>(balance, std::stoll(_entry));
-            _note = balance == 0                 ? "There is no loan to repay."
-                    : !ctx.sim->Repay(amount)    ? "Not enough cash to repay."
-                    : amount == balance          ? "Loan repaid in full."
-                                                 : "Repaid " + std::to_string(amount) + ".";
+            _note = balance == 0                 ? std::string(Tr("There is no loan to repay."))
+                    : !ctx.sim->Repay(amount)    ? std::string(Tr("Not enough cash to repay."))
+                    : amount == balance          ? std::string(Tr("Loan repaid in full."))
+                                                 : TrF("Repaid {0}.", amount);
             _entry.clear();
         }
         else if (Rect{ 145, 177, 38, 21 }.Contains(x, y) && !_entry.empty())
         {
             const int64_t amount = std::stoll(_entry);
-            _note = ctx.sim->Borrow(amount) ? "Loan granted." : "Over your credit limit.";
+            _note = ctx.sim->Borrow(amount) ? Tr("Loan granted.") : Tr("Over your credit limit.");
             _entry.clear();
         }
     }
@@ -461,7 +468,7 @@ private:
 class MapWindow : public Window
 {
 public:
-    MapWindow() : Window(kWinMap, "MAP", "mapwndo.bmp", 288, 240) {}
+    MapWindow() : Window(kWinMap, N_("MAP"), "mapwndo.bmp", 288, 240) {}
     Rect CloseButton() const override { return { 225, 203, 46, 22 }; }
 
     void DrawContent(Gfx& g, UiContext& ctx) override
@@ -597,19 +604,19 @@ public:
         // (an owned plot chosen for SELL shows what selling pays)
         const bool sale = _plotC >= 0 && ctx.state->PlotOwner(vc, vr) == 1;
         g.TextRight(64, 184, std::to_string(sale ? ctx.sim->PlotSalePrice(vc, vr) : ctx.sim->PlotLandValue(vc, vr)), kBlack);
-        static const char* const names[9] = { "Overhead", "Weeds", "Soil Toxicity", "Groundwater", "Soil Nutrients", "Field Profit", "Disease",
-                                              "Pests", "Property" };
+        static const char* const names[9] = { N_("Overhead"), N_("Weeds"), N_("Soil Toxicity"), N_("Groundwater"), N_("Soil Nutrients"), N_("Field Profit"), N_("Disease"),
+                                              N_("Pests"), N_("Property") };
         // the caption's left edge per mode (measured in DOSBox; the original keeps a small x table per mode)
         static const int captionX[9] = { 32, 40, 16, 16, 8, 16, 32, 40, 32 };
         g.Fill(8, 196, 144, 36, kLightGrey);
         if (_mode == kOverhead || _mode == kProperty)
-            g.Text(captionX[_mode], 216, names[_mode], kBlack);
+            g.Text(Caption(captionX[_mode], names[_mode]), 216, Tr(names[_mode]), kBlack);
         else
         {
             // the legend: Low and High over the 32-step ramp of map tiles 0x1D0.., each drawn as its 2x2 overview
             // block four times down, in a sunken bevel; the mode's name under it
-            g.Text(24, 199, "Low", kBlack);
-            g.Text(80, 199, "High", kBlack);
+            g.Text(24, 199, Tr("Low"), kBlack);
+            g.Text(80, 199, Tr("High"), kBlack);
             for (int k = 0; k < 32; ++k)
                 for (int r = 0; r < 8; ++r)
                 {
@@ -631,7 +638,7 @@ public:
             g.Fill(31, 219, 66, 1, kWhite);
             g.Fill(97, 209, 1, 11, kWhite);
             g.Fill(96, 210, 1, 9, kWhite);
-            g.Text(captionX[_mode], 222, names[_mode], kBlack);
+            g.Text(Caption(captionX[_mode], names[_mode]), 222, Tr(names[_mode]), kBlack);
         }
         // BUY / SELL in property mode, the same kind of button as CLOSE
         if (_mode == kProperty)
@@ -639,7 +646,7 @@ public:
             const bool owned = _plotC >= 0 && s.PlotOwner(_plotC, _plotR) == 1;
             g.Fill(160, 203, 48, 22, kLightGrey);
             g.Bevel(160, 203, 48, 22, true);
-            g.TextCentre(184, 210, owned ? "SELL" : "BUY", kBlack);
+            g.TextCentre(184, 210, owned ? Tr("SELL") : Tr("BUY"), kBlack);
         }
         // a button once pressed and released keeps two grey pixels in its bottom-left corner, as the original's
         // toggle buttons do
@@ -681,14 +688,14 @@ public:
         {
             if (_plotC < 0)
             {
-                ctx.message = "Choose a plot on the map first.";
+                ctx.message = Tr("Choose a plot on the map first.");
                 ctx.sound = "uhoh.voc";
                 return;
             }
             std::string why;
             const bool buy = ctx.state->PlotOwner(_plotC, _plotR) != 1;
             const bool ok = buy ? ctx.sim->BuyPlot(_plotC, _plotR, why) : ctx.sim->SellPlot(_plotC, _plotR, why);
-            ctx.message = ok ? (buy ? "The land is yours." : "The land is sold.") : why;
+            ctx.message = ok ? std::string(buy ? Tr("The land is yours.") : Tr("The land is sold.")) : why;
             ctx.sound = ok ? "plopitem.voc" : "uhoh.voc";
             return;
         }
@@ -745,28 +752,34 @@ static void ColumnFill(Gfx& g, int originX, int x, int y, int w, int h, int colo
 class EvaluationWindow : public Window
 {
 public:
-    EvaluationWindow() : Window(kWinEvaluation, "EVALUATION", "evaluate.bmp", 352, 192) {}
+    EvaluationWindow() : Window(kWinEvaluation, N_("EVALUATION"), "evaluate.bmp", 352, 192) {}
     Rect CloseButton() const override { return { 289, 153, 46, 23 }; }
 
     void DrawContent(Gfx& g, UiContext& ctx) override
     {
         GameState& s = *ctx.state;
         const Simulation::EvalBars b = ctx.sim->Evaluation();
-        static const char* const labels[5] = { "Farm Growth", "Town Growth", "Productivity", "Soil Quality", "Environment Quality" };
+        static const char* const labels[5] = { N_("Farm Growth"), N_("Town Growth"), N_("Productivity"), N_("Soil Quality"), N_("Environment Quality") };
         const int bars[5] = { b.farm, b.town, b.productivity, b.soil, b.environment };
         for (int i = 0; i < 5; ++i)
         {
-            g.Text(16, 8 + 16 * i, labels[i], kBlack);
+            g.Text(16, 8 + 16 * i, Tr(labels[i]), kBlack);
             int colour = kGreen;
             if (i == 3) colour = b.soilOk ? kGreen : kRed;
             if (i == 4) colour = b.environmentOk ? kGreen : kRed;
             ColumnFill(g, x, 192, 8 + 16 * i, bars[i], 8, colour);
             ColumnFill(g, x, 192 + bars[i], 8 + 16 * i, 80 - bars[i], 8, kDarkGrey);
         }
-        static const char* const seasons[4] = { "Winter", "Spring", "Summer", "Fall" };
+        // the season's name in the box at 288..335 (a translation has keys of their own: six letters fit)
+        static const char* const seasons[4] = { N_("Winter"), N_("Spring"), N_("Summer"), N_("Fall") };
+        static const char* const seasonBox[4] = { N_("season box:Winter"), N_("season box:Spring"), N_("season box:Summer"),
+                                                  N_("season box:Fall") };
         const int season = s.cal.Season();
         g.DrawTile(200 + season, 304, 16);
-        g.Text(288, 40, seasons[season], kBlack);
+        if (CurrentLanguage() == "en")
+            g.Text(288, 40, seasons[season], kBlack);
+        else
+            g.TextFit(288, 40, 48, TrId(seasonBox[season], Tr(seasons[season])), kBlack);
 
         // problems found on any field
         int bits = 0;
@@ -796,7 +809,7 @@ public:
 class FieldWindow : public Window
 {
 public:
-    explicit FieldWindow(int field) : Window(kWinField, "SCHEDULE", "fdstatus.bmp", 336, 224), _field(field) {}
+    explicit FieldWindow(int field) : Window(kWinField, N_("SCHEDULE"), "fdstatus.bmp", 336, 224), _field(field) {}
     Rect CloseButton() const override { return { 272, 101, 56, 15 }; }
 
     void DrawContent(Gfx& g, UiContext& ctx) override
@@ -888,11 +901,12 @@ public:
         }
 
         // season of today, three month labels, 12 week cells from _start
-        static const char* const seasons[4] = { "Winter", "Spring", "Summer", "Fall" };
-        LabelText(g, 104, 108, std::string(seasons[s.cal.Season()]) + " " + std::to_string(s.cal.year), 12);
-        static const char* const months[12] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+        static const char* const seasons[4] = { N_("Winter"), N_("Spring"), N_("Summer"), N_("Fall") };
+        // (a translation may use the box's whole width, 16 characters: "Primavera 2026")
+        LabelText(g, 104, 108, TrF("{0} {1}", Tr(seasons[s.cal.Season()]), s.cal.year), CurrentLanguage() == "en" ? 12 : 16);
+        static const char* const months[12] = { N_("Jan"), N_("Feb"), N_("Mar"), N_("Apr"), N_("May"), N_("Jun"), N_("Jul"), N_("Aug"), N_("Sep"), N_("Oct"), N_("Nov"), N_("Dec") };
         for (int m = 0; m < 3; ++m)
-            LabelText(g, 96 + 64 * m, 50, months[((_start / 4) + m) % 12], 3);
+            LabelText(g, 96 + 64 * m, 50, Tr(months[((_start / 4) + m) % 12]), 3);
         const int now = s.cal.AbsWeek();
         for (int i = 0; i < 12; ++i)
         {
@@ -1060,6 +1074,14 @@ static std::vector<std::string> ItemText(const Megadata* mega, int id)
         }
         lines.push_back(cur);
     }
+    // a translation ("item:<id>"): the name, '~', the description
+    if (const std::string tr = TrId("item:" + std::to_string(id), ""); !tr.empty())
+    {
+        const size_t cut = tr.find('~');
+        std::string rest = cut == std::string::npos ? std::string() : tr.substr(cut + 1);
+        std::replace(rest.begin(), rest.end(), '~', ' ');
+        return { tr.substr(0, cut), rest };
+    }
     for (int k = 0; k < 7; ++k)
     {
         const size_t i = static_cast<size_t>(id) * 8 + k;
@@ -1115,7 +1137,7 @@ static void ReleasedButton(Gfx& g, int x, int y)
 class BuyWindow : public Window
 {
 public:
-    BuyWindow() : Window(kWinBuy, "BUY", "buywndo.bmp", 256, 224) {}
+    BuyWindow() : Window(kWinBuy, N_("BUY"), "buywndo.bmp", 256, 224) {}
     Rect CloseButton() const override { return { 201, 185, 48, 22 }; }
 
     void DrawContent(Gfx& g, UiContext& ctx) override
@@ -1165,10 +1187,17 @@ public:
         std::vector<std::string> text = ItemText(ctx.mega, ShopTextId(s, rec));
         if (seed)
         {
-            text = s.crops[rec - 21].help;
-            text.insert(text.begin(), s.crops[rec - 21].name);
+            text = CropHelp(s.crops[rec - 21]);
+            text.insert(text.begin(), CropName(s, rec - 21));
         }
-        g.Text(48, 97, (text.empty() ? ShopName(s, rec) : text[0]).substr(0, 13), kBlack);
+        // (a translation shows the engine's translated name: the item file's names are English)
+        if (CurrentLanguage() == "en" || text.empty() || seed)
+            g.Text(48, 97, (text.empty() ? ShopName(s, rec) : text[0]).substr(0, 13), kBlack);
+        else
+        {
+            const std::string name = ShopName(s, rec);
+            g.TextFit(48, 97, 104, name.empty() ? text[0].substr(0, 13) : name, kBlack);
+        }
         std::vector<std::string> lines;
         std::string line;
         for (size_t i = 1; i < text.size(); ++i)
@@ -1229,8 +1258,8 @@ public:
                 // the original closes the BUY window and leaves the placement tool on (each click on the map buys
                 // one) until another tool is chosen (live: windmill, fertilizer, cow)
                 ctx.placeRecord = rec;
-                ctx.message = rec >= 21 && rec <= 36 ? "Click on a building to store a bag of " + ShopName(s, rec) + ". Each click buys one."
-                                                     : "Click on your land to place: " + ShopName(s, rec) + ". Each click buys one.";
+                ctx.message = rec >= 21 && rec <= 36 ? TrF("Click on a building to store a bag of {0}. Each click buys one.", ShopName(s, rec))
+                                                     : TrF("Click on your land to place: {0}. Each click buys one.", ShopName(s, rec));
                 closed = true;
             }
             else
@@ -1273,7 +1302,7 @@ private:
 class SellWindow : public Window
 {
 public:
-    SellWindow() : Window(kWinSell, "SELL", "sellwndo.bmp", 192, 256) {}
+    SellWindow() : Window(kWinSell, N_("SELL"), "sellwndo.bmp", 192, 256) {}
     Rect CloseButton() const override { return { 129, 217, 46, 22 }; }
 
     void DrawContent(Gfx& g, UiContext& ctx) override
@@ -1303,8 +1332,8 @@ public:
         {
             // the original: the market-scale picture and two capital lines at the list's top-left corner
             g.DrawBank("alltiles.btl", 48, 56, 8);
-            g.Text(40, 96, "NOTHING", kBlack);
-            g.Text(40, 104, "FOR SALE", kBlack);
+            g.Text(40, 96, Tr("NOTHING"), kBlack);
+            g.Text(40, 104, Tr("FOR SALE"), kBlack);
             return;
         }
         g.DrawBank("alltiles.btl", _list[_sel].picture, 56, 8);
@@ -1342,7 +1371,7 @@ public:
             g.Frame(40, y, 136, 32, kYellow);
             g.Frame(41, y + 1, 134, 30, kYellow);
         }
-        g.Text(40, 200, "Item: " + std::to_string(_sel + 1) + " of " + std::to_string(_list.size()), kBlack);
+        g.Text(40, 200, TrF("Item: {0} of {1}", _sel + 1, _list.size()), kBlack);
     }
 
     void Click(int x, int y, UiContext& ctx) override
@@ -1409,7 +1438,7 @@ private:
 class FileWindow : public Window
 {
 public:
-    explicit FileWindow(bool save) : Window(save ? kWinSave : kWinLoad, save ? "SAVE GAME" : "LOAD GAME", "filegenr.bmp", 208, 208), _save(save) { closeBox = false; }
+    explicit FileWindow(bool save) : Window(save ? kWinSave : kWinLoad, save ? N_("SAVE GAME") : N_("LOAD GAME"), "filegenr.bmp", 208, 208), _save(save) { closeBox = false; }
     Rect CloseButton() const override { return { 144, 56, 48, 24 }; }
 
     void DrawContent(Gfx& g, UiContext& ctx) override
@@ -1551,7 +1580,7 @@ private:
                 closed = true;
             }
             else
-                _note = "Save failed";
+                _note = Tr("Save failed");
             return;
         }
         for (const auto& f : _files)
@@ -1561,7 +1590,7 @@ private:
                 closed = true;
                 return;
             }
-        _note = "No such saved game";
+        _note = Tr("No such saved game");
     }
     bool _save;
     bool _scanned = false;
@@ -1577,7 +1606,7 @@ private:
 class ExpertWindow : public Window
 {
 public:
-    ExpertWindow() : Window(kWinExpert, "FARM EXPERT", "farmburo.bmp", 400, 224) {}
+    ExpertWindow() : Window(kWinExpert, N_("FARM EXPERT"), "farmburo.bmp", 400, 224) {}
     // CLOSE sits where the cards put their CANCEL (back) button, so it only acts on a card without one
     Rect CloseButton() const override { return HasButtonAt(336, 200) ? Rect{ 0, 0, 0, 0 } : Rect{ 336, 200 - kTop, 48, 24 }; }
 
@@ -1649,6 +1678,7 @@ private:
         _loaded = _card;
         const std::vector<uint8_t> d = ctx.mega ? ctx.mega->Read("card" + std::to_string(_card) + ".hc") : std::vector<uint8_t>();
         size_t i = 0;
+        int texts = 0;
         while (i < d.size() && d[i] != 0xFF)
         {
             const auto it = spec.find(d[i]);
@@ -1661,6 +1691,8 @@ private:
                 while (i < d.size() && d[i])
                     o.text += static_cast<char>(d[i++]);
             i += it->second.second ? 1 : 0;
+            if (o.op == 0x87) // a text box: its translation by "card:<card>:<n>", n counting the card's text boxes
+                o.text = TrId("card:" + std::to_string(_card) + ":" + std::to_string(texts++), o.text);
             _ops.push_back(std::move(o));
         }
     }
@@ -1670,7 +1702,7 @@ private:
     {
         const CropDef& c = ctx.state->crops[n & 15];
         if (c.loaded)
-            g.Wrap(x, y, 248, c.info, kBlack);
+            g.Wrap(x, y, 248, osf::CropInfo(c), kBlack);
     }
     int _card = 1, _loaded = 0;
     std::vector<Op> _ops;
@@ -1681,6 +1713,8 @@ private:
 // itemtext.dat is read as 128-byte records at 128 x n, the file's own layout (some records begin with a line feed).
 static std::string ItemTextRecord(const Megadata* mega, int id, bool nameOnly)
 {
+    if (const std::string tr = id >= 0 ? TrId("item:" + std::to_string(id), "") : std::string(); !tr.empty())
+        return nameOnly ? tr.substr(0, tr.find('~')) : tr; // a translation: the name, '~', the description
     static std::vector<uint8_t> d;
     if (d.empty() && mega)
         d = mega->Read("itemtext.dat");
@@ -1718,7 +1752,7 @@ void DrawExamineCard(Gfx& g, const Megadata* mega, const ExamineCard& c, int x, 
     line(x + 24, y + 96, ItemTextRecord(mega, c.textId, true));
     if (c.kind == ExamineCard::kStructure)
     {
-        line(x + 24, y + 106, "Damage:");
+        line(x + 24, y + 106, Tr("Damage:"));
         // the original's bar: two plain fills, so both parts end on 8-pixel screen columns
         const int red = std::min(64, c.damage >> 2);
         ColumnFill(g, 0, x + 96, y + 106, red, 8, kRed);
@@ -1747,7 +1781,7 @@ void DrawExamineCard(Gfx& g, const Megadata* mega, const ExamineCard& c, int x, 
 class CropWindow : public Window
 {
 public:
-    CropWindow() : Window(kWinCrop, "LOAD CROP", "choscrop.bmp", 320, 224) {}
+    CropWindow() : Window(kWinCrop, N_("LOAD CROP"), "choscrop.bmp", 320, 224) {}
     Rect CloseButton() const override { return { 249, 185, 46, 22 }; }
 
     void DrawContent(Gfx& g, UiContext& ctx) override
@@ -1755,7 +1789,7 @@ public:
         if (_files.empty())
             Scan(ctx);
         const GameState& s = *ctx.state;
-        g.Text(16, 24, s.crops[_slot].name.substr(0, 16), kBlack);
+        g.Text(16, 24, CropName(s, _slot).substr(0, 16), kBlack);
         if (_file >= 0)
             g.Text(160, 24, _files[_file].first.substr(0, 16), kBlack);
         // the 16 slots: each crop's 32x32 sign (tiles 539 + 4c ..), the chosen one framed in yellow
@@ -1843,7 +1877,7 @@ private:
             if (n.size() <= 4 || n.substr(n.size() - 4) != ".CRP")
                 continue;
             CropDef def;
-            _files.emplace_back(n, LoadCropFile(ctx.gameDir, n, def) ? def.name : n);
+            _files.emplace_back(n, LoadCropFile(ctx.gameDir, n, def) ? CropName(def) : n);
         }
         std::sort(_files.begin(), _files.end());
         _file = _files.empty() ? -1 : 0;
@@ -1857,7 +1891,7 @@ private:
 class AirplaneWindow : public Window
 {
 public:
-    explicit AirplaneWindow(int plane) : Window(kWinAirplane, "AIRPLANE", "airpwndo.bmp", 256, 176), _plane(plane) {}
+    explicit AirplaneWindow(int plane) : Window(kWinAirplane, N_("AIRPLANE"), "airpwndo.bmp", 256, 176), _plane(plane) {}
     Rect CloseButton() const override { return { 197, 146, 44, 20 }; }
 
     void DrawContent(Gfx& g, UiContext& ctx) override
@@ -1903,18 +1937,18 @@ public:
     {
         Flight& f = ctx.sim->Plane();
         auto pay = [&](bool ok, const char* what) {
-            ctx.message = ok ? what : "Not enough money, or nothing to do.";
+            ctx.message = ok ? Tr(what) : Tr("Not enough money, or nothing to do.");
             ctx.sound = ok ? "plopitem.voc" : "uhoh.voc";
         };
         for (int k = 0; k < 3; ++k)
             if (Rect{ 21, 3 + 55 * k, 38, 38 }.Contains(x, y))
                 _released |= 1 << k;
         if (Rect{ 21, 3, 38, 38 }.Contains(x, y))
-            pay(f.Refuel(_plane), "The tank is full.");
+            pay(f.Refuel(_plane), N_("The tank is full."));
         if (Rect{ 21, 58, 38, 38 }.Contains(x, y))
-            pay(f.Reload(_plane), "The spray tank is loaded.");
+            pay(f.Reload(_plane), N_("The spray tank is loaded."));
         if (Rect{ 21, 113, 38, 38 }.Contains(x, y))
-            pay(f.Repair(_plane), "The plane is repaired.");
+            pay(f.Repair(_plane), N_("The plane is repaired."));
         static const int items[3] = { 0xDD, 0xDE, 0xDF };
         for (int k = 0; k < 3; ++k)
             if (Rect{ 197, 5 + 40 * k, 38, 38 }.Contains(x, y))
@@ -1924,7 +1958,7 @@ public:
             if (f.Start(_plane))
             {
                 closed = true;
-                ctx.message = "Arrows fly, F sprays, Enter lands (or the buttons below)";
+                ctx.message = Tr("Arrows fly, F sprays, Enter lands (or the buttons below)");
                 // the original flies also from a paused game; in the engine Paused holds the plane (F42), so a take-off
                 // from a paused game sets Normal
                 if (ctx.sim->GetSpeed() == Speed::Paused)
@@ -1944,23 +1978,23 @@ std::unique_ptr<Window> MakeAirplaneWindow(int plane) { return std::make_unique<
 class AboutWindow : public Window
 {
 public:
-    AboutWindow() : Window(kWinAbout, "ABOUT", "about.bmp", 400, 224) {}
+    AboutWindow() : Window(kWinAbout, N_("ABOUT"), "about.bmp", 400, 224) {}
     Rect CloseButton() const override { return { 0, 0, 400, 224 }; } // any click closes it
 
     void DrawContent(Gfx& g, UiContext&) override
     {
-        static const char* const lines[] = { "OpenSimFarm 0.1", "", "An open re-implementation", "that runs on your own copy", "of SimFarm (Maxis, 1993).",
-                                             "", "Free software under the", "GNU GPL version 3.", "No original files included." };
+        static const char* const lines[] = { "OpenSimFarm " OSF_VERSION, "", N_("An open re-implementation"), N_("that runs on your own copy"), N_("of SimFarm (Maxis, 1993)."),
+                                             "", N_("Free software under the"), N_("GNU GPL version 3."), N_("No original files included.") };
         int y = 70;
         for (const char* l : lines)
         {
-            g.Text(150, y, l, kBlack);
+            g.TextFit(150, y, 216, *l ? Tr(l) : l, kBlack);
             y += 11;
         }
         // the picture's registration line ("this copy is registered to") is covered with the panel's grey, and the
         // line credits OpenSimFarm's author (user finding Q18)
         g.Fill(96, 187, 208, 11, kLightGrey);
-        g.TextCentre(200, 189, "OpenSimFarm by Kalinke", kBlack);
+        g.TextCentre(200, 189, Tr("OpenSimFarm by Kalinke"), kBlack);
     }
 };
 
@@ -1969,38 +2003,48 @@ class HelpWindow : public Window
 {
 public:
     // a plain panel with one entry per control, the description wrapped beside its name and a gap between entries
-    // (user finding F32: the text ran over the picture's edges and was hard to read)
-    HelpWindow() : Window(kWinHelp, "HOW TO PLAY", "", 560, 328) {}
-    Rect CloseButton() const override { return { 0, 0, 560, 328 }; }
+    // (user finding F32: the text ran over the picture's edges and was hard to read); a longer translation makes the
+    // window taller, up to the screen
+    HelpWindow() : Window(kWinHelp, N_("HOW TO PLAY"), "", 560, 328) { h = std::clamp(Layout(nullptr), 328, 416); }
+    Rect CloseButton() const override { return { 0, 0, 560, h }; }
 
     void DrawContent(Gfx& g, UiContext&) override
     {
-        static const std::pair<const char*, const char*> kEntries[] = {
-            { "Mouse", "Menus, toolbar and windows. The tools on the left work on the map; drag to paint roads, fences and ditches." },
-            { "Right button", "On a building: show what is stored inside. Elsewhere: drop the chosen tool." },
-            { "Scroll", "Right or middle drag, arrow keys or WASD, the scroll bars, or the map edges (check box under -)." },
-            { "Zoom", "Mouse wheel or the + and - buttons." },
-            { "Speed", "1 Slow, 2 Normal, 3 Fast, 4 Ultra, 0 Pause. Space pauses and resumes." },
-            { "Save, load", "F5 quick save, F9 quick load." },
-            { "Ctrl+1/2/3", "Interface size." },
-            { "Esc", "Drop the tool or close the window." },
-            { "Fields", "PLANT a crop on 8 x 8 cells of clear land you own, one free cell away from other fields. Machines do the work." },
-            { "Water", "Wet soil? Dig empty ditches along the field. Dry? Fill ditches from a pump." },
-            { "Examine", "Click a field for its schedule." },
-            { "Land", "Map, Property mode: buy more land." },
-            { "Start", "Click a yellow box for a ready-made farm, or a place on land for a new one, then USE THIS REGION." },
-            { "Crop duster", "Left / Right (or A / D) turn, Up / Down (or W / S) climb and dive, F sprays, Enter lands; or the SPRAY and LAND buttons. Space and 0-4 still pause and set the speed." },
-        };
+        g.Fill(0, 0, 560, h, kLightGrey);
+        g.Bevel(0, 0, 560, h, true);
+        Layout(&g);
+    }
+
+private:
+    static constexpr std::pair<const char*, const char*> kEntries[] = {
+        { N_("Mouse"), N_("Menus, toolbar and windows. The tools on the left work on the map; drag to paint roads, fences and ditches.") },
+        { N_("Right button"), N_("On a building: show what is stored inside. Elsewhere: drop the chosen tool.") },
+        { N_("Scroll"), N_("Right or middle drag, arrow keys or WASD, the scroll bars, or the map edges (check box under -).") },
+        { N_("Zoom"), N_("Mouse wheel or the + and - buttons.") },
+        { N_("Speed"), N_("1 Slow, 2 Normal, 3 Fast, 4 Ultra, 0 Pause. Space pauses and resumes.") },
+        { N_("Save, load"), N_("F5 quick save, F9 quick load.") },
+        { N_("Ctrl+1/2/3"), N_("Interface size.") },
+        { N_("Esc"), N_("Drop the tool or close the window.") },
+        { N_("Fields"), N_("PLANT a crop on 8 x 8 cells of clear land you own, one free cell away from other fields. Machines do the work.") },
+        { N_("Water"), N_("Wet soil? Dig empty ditches along the field. Dry? Fill ditches from a pump.") },
+        { N_("Examine"), N_("Click a field for its schedule.") },
+        { N_("Land"), N_("Map, Property mode: buy more land.") },
+        { N_("Start"), N_("Click a yellow box for a ready-made farm, or a place on land for a new one, then USE THIS REGION.") },
+        { N_("Crop duster"), N_("Left / Right (or A / D) turn, Up / Down (or W / S) climb and dive, F sprays, Enter lands; or the SPRAY and LAND buttons. Space and 0-4 still pause and set the speed.") },
+    };
+
+    // draws the entries (g set) and returns the height they take
+    static int Layout(Gfx* g)
+    {
         constexpr int kKeyX = 12, kTextX = 116, kChars = (560 - kTextX - 12) / 8;
-        g.Fill(0, 0, 560, 328, kLightGrey);
-        g.Bevel(0, 0, 560, 328, true);
         int y = 10;
         for (const auto& [key, text] : kEntries)
         {
-            g.Text(kKeyX, y, key, kBlue);
+            if (g)
+                g->TextFit(kKeyX, y, kTextX - kKeyX - 4, Tr(key), kBlue);
             // words onto lines of kChars characters
             std::string line, word;
-            const std::string t = std::string(text) + " ";
+            const std::string t = std::string(Tr(text)) + " ";
             for (char ch : t)
             {
                 if (ch != ' ')
@@ -2010,17 +2054,19 @@ public:
                 }
                 if (!line.empty() && line.size() + 1 + word.size() > static_cast<size_t>(kChars))
                 {
-                    g.Text(kTextX, y, line, kBlack);
+                    if (g)
+                        g->Text(kTextX, y, line, kBlack);
                     y += 10;
                     line.clear();
                 }
                 line += (line.empty() ? "" : " ") + word;
                 word.clear();
             }
-            if (!line.empty())
-                g.Text(kTextX, y, line, kBlack);
+            if (!line.empty() && g)
+                g->Text(kTextX, y, line, kBlack);
             y += 15; // a gap between entries (all fit in the window, user finding: the Help text ran over)
         }
+        return y - 5;
     }
 };
 
@@ -2028,7 +2074,7 @@ public:
 class FundsWindow : public Window
 {
 public:
-    FundsWindow() : Window(kWinFunds, "FUNDS", "", 368, 224) {}
+    FundsWindow() : Window(kWinFunds, N_("FUNDS"), "", 368, 224) {}
     static constexpr int kRows = 17;
     Rect Up() const { return { 300, 202, 28, 16 }; }
     Rect Down() const { return { 332, 202, 28, 16 }; }
@@ -2036,9 +2082,9 @@ public:
     void DrawContent(Gfx& g, UiContext& ctx) override
     {
         g.Fill(0, 0, w, h, kLightGrey);
-        g.Text(8, 4, "Date", kBlack);
-        g.Text(104, 4, "Money in and out", kBlack);
-        g.TextRight(352, 4, "Amount", kBlack);
+        g.Text(8, 4, Tr("Date"), kBlack);
+        g.Text(104, 4, Tr("Money in and out"), kBlack);
+        g.TextRight(352, 4, Tr("Amount"), kBlack);
         g.Fill(4, 15, w - 8, 1, kGrey);
         if (!ctx.sim)
             return;
@@ -2047,18 +2093,18 @@ public:
         const int n = static_cast<int>(log.size());
         _top = std::clamp(_top, 0, std::max(0, n - kRows));
         if (n == 0)
-            g.Text(8, 22, "No money has changed hands yet.", kBlack);
+            g.Text(8, 22, Tr("No money has changed hands yet."), kBlack);
         for (int r = 0; r < kRows && _top + r < n; ++r)
         {
             const Simulation::CashEntry& e = log[static_cast<size_t>(n - 1 - _top - r)];
             const int y = 20 + 10 * r;
-            g.Text(8, y, "W" + std::to_string(e.week + 1) + " " + kMonthShort[e.month % 12] + " " + std::to_string(e.year), kBlack);
+            g.Text(8, y, TrF("W{0} {1} {2}", e.week + 1, Tr(kMonthShort[e.month % 12]), e.year), kBlack);
             std::string what = e.what + (e.count > 1 ? " x" + std::to_string(e.count) : "");
             g.Text(104, y, what.substr(0, 20), kBlack);
             g.TextRight(352, y, (e.amount > 0 ? "+" : "-") + std::to_string(e.amount > 0 ? e.amount : -e.amount), e.amount > 0 ? kDarkGreen : kRed);
         }
         g.Fill(4, 197, w - 8, 1, kGrey);
-        g.Text(8, 206, "Funds  " + std::to_string(ctx.state ? ctx.state->cash : 0), kBlack);
+        g.Text(8, 206, TrF("Funds  {0}", ctx.state ? ctx.state->cash : 0), kBlack);
         for (int k = 0; k < 2; ++k)
         {
             const Rect b = k == 0 ? Up() : Down();
@@ -2094,7 +2140,7 @@ private:
 class SoundWindow : public Window
 {
 public:
-    SoundWindow() : Window(kWinSound, "SOUND", "", 256, 112) {}
+    SoundWindow() : Window(kWinSound, N_("SOUND"), "", 256, 112) {}
     static constexpr int kTrackX = 76, kStep = 12; // 0 .. 10 in steps of 12 pixels
     Rect Track(int row) const { return { kTrackX - 2, 8 + 22 * row, 10 * kStep + 4, 12 }; }
     Rect Check() const { return { 8, 54, 12, 12 }; }
@@ -2105,11 +2151,11 @@ public:
         if (!ctx.audio)
             return;
         const int vol[2] = { ctx.audio->MusicVolume(), ctx.audio->EffectsVolume() };
-        static const char* const kName[2] = { "Music", "Effects" };
+        static const char* const kName[2] = { N_("Music"), N_("Effects") };
         for (int k = 0; k < 2; ++k)
         {
             const Rect t = Track(k);
-            g.Text(8, t.y + 2, kName[k], kBlack);
+            g.Text(8, t.y + 2, Tr(kName[k]), kBlack);
             g.Fill(t.x, t.y, t.w, t.h, kWhite);
             g.Bevel(t.x, t.y, t.w, t.h, false);
             if (vol[k] > 0)
@@ -2124,9 +2170,9 @@ public:
             {
                 g.Fill(c.x + 2 + i, c.y + 5 + (i < 2 ? i : 2 - (i - 2)), 2, 2, kBlack);
             }
-        g.Text(28, c.y + 2, "Modern sound", kBlack);
-        g.Text(8, 74, ctx.audio->Modern() ? "Cleaner effects in stereo," : "The sound as the original", kDarkGrey);
-        g.Text(8, 86, ctx.audio->Modern() ? "new instruments for songs." : "plays it.", kDarkGrey);
+        g.Text(28, c.y + 2, Tr("Modern sound"), kBlack);
+        g.Text(8, 74, ctx.audio->Modern() ? Tr("Cleaner effects in stereo,") : Tr("The sound as the original"), kDarkGrey);
+        g.Text(8, 86, ctx.audio->Modern() ? Tr("new instruments for songs.") : Tr("plays it."), kDarkGrey);
     }
     void Click(int x, int y, UiContext& ctx) override
     {

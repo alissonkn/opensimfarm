@@ -71,14 +71,30 @@ public:
     // the game's text box: 8 px in from x, lines of (w - 8) / 8 characters, 8 px apart; words are split by spaces,
     // '@', line ends and control characters, '~' starts a new line, '`' prints as a blank
     void Wrap(int x, int y, int w, const std::string& text, int colour);
+    static int WrapHeight(int w, const std::string& text); // the rows Wrap uses for the text
     void DimRect(int x, int y, int w, int h, int alpha);                            // darken (pressed look)
     void DrawFullScreen(const std::string& file, const std::string& palette, const SDL_Rect& dstPixels); // .int with its own palette
     void DrawSprite(const std::string& file, int frame, const SDL_Rect& dstPixels); // a .spr frame in window pixels
     void DrawPixels(const std::vector<uint32_t>& argb, int w, int h, int x, int y, int dw, int dh); // e.g. the overview map
     uint32_t TileColour(int id) const { return id >= 0 && id < static_cast<int>(_tileColour.size()) ? _tileColour[id] : 0xFF000000; }
     static int TextWidth(const std::string& s) { return static_cast<int>(s.size()) * 8; }
+    // a text in [x, x + room): monospaced when it fits, else each letter as wide as its ink and one pixel apart, else
+    // with no pixel between letters (a translation over a picture's label); align 0 left, 1 centre, 2 right
+    void TextFit(int x, int y, int room, const std::string& s, int colour, int align = 0);
+    // the width TextFit draws s in (more than room when even the tightest spacing does not fit)
+    static int FitWidth(const std::string& s, int room);
+
+    // the font with the accented letters added (AddLatin1) and its ink widths noted for TextFit (Init does it; the
+    // language test calls it without a window)
+    static void PrepareFont(Font8& font);
+    // an accented capital's mark reaches one row above the character cell (AddLatin1)
+    static void SetCapitalMark(unsigned char ch, int glyph) { s_capMark[ch] = static_cast<uint8_t>(glyph); }
+    static int InkWidth(unsigned char ch) { return ch <= 0x20 ? 4 : s_ink[ch][1] - s_ink[ch][0] + 1; }
 
 private:
+    static uint8_t s_ink[256][2];
+    static uint8_t s_capMark[256];
+    void DrawCapitalMark(unsigned char ch, int x, int y);
     SDL_Texture* PictureTexture(const std::string& key);
     SDL_Texture* MakeTexture(const Picture& p, int transparent);
     SDL_Rect R(int x, int y, int w, int h) const { return SDL_Rect{ x * _scale, y * _scale, w * _scale, h * _scale }; }

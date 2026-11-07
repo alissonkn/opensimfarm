@@ -56,6 +56,14 @@ struct CropDef
 };
 
 // Reads CROPS/<fileName> from the game folder. Returns false if missing or malformed.
+// the crop's name in the chosen language (looked up as "crop:<file name>", e.g. crop:corn.crp), else its file's name
+std::string CropName(const CropDef& c);
+std::string CropNameFor(const std::string& fileName, const std::string& name);
+// the crop's help card (BUY window, examined seed) and Crop Information card (Farm Expert) in the chosen language:
+// the help by the id "crophelp:<file>"; the information card line by line ("Label: value" parts translated)
+std::vector<std::string> CropHelp(const CropDef& c);
+std::string CropInfo(const CropDef& c);
+
 bool LoadCropFile(const std::string& gameDir, const std::string& fileName, CropDef& out);
 
 } // namespace osf

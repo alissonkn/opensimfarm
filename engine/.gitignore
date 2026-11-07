@@ -5,3 +5,4 @@ build-pkg/
 build-dbg/
 dist/
 build-web/
+__pycache__/

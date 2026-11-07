@@ -21,6 +21,9 @@ game behaves and how its files are laid out.
 * Saves written by OpenSimFarm end with a small signature that records the map size. The original game reads
   a 96 x 96 one as usual; a save without it (one from the original) opens as before and gets it the next time it is
   saved. A 144 x 144 world can only be played in OpenSimFarm
+* Languages: English and Portuguese (Brazil), chosen with the Language button under the region map. The game's own
+  words printed in its pictures are shown in the chosen language too. More languages can be added without
+  programming (see [Languages](#languages))
 * Zoom (mouse wheel or the + / − buttons) and moving around with the arrow keys or WASD, at any window size
 * A radio at the right of the menu bar: skip back and forth through the game's songs, pause and resume the music,
   or leave the choice to the game (AUTO)
@@ -162,6 +165,7 @@ export SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy
 ./build/opensimfarm --newgametest   # generated worlds of 96 and 144: a field, a ditch, a harvest sold, land, save and reload
 ./build/opensimfarm --audiotest     # Modern Sound: every song and effect rendered (about 10 s)
 ./build/opensimfarm --graphicstest  # Modern Render: smoothing of every tile, and the glides
+./build/opensimfarm --langtest      # every built-in language: its letters, its {0} {1} ..., and that its words fit
 ./build/opensimfarm --simulate 400  # 400 game days, with a report
 ```
 Each prints `ok` lines (or `round-trip OK` for `--selftest`) and exits with 0 when everything passed. A folder can be
@@ -196,6 +200,33 @@ engine/tools/play.sh shot NAME      # screenshot -> $OUT/NAME.png (set OUT to a 
 engine/tools/play.sh stop
 ```
 It uses your own settings (`~/.config/opensimfarm/`); the coordinates assume `scale=2`.
+
+## Languages
+The game starts in your system's language when OpenSimFarm has it, else in English; the Language button under the
+region map changes it, and the choice is remembered (`language=` in `settings.txt`).
+
+Each language is a dictionary in the gettext `.po` format in `engine/lang/`. Each entry pairs a text of the game
+(`msgid`, in English) with its translation (`msgstr`):
+* `engine/lang/opensimfarm.pot` lists every text to translate. It is made from the sources by
+  `python3 engine/tools/lang_extract.py`.
+* To add a language, copy it to `engine/lang/<code>.po`, for example `es.po`, `fr.po` or `de.po`. Fill in the
+  header's `Language` and `X-Language-Name` (the language's name in its own words) and every `msgstr`, then build.
+  `{0}`, `{1}` ... stand for numbers and names the game fills in; a translation may put them in another order.
+  `\n` starts a new line.
+* A `.po` file can also go into the `languages` folder of the settings folder (`~/.config/opensimfarm/languages/` on
+  Linux). The game reads it at start, without a rebuild. A file there with the code of a built-in language replaces
+  that language.
+* Some texts come from your SimFarm files, not from the program: message boxes, item and crop descriptions, the Farm
+  Expert's cards and crop names. They are translated by id (`event:12`, `item:40`, `card:30:1`,
+  `crophelp:corn.crp`, `crop:corn.crp`); the comment at the top of `engine/tools/lang_extract.py` explains each kind. Keys such as `button:CLOSE` or `gauge:Pests` are
+  words printed over a small place in a picture: keep them short.
+* Letters: the game's font has only plain letters, so OpenSimFarm adds the accented ones of Latin-1 (`á é í ó ú â ê ô
+  ã õ ç à ü ñ` and their capitals, `¡ ¿ ° ª º « »`). Other alphabets cannot be shown yet.
+
+When the program's texts change, `python3 engine/tools/lang_extract.py --update` adds the new texts to every `.po` file
+(empty) and moves the ones no longer used to the end. `--check` lists what is missing in each language. After a
+build, `./build/opensimfarm --langtest` checks that every translation uses letters the font has, keeps the `{0}` of
+its text, and fits the place it is drawn in.
 
 ## Licence
 GNU General Public License version 3; see [engine/LICENSE.txt](engine/LICENSE.txt).

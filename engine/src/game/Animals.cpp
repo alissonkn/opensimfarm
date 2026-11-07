@@ -1,6 +1,7 @@
 // OpenSimFarm - an open re-implementation of SimFarm. Copyright (c) 2026 OpenSimFarm developers.
 // Licensed under the GNU General Public License version 3 (see LICENSE.txt).
 #include "game/Animals.h"
+#include "core/Lang.h"
 #include <cstdio>
 #include <cstdlib>
 
@@ -301,7 +302,7 @@ void Animals::Step(int i)
         if (id >= 177 && id <= 187 && (hay > kThirstLimit[sp] / 2 || water > kHungerLimit[sp] / 2) && (_sim.G1() & 0x7F) == 5) // G1
         {
             dest.base = static_cast<uint16_t>((dest.base & 0xF800) | kBrokenFence);
-            _sim.Notify("A fence has broken. Your livestock may run loose.");
+            _sim.Notify(Tr("A fence has broken. Your livestock may run loose."));
         }
         Wr8(_s.animals, b + 4, (h + (_sim.G1() & 7)) & 7); // G1
         Wr8(_s.animals, b + 5, 8);
@@ -411,9 +412,11 @@ void Animals::Needs(int i)
     const size_t b = Rec(i);
     const int fl = Rd8(_s.animals, b + 2);
     const int sp = (Rd16(_s.animals, b + 6) - 0xA0) & 3;
-    static const char* const kNames[4] = { "horse", "cow", "pig", "sheep" };
-    auto die = [&](const char* why) {
-        _sim.Notify(std::string("A ") + kNames[sp] + " " + why + ".");
+    static const char* const kDeath[2][4] = { { N_("A horse starved."), N_("A cow starved."), N_("A pig starved."), N_("A sheep starved.") },
+                                               { N_("A horse died of thirst."), N_("A cow died of thirst."), N_("A pig died of thirst."),
+                                                 N_("A sheep died of thirst.") } };
+    auto die = [&](int why) {
+        _sim.Notify(Tr(kDeath[why][sp]));
         _sim.RemoveAnimal(i);
     };
     if (Rd8(_s.animals, b + 0x0E) != 0)
@@ -434,14 +437,14 @@ void Animals::Needs(int i)
                 Weaken(i); // every step in need costs one point of condition
                 if (_tick - _lastHungry > 2000)
                 {
-                    _sim.Notify("Your livestock are hungry.");
+                    _sim.Notify(Tr("Your livestock are hungry."));
                     _lastHungry = _tick;
                 }
             }
         }
         if (Rd8(_s.animals, b + 0x0E) > kHungerLimit[sp])
         {
-            die("starved");
+            die(0);
             return;
         }
     }
@@ -454,12 +457,12 @@ void Animals::Needs(int i)
             Weaken(i);
             if (_tick - _lastThirsty > 2000)
             {
-                _sim.Notify("Your livestock are thirsty.");
+                _sim.Notify(Tr("Your livestock are thirsty."));
                 _lastThirsty = _tick;
             }
         }
         if (Rd8(_s.animals, b + 0x0D) > kThirstLimit[sp])
-            die("died of thirst");
+            die(1);
     }
 }
 

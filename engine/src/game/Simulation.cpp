@@ -1,6 +1,7 @@
 // OpenSimFarm - an open re-implementation of SimFarm. Copyright (c) 2026 OpenSimFarm developers.
 // Licensed under the GNU General Public License version 3 (see LICENSE.txt).
 #include "game/Simulation.h"
+#include "core/Lang.h"
 #include <optional>
 #include <filesystem>
 #include "core/Paths.h"
@@ -37,7 +38,8 @@ constexpr int kRainDays[8][7] = {
     { 1, 1, 0, 0, 0, 1, 1 }, { 0, 1, 1, 1, 1, 1, 0 }, { 1, 1, 1, 1, 1, 1, 0 }, { 1, 1, 1, 1, 1, 1, 1 },
 };
 
-const char* kAnimalNames[4] = { "horse", "cow", "pig", "sheep" };
+const char* kAnimalOld[4] = { N_("A horse died of old age."), N_("A cow died of old age."), N_("A pig died of old age."), N_("A sheep died of old age.") };
+const char* kAnimalBorn[4] = { N_("A horse was born."), N_("A cow was born."), N_("A pig was born."), N_("A sheep was born.") };
 constexpr int kHungerStep[4] = { 2, 2, 1, 1 };
 constexpr int kAnimalCatalog[4] = { 45, 46, 47, 48 }; // catalogue records of horse, cow, pig, sheep
 constexpr int kThirstStep[4] = { 8, 8, 4, 2 };
@@ -369,19 +371,19 @@ int Simulation::WeatherIndex(int weekOffset) const
 // ---------------------------------------------------------------- money
 static const char* CashLabel(int cat, bool income)
 {
-    if (cat == -1) return income ? "Miscellaneous" : "Building and clearing";
-    if (cat >= 0 && cat <= 63) return income ? "Machinery sold" : "Machinery";
-    if (cat <= 127) return income ? "Structure sold" : "Structures";
-    if (cat <= 159) return income ? "Futures" : "Futures contract";
-    if (cat <= 167) return income ? "Livestock sold" : "Livestock";
-    if (cat >= 168 && cat <= 183) return "Crop sale";
-    if (cat >= 192 && cat <= 215) return "Seed and supplies";
-    if (cat >= 220 && cat <= 223) return "Chemicals";
-    if (cat == 1000) return "Bank payment";
-    if (cat == 1500) return "Machine lease";
-    if (cat == 2000) return "Land bought";
-    if (cat == 2500) return "Taxes";
-    return income ? "Income" : "Expense";
+    if (cat == -1) return income ? Tr("Miscellaneous") : Tr("Building and clearing");
+    if (cat >= 0 && cat <= 63) return income ? Tr("Machinery sold") : Tr("Machinery");
+    if (cat <= 127) return income ? Tr("Structure sold") : Tr("Structures");
+    if (cat <= 159) return income ? Tr("Futures") : Tr("Futures contract");
+    if (cat <= 167) return income ? Tr("Livestock sold") : Tr("Livestock");
+    if (cat >= 168 && cat <= 183) return Tr("Crop sale");
+    if (cat >= 192 && cat <= 215) return Tr("Seed and supplies");
+    if (cat >= 220 && cat <= 223) return Tr("Chemicals");
+    if (cat == 1000) return Tr("Bank payment");
+    if (cat == 1500) return Tr("Machine lease");
+    if (cat == 2000) return Tr("Land bought");
+    if (cat == 2500) return Tr("Taxes");
+    return income ? Tr("Income") : Tr("Expense");
 }
 
 void Simulation::ReconcileCash()
@@ -389,7 +391,7 @@ void Simulation::ReconcileCash()
     if (_cashSeen == INT64_MIN)
         _cashSeen = _s.cash;
     else if (_s.cash != _cashSeen)
-        PostCash(_s.cash - _cashSeen, "Other");
+        PostCash(_s.cash - _cashSeen, Tr("Other"));
 }
 
 void Simulation::PostCash(int64_t amount, const std::string& what)
@@ -627,7 +629,7 @@ bool Simulation::Borrow(int64_t amount)
     ReconcileCash();
     const int64_t before = _s.cash;
     _s.cash = std::min<int64_t>(9999999, _s.cash + amount);
-    PostCash(_s.cash - before, "Bank loan");
+    PostCash(_s.cash - before, Tr("Bank loan"));
     Ledger("loan_balance") += amount;
     Ledger("loan_payment") += std::max<int64_t>(1, amount * (100 + _interest) / 100 / 20);
     _s.scalars["loan_credit"] = CreditLimit(); // the stored "credit available" (saved)
@@ -1016,7 +1018,7 @@ void Simulation::WeeklyGrowth(Field& f)
     f.SetPhase((f.Phase() + 1) & 3);
     if (GrowthRoutine(f, c) == 0)
     {
-        Event(2, 76, "A crop of " + c.name + " died: it was not harvested in time.");
+        Event(2, 76, TrF("A crop of {0} died: it was not harvested in time.", CropName(c)));
         ClearField(f);
     }
 }
@@ -1082,7 +1084,7 @@ bool Simulation::StartPlanting(Field& f, int crop, std::string& why)
     const int seedPrice = _s.CatalogPrice(66 + (crop & 15)); // the seed record's price
     if (!c.loaded)
     {
-        why = "That crop is not loaded.";
+        why = Tr("That crop is not loaded.");
         return false;
     }
     // seed: a bag of this crop's seed (item 0xC0 + crop) from storage is used up; otherwise AutoBuy buys the seed
@@ -1106,7 +1108,7 @@ bool Simulation::StartPlanting(Field& f, int crop, std::string& why)
     }
     else if (!_s.scalars["opt_autobuy"] || !Spend(0xC0, seedPrice + 20))
     {
-        why = "There is no " + c.name + " seed.";
+        why = TrF("There is no {0} seed.", CropName(c));
         return false;
     }
     f.SetHeatDeficit(0); f.SetChill(0); f.SetStress(0); f.SetPhase(0); f.SetAge(0); f.SetContract(0);
@@ -1144,7 +1146,7 @@ bool Simulation::StartSpray(Field& f, int job, std::string& why, bool checkIdle)
     const int state = f.State();
     if (checkIdle && state != 4 && state != 0)
     {
-        why = "The field is busy.";
+        why = Tr("The field is busy.");
         return false;
     }
     const int item = 0xDC + (job - 6);
@@ -1183,7 +1185,7 @@ bool Simulation::StartSpray(Field& f, int job, std::string& why, bool checkIdle)
     }
     if (!have && !(_s.scalars["opt_autobuy"] && Spend(item, 275)))
     {
-        why = "Not enough chemicals for this job.";
+        why = Tr("Not enough chemicals for this job.");
         return false;
     }
     f.Set8(0x02, state);
@@ -1362,7 +1364,7 @@ void Simulation::ExecuteSchedule()
                 Adjust(f, type, same ? f.Get8(o) >> 2 : f.Get8(o));
             if (!StartPlanting(f, code - 0x340, why))
             {
-                Message(why + " The field is cleared.");
+                Message(why + " " + Tr("The field is cleared."));
                 ClearField(f);
             }
             else
@@ -1550,15 +1552,15 @@ void Simulation::HarvestPay(Field& f, bool mayStore)
         // sale (seen in the original's memory; their meaning is not known)
         f.Set8(0x40, 0);
         f.Set8(0x41, 0);
-        Message("Harvested " + c.name + ": stored in a silo (worth " + std::to_string(value) + " today).");
+        Message(TrF("Harvested {0}: stored in a silo (worth {1} today).", CropName(c), value));
     }
     else if (value > 0)
     {
         Credit(168 + crop, value);
-        Message("Harvested " + c.name + ": sold for " + std::to_string(value) + ".");
+        Message(TrF("Harvested {0}: sold for {1}.", CropName(c), value));
     }
     else
-        Message("Harvested " + c.name + ": the crop was worth nothing.");
+        Message(TrF("Harvested {0}: the crop was worth nothing.", CropName(c)));
     f.SetContract(0);
 }
 
@@ -1646,7 +1648,7 @@ void Simulation::CompleteJob(Field& f)
         // a harvest that never got going loses the crop; a load on its way is settled
         if (f.Sub() < 3)
         {
-            Message("The " + _s.crops[f.Crop() & 15].name + " harvest never started: the crop is lost.");
+            Message(TrF("The {0} harvest never started: the crop is lost.", CropName(_s.crops[f.Crop() & 15])));
             ClearField(f);
         }
         else if (f.Sub() == 7)
@@ -1783,7 +1785,7 @@ int64_t Simulation::RemoveStructure(int index, bool refund)
     ReconcileCash();
     const int64_t before = _s.cash;
     _s.cash = std::min<int64_t>(9999999, _s.cash + value);
-    PostCash(_s.cash - before, "Structure sold");
+    PostCash(_s.cash - before, Tr("Structure sold"));
     return value;
 }
 
@@ -1998,18 +2000,19 @@ void Simulation::ContestOffers()
         if (owned.empty() || _s.cash < 200)
         {
             sc["ev_bet"] = 0xFF;
-            Event(-61, 74, "The town fair has opened!");
+            Event(-61, 74, Tr("The town fair has opened!"));
             return;
         }
         // a random animal of the farm is nominated; its kind gives the result picture (70 + kind)
         const int a = owned[static_cast<size_t>(_rng3.Bounded(static_cast<int>(owned.size())))];
         const int kind = (Rd16(_s.animals, static_cast<size_t>(a) * 32 + 6) - 0xA0) & 3;
         sc["ev_bet"] = kind;
-        static const char* names[4] = { "horse", "cow", "pig", "sheep" };
-        const std::string n = names[kind];
-        _events.push_back({ kFairEvent, 74, "The town fair has opened! Enter your " + n + " in the " + n +
-                                                " judging contest? The entry fee is 200.", true });
-        Message("The town fair has opened.");
+        static const char* const kAsk[4] = { N_("The town fair has opened! Enter your horse in the horse judging contest? The entry fee is 200."),
+                                             N_("The town fair has opened! Enter your cow in the cow judging contest? The entry fee is 200."),
+                                             N_("The town fair has opened! Enter your pig in the pig judging contest? The entry fee is 200."),
+                                             N_("The town fair has opened! Enter your sheep in the sheep judging contest? The entry fee is 200.") };
+        _events.push_back({ kFairEvent, 74, Tr(kAsk[kind]), true });
+        Message(Tr("The town fair has opened."));
         return;
     }
     if (_s.cash < 1000)
@@ -2020,8 +2023,8 @@ void Simulation::ContestOffers()
     sc["ev_kind"] = 1;
     sc["ev_countdown"] = 2;
     _song = "rodeo.xmi";
-    _events.push_back({ kRodeoEvent, 74, "The rodeo is starting: bet 500 on cousin Jed?", true });
-    Message("The rodeo is starting.");
+    _events.push_back({ kRodeoEvent, 74, Tr("The rodeo is starting: bet 500 on cousin Jed?"), true });
+    Message(Tr("The rodeo is starting."));
 }
 
 // the weekly countdown; at zero the result box and the ground back to normal
@@ -2035,13 +2038,13 @@ void Simulation::ContestWeek()
         // the rodeo: Jed wins one time in four and pays 1,000
         if ((_rng.Next() & 3) == 2)
         {
-            _events.push_back({ -63, 75, "Cousin Jed won the rodeo! You get 1,000 back, 500 more than the bet.", false });
-            Credit(0, 1000, "Rodeo prize");
+            _events.push_back({ -63, 75, Tr("Cousin Jed won the rodeo! You get 1,000 back, 500 more than the bet."), false });
+            Credit(0, 1000, Tr("Rodeo prize"));
             Sound("cheers.voc");
         }
         else
         {
-            GameEvent e{ -64, 76, "Cousin Jed lost the rodeo, and your 500 with him.", false };
+            GameEvent e{ -64, 76, Tr("Cousin Jed lost the rodeo, and your 500 with him."), false };
             e.okFace = 17;
             _events.push_back(e);
             Sound("boos.voc");
@@ -2050,17 +2053,20 @@ void Simulation::ContestWeek()
     else if (sc["ev_entry"] != 0 && sc["ev_kind"] == 2 && sc["ev_bet"] != 0xFF)
     {
         // the fair: first prize half the time, 1,000
-        static const char* names[4] = { "horse", "cow", "pig", "sheep" };
+        static const char* const kWon[4] = { N_("Your horse won first prize at the fair! You win 1,000."), N_("Your cow won first prize at the fair! You win 1,000."),
+                                             N_("Your pig won first prize at the fair! You win 1,000."), N_("Your sheep won first prize at the fair! You win 1,000.") };
+        static const char* const kLost[4] = { N_("Your horse did not win. Maybe next year."), N_("Your cow did not win. Maybe next year."),
+                                              N_("Your pig did not win. Maybe next year."), N_("Your sheep did not win. Maybe next year.") };
         const int kind = static_cast<int>(sc["ev_bet"] & 3);
         if (_rng.Next() & 1)
         {
-            _events.push_back({ -65, 70 + kind, std::string("Your ") + names[kind] + " won first prize at the fair! You win 1,000.", false });
-            Credit(0, 1000, "Fair prize");
+            _events.push_back({ -65, 70 + kind, Tr(kWon[kind]), false });
+            Credit(0, 1000, Tr("Fair prize"));
             Sound("cheers.voc");
         }
         else
         {
-            _events.push_back({ -66, 74, std::string("Your ") + names[kind] + " did not win. Maybe next year.", false });
+            _events.push_back({ -66, 74, Tr(kLost[kind]), false });
             Sound("boos.voc");
         }
         sc["ev_bet"] = 0xFF;
@@ -2158,8 +2164,8 @@ void Simulation::Answer(int id, bool yes)
     {
         _gameOverChoice = yes ? 2 : 1;
         if (!yes)
-            Event(_gameOverTax ? 37 : 40, 75, _gameOverTax ? "The tax board sold assets to cover your taxes."
-                                                           : "The bank sold enough of your assets to pay the loan.");
+            Event(_gameOverTax ? 37 : 40, 75, _gameOverTax ? Tr("The tax board sold assets to cover your taxes.")
+                                                           : Tr("The bank sold enough of your assets to pay the loan."));
         return;
     }
     if (!yes)
@@ -2170,9 +2176,9 @@ void Simulation::Answer(int id, bool yes)
         _pendingBulldoze = 0;
     }
     // YES pays the bet / the entry fee now; the entry word holds the payout flag
-    if (id == kRodeoEvent && _s.scalars["ev_kind"] == 1 && Spend(-1, 500, "Rodeo entry"))
+    if (id == kRodeoEvent && _s.scalars["ev_kind"] == 1 && Spend(-1, 500, Tr("Rodeo entry")))
         _s.scalars["ev_entry"] = 1000;
-    if (id == kFairEvent && _s.scalars["ev_kind"] == 2 && Spend(-1, 200, "Fair entry"))
+    if (id == kFairEvent && _s.scalars["ev_kind"] == 2 && Spend(-1, 200, Tr("Fair entry")))
         _s.scalars["ev_entry"] = 1;
 }
 
@@ -2189,13 +2195,13 @@ bool Simulation::BuyPlot(int c, int r, std::string& why)
 {
     if (c < 0 || r < 0 || c >= _s.Plots() || r >= _s.Plots() || _s.PlotOwner(c, r) != 0)
     {
-        why = "Only free land can be bought.";
+        why = Tr("Only free land can be bought.");
         return false;
     }
     const int64_t price = PlotLandValue(c, r);
     if (!Spend(2000, price))
     {
-        why = "Not enough money for this land.";
+        why = Tr("Not enough money for this land.");
         return false;
     }
     _s.SetPlotOwner(c, r, 1);
@@ -2205,7 +2211,7 @@ bool Simulation::BuyPlot(int c, int r, std::string& why)
         for (int y = r * 8; y < r * 8 + 8; ++y)
             _s.world.At(x, y).overlay |= 0x800;
     FencePlot(_s, c, r);
-    Message("You bought a plot of land for " + std::to_string(price) + ".");
+    Message(TrF("You bought a plot of land for {0}.", price));
     return true;
 }
 
@@ -2213,21 +2219,21 @@ bool Simulation::SellPlot(int c, int r, std::string& why, bool income)
 {
     if (c < 0 || r < 0 || c >= _s.Plots() || r >= _s.Plots() || _s.PlotOwner(c, r) != 1)
     {
-        why = "You can only sell your own land.";
+        why = Tr("You can only sell your own land.");
         return false;
     }
     if (c == Scalar("farm_plot_x") && r == Scalar("farm_plot_y"))
     {
-        Event(13, 74, "The homestead plot cannot be sold.");
-        why = "The homestead plot cannot be sold.";
+        Event(13, 74, Tr("The homestead plot cannot be sold."));
+        why = Tr("The homestead plot cannot be sold.");
         return false;
     }
     for (int x = c * 8; x < c * 8 + 8; ++x)
         for (int y = r * 8; y < r * 8 + 8; ++y)
             if (FieldIndexAt(x, y))
             {
-                Event(14, 74, "Fields on the plot must be removed before it can be sold.");
-                why = "Remove the fields on this plot first.";
+                Event(14, 74, Tr("Fields on the plot must be removed before it can be sold."));
+                why = Tr("Remove the fields on this plot first.");
                 return false;
             }
     const int64_t price = PlotSalePrice(c, r);
@@ -2267,11 +2273,11 @@ bool Simulation::SellPlot(int c, int r, std::string& why, bool income)
     ReconcileCash();
     const int64_t before = _s.cash;
     _s.cash = std::min<int64_t>(9999999, _s.cash + price);
-    PostCash(_s.cash - before, "Land sold");
+    PostCash(_s.cash - before, Tr("Land sold"));
     Ledger("rev_land") += price;
     if (income)
         Ledger("yearly_income") += price; // the auction's sale is not yearly income (seen live)
-    Message("You sold a plot of land for " + std::to_string(price) + ".");
+    Message(TrF("You sold a plot of land for {0}.", price));
     return true;
 }
 
@@ -2352,13 +2358,13 @@ void Simulation::HomesteadTier(int tier)
     if (_homeTier >= 0 && tier < _homeTier)
     {
         Sound("boos.voc");
-        Event(-67, 74, "Your cash is shrinking fast, and your home is getting shabbier to match.");
+        Event(-67, 74, Tr("Your cash is shrinking fast, and your home is getting shabbier to match."));
     }
     else if (_homeTier >= 0 && tier > 0)
     {
         Sound("cheers.voc");
         _song = "cowman.xmi";
-        Event(-68, -1, "Business is booming! With all that cash, your family has fixed up the house.");
+        Event(-68, -1, Tr("Business is booming! With all that cash, your family has fixed up the house."));
     }
     _homeTier = tier;
     DrawHomestead(_s, static_cast<int>(Scalar("view_x")), static_cast<int>(Scalar("view_y")), tier);
@@ -2404,7 +2410,7 @@ bool Simulation::PlaceTownPlot(int c, int r, int type)
     {
         if (grounds * 16 >= developed)
         {
-            Message("The town is too small for another event ground.");
+            Message(Tr("The town is too small for another event ground."));
             return false;
         }
         if (grounds >= 7)
@@ -2485,7 +2491,7 @@ bool Simulation::TownClearPlot(int c, int r)
                 continue;
             m.base = static_cast<uint16_t>((m.base & 0xF800) | GroundTile(_s, _wetness, x, y));
         }
-    Message("A town plot has been abandoned.");
+    Message(Tr("A town plot has been abandoned."));
     return true;
 }
 
@@ -2594,14 +2600,14 @@ bool Simulation::ReplaceCrop(int slot, const std::string& fileName, std::string&
     }
     if (refused)
     {
-        Event(43, 74, "That crop is in use or already loaded. Sell or remove everything that belongs to it first.");
-        why = "in use";
+        Event(43, 74, Tr("That crop is in use or already loaded. Sell or remove everything that belongs to it first."));
+        why = "in use"; // (a marker for the caller, not shown)
         return false;
     }
     CropDef c;
     if (_gameDir.empty() || !LoadCropFile(_gameDir, fileName, c))
     {
-        why = "The crop file could not be read.";
+        why = Tr("The crop file could not be read.");
         return false;
     }
     for (int k = 0; k < 14; ++k)
@@ -2650,7 +2656,7 @@ void Simulation::DeleteField(int index)
 void Simulation::AskBulldozeField(int index)
 {
     _pendingBulldoze = index;
-    _events.push_back({ kBulldozeFieldEvent, 74, "Are you sure you want to destroy this field?", true, -1, -1, 3 }); // YES / CANCEL
+    _events.push_back({ kBulldozeFieldEvent, 74, Tr("Are you sure you want to destroy this field?"), true, -1, -1, 3 }); // YES / CANCEL
 }
 
 int Simulation::SpareRandom()
@@ -2814,7 +2820,7 @@ void Simulation::WeekTick()
     ComputePattern(WeatherIndex(1), _nextPattern);
     if (_s.WeatherRain(WeatherIndex(1)) > 3)
     {
-        Message("Heavy rain is expected next week.");
+        Message(Tr("Heavy rain is expected next week."));
         Sound("thunder.voc");
     }
     _disasters->Week();
@@ -2881,7 +2887,7 @@ void Simulation::WeekTick()
             const int x = Rd8(_s.structures, b + 4), y = Rd8(_s.structures, b + 5);
             if (x < _s.world.size && y < _s.world.size)
                 _s.world.At(x, y).base = static_cast<uint16_t>((_s.world.At(x, y).base & 0xF800) | 149);
-            Event(44, 74, "A water tower has burst. Bulldoze it and buy a new one.");
+            Event(44, 74, Tr("A water tower has burst. Bulldoze it and buy a new one."));
         }
     }
     for (int i = 1; i < 127; ++i)
@@ -2943,7 +2949,7 @@ void Simulation::WeekTick()
             Wr8(_s.animals, b + 2, Rd8(_s.animals, b + 2) & ~0x20);
             _s.animalCount = std::max(0, _s.animalCount - 1);
             ClearAnimalCell(Rd8(_s.animals, b), Rd8(_s.animals, b + 1));
-            Message(std::string("A ") + kAnimalNames[sp] + " died of old age.");
+            Message(Tr(kAnimalOld[sp]));
             Sound("explode.voc");
             continue;
         }
@@ -2961,7 +2967,7 @@ void Simulation::WeekTick()
                 for (int k = 0; k < 9; ++k)
                     if (_animals->Place(ax + k % 3 - 1, ay + k / 3 - 1, sp))
                     {
-                        Message(std::string("A ") + kAnimalNames[sp] + " was born.");
+                        Message(Tr(kAnimalBorn[sp]));
                         // a newborn is added like a bought animal: the livestock asset grows by its catalogue price
                         _s.scalars["asset_livestock"] += _s.CatalogPrice(kAnimalCatalog[sp]);
                         break;
@@ -2985,8 +2991,8 @@ bool Simulation::Liquidate(int64_t debt, bool tax)
     // Machinery line (category 0). Nothing is added for the auction.
     const int stackCategory = tax ? 1000 : 2500;
     // the auction opens with its announcement: events.dat 36 (tax board) or 39 (bank), posted as the plain id
-    Event(tax ? 36 : 39, 76, tax ? "Your taxes were not paid in the grace period: your assets will be auctioned."
-                                 : "The bank forecloses: your assets will be auctioned to pay the loan.");
+    Event(tax ? 36 : 39, 76, tax ? Tr("Your taxes were not paid in the grace period: your assets will be auctioned.")
+                                 : Tr("The bank forecloses: your assets will be auctioned to pay the loan."));
     for (const SaleItem& it : SaleList(_s, *this, 0))
     {
         // a stored crop stack, credited once to Crop Sales
@@ -3027,7 +3033,7 @@ bool Simulation::Liquidate(int64_t debt, bool tax)
             }
             std::string why;
             if (SellPlot(c, r, why, false))
-                Message("A plot of your land was auctioned.");
+                Message(Tr("A plot of your land was auctioned."));
             if (Spend(0, debt))
                 return true;
         }
@@ -3037,7 +3043,7 @@ bool Simulation::Liquidate(int64_t debt, bool tax)
     // (checked on the running original)
     _bankrupt = true;
     _gameOverTax = tax;
-    GameEvent e{ kGameOverEvent, 74, "Your homestead had to go to pay your debts. Do you want to start a new game?", true };
+    GameEvent e{ kGameOverEvent, 74, Tr("Your homestead had to go to pay your debts. Do you want to start a new game?"), true };
     e.status = false;
     e.always = true;
     _events.push_back(e);
@@ -3079,26 +3085,26 @@ void Simulation::MonthTick()
     const int64_t owed = Ledger("loan_payment");
     if (_loanGrace > 0)
     {
-        if (Spend(1000, owed)) { _loanGrace = 0; Event(42, 75, "The bank thanks you: the quarter's loan payment is made."); }
+        if (Spend(1000, owed)) { _loanGrace = 0; Event(42, 75, Tr("The bank thanks you: the quarter's loan payment is made.")); }
         else if (--_loanGrace == 0)
         {
-            if (Liquidate(owed, false)) { Event(40, 75, "The bank sold enough of your assets to pay the loan."); Sound("explode.voc"); }
+            if (Liquidate(owed, false)) { Event(40, 75, Tr("The bank sold enough of your assets to pay the loan.")); Sound("explode.voc"); }
         }
-        else Event(41, 74, "Another month has passed and the loan payment is still due.");
+        else Event(41, 74, Tr("Another month has passed and the loan payment is still due."));
     }
     if (_taxGrace > 0)
     {
         int64_t& due = Ledger("tax_due");
-        if (Spend(2500, due)) { due = 0; _taxGrace = 0; Event(35, 76, "Your back taxes are paid in full."); }
+        if (Spend(2500, due)) { due = 0; _taxGrace = 0; Event(35, 76, Tr("Your back taxes are paid in full.")); }
         else if (--_taxGrace == 0)
         {
-            if (Liquidate(due, true)) { due = 0; Event(37, 75, "The tax board sold assets to cover your taxes."); }
+            if (Liquidate(due, true)) { due = 0; Event(37, 75, Tr("The tax board sold assets to cover your taxes.")); }
         }
-        else Event(34, 74, "Another month has passed and your taxes are still unpaid.");
+        else Event(34, 74, Tr("Another month has passed and your taxes are still unpaid."));
         _s.scalars["tax_counter"] = _taxGrace;
     }
     else if ((m == 6 || m == 9) && _s.cash < EstimatedTax())
-        Event(33, 74, "Your cash is below the estimated yearly tax.");
+        Event(33, 74, Tr("Your cash is below the estimated yearly tax."));
     if (next == 12)
         YearTick();
     int64_t& balance = Ledger("loan_balance");
@@ -3118,7 +3124,7 @@ void Simulation::MonthTick()
         else
         {
             _loanGrace = 4;
-            Event(38, 74, "You could not make the loan payment. The bank will foreclose in three months.");
+            Event(38, 74, Tr("You could not make the loan payment. The bank will foreclose in three months."));
         }
     }
 }
@@ -3158,11 +3164,11 @@ void Simulation::YearTick()
         _townPot = -tax;
         _taxGrace = 3;
         _s.scalars["tax_counter"] = _taxGrace;
-        Event(31, 76, "You could not pay this year's taxes. You have three months of grace.");
+        Event(31, 76, Tr("You could not pay this year's taxes. You have three months of grace."));
     }
     _s.scalars["town_pot"] = _townPot;
     if (offer && TownOffer())
-        Event(kTownVoteEvent, 66, "The town has bought another plot and asks for your vote.");
+        Event(kTownVoteEvent, 66, Tr("The town has bought another plot and asks for your vote."));
     // yearly lines reset
     for (const char* line : { "rev_crops", "rev_machinery", "rev_land", "rev_futures", "rev_animals", "exp_seed", "exp_machinery", "exp_land",
                               "exp_futures", "exp_structures", "exp_livestock", "exp_chemicals", "exp_interest", "exp_leases", "exp_misc" })
