@@ -136,7 +136,17 @@ int LangSelfTest(const Megadata& mega)
         { "Mouse", 100 }, { "Right button", 100 }, { "Scroll", 100 }, { "Zoom", 100 }, { "Speed", 100 }, { "Save, load", 100 },
         { "Ctrl+1/2/3", 100 }, { "Esc", 100 }, { "Fields", 100 }, { "Water", 100 }, { "Examine", 100 }, { "Land", 100 },
         { "Start", 100 }, { "Crop duster", 100 },
+        { "Farm Growth", 176 }, { "Town Growth", 176 }, { "Productivity", 176 }, { "Soil Quality", 176 }, { "Environment Quality", 176 },
     };
+    // a text that fits only with its letters touching is hard to read: letters by their ink width one pixel apart
+    // is the tightest spacing allowed for a translation
+    auto spaced = [](const std::string& s) {
+        int w = 0;
+        for (const char ch : s)
+            w += Gfx::InkWidth(static_cast<unsigned char>(ch)) + 1;
+        return s.empty() ? 0 : w - 1;
+    };
+    auto fits = [&](const std::string& s, int room) { return static_cast<int>(s.size()) * 8 <= room || spaced(s) <= room; };
 
     int fails = 0, texts = 0;
     const std::vector<Dictionary> dicts = BuiltInDictionaries();
@@ -178,7 +188,7 @@ int LangSelfTest(const Megadata& mega)
                 std::replace(desc.begin(), desc.end(), '~', ' ');
                 if (BuyLines(desc) > 10)
                     fail("more than 10 lines in the BUY window", en);
-                if (Gfx::FitWidth(head, 104) > 104)
+                if (!fits(head, 104))
                     fail("name wider than the BUY window's", en);
             }
             else if (en.rfind("crophelp:", 0) == 0 && BuyLines(l1) > 10)
@@ -215,11 +225,11 @@ int LangSelfTest(const Megadata& mega)
             if (static_cast<int>(lines.size()) > l.lines)
                 fail("more lines than " + l.picture + " has room for", Latin1ToUtf8(tr));
             for (const std::string& line : lines)
-                if (Gfx::FitWidth(line, l.room) > l.room)
+                if (!fits(line, l.room))
                     fail("wider than its place in " + l.picture + " (" + std::to_string(l.room) + " px)", Latin1ToUtf8(line));
         }
         for (const auto& [key, room] : kBoxes)
-            if (const std::string tr = Tr(std::string(key)); tr != key && Gfx::FitWidth(tr, room) > room)
+            if (const std::string tr = Tr(std::string(key)); tr != key && !fits(tr, room))
                 fail("wider than its box (" + std::to_string(room) + " px)", Latin1ToUtf8(tr));
     }
     SetLanguage("en");

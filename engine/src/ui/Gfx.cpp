@@ -117,6 +117,24 @@ void AddLatin1(Font8& f)
         {
             g[0] = kMark8[k.mark][0]; // (replaces the dot of the i)
             g[1] = kMark8[k.mark][1];
+            if (k.base == 'n' && base[2])
+            {
+                // the n starts right under the mark and the wide tilde would join it (read as an M): the n's body
+                // loses one of its repeated rows so a blank row parts the two
+                std::vector<uint8_t> rows(base.begin() + 2, base.begin() + 7);
+                for (size_t i = rows.size() - 1; i >= 1; --i)
+                    if (rows[i] == rows[i - 1])
+                    {
+                        rows.erase(rows.begin() + static_cast<long>(i));
+                        break;
+                    }
+                if (rows.size() == 4)
+                {
+                    g[2] = 0;
+                    for (size_t r = 0; r < 4; ++r)
+                        g[3 + r] = rows[r];
+                }
+            }
         }
         else
         {

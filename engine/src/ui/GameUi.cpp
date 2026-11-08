@@ -36,7 +36,7 @@ void GameUi::BuildMenus()
                        { N_("Load Game"), "win:13" }, { N_("Quit"), "quit" } }, 0, 128, 75 }, // no Load Crop: the PLANT list loads crops
         { N_("Options"), 64, { { N_("Music"), "music" }, { N_("Sound Effects"), "sfx" }, { N_("AutoBuy"), "opt:opt_autobuy" }, { N_("AutoScroll"), "opt:opt_autoscroll" },
                            { N_("AutoDoze"), "opt:opt_autodoze" }, { N_("AutoGoto"), "opt:opt_autogoto" }, { N_("Messages"), "msgs" }, { N_("AutoLease"), "opt:menu_6" },
-                           { N_("Smart Driving"), "smartdrive" }, { N_("Modern Sound"), "modernsound" }, { N_("Modern Render"), "modernrender" }, { N_("Sound Volume"), "win:20" } }, 64, 136, 148 },
+                           { N_("Smart Driving"), "smartdrive" }, { N_("Modern Sound"), "modernsound" }, { N_("Modern Render"), "modernrender" }, { N_("Sound Volume"), "win:20" }, { N_("Language"), "win:21" } }, 64, 136, 160 },
         { N_("Speed"), 144, { { N_("Ultra"), "speed:0" }, { N_("Fast"), "speed:1" }, { N_("Normal"), "speed:2" }, { N_("Slow"), "speed:3" }, { N_("Pause"), "speed:4" } }, 144, 64, 64 },
         { N_("Windows"), 208, { { N_("Buy"), "win:0" }, { N_("Sell"), "win:1" }, { N_("Evaluation"), "win:5" }, { N_("Map"), "win:3" }, { N_("Weather"), "win:4" },
                             { N_("Balance Sheet"), "win:9" }, { N_("Bank"), "win:10" }, { N_("Market Value"), "win:8" },
@@ -121,7 +121,7 @@ void GameUi::OpenWindow(int kind)
                                                                { kWinWeather, { 160, 128 } }, { kWinBalance, { 128, 96 } },
                                                                { kWinBank, { 176, 96 } }, { kWinMarket, { 144, 112 } }, { kWinEvaluation, { 128, 128 } }, { kWinExpert, { 128, 96 } },
                                                                { kWinCrop, { 160, 96 } }, { kWinSave, { 160, 96 } }, { kWinLoad, { 160, 96 } }, { kWinAbout, { 96, 96 } }, { kWinHelp, { 40, 40 } },
-                                                               { kWinSound, { 192, 112 } } };
+                                                               { kWinSound, { 192, 112 } }, { kWinLanguage, { 224, 112 } } };
     if (const auto it = kPlace.find(kind); it != kPlace.end())
     {
         w->x = std::clamp(it->second.first, 0, std::max(0, _w - w->w));
@@ -201,7 +201,7 @@ bool GameUi::ItemEnabled(const std::string& cmd) const
     if (cmd.rfind("win:", 0) == 0)
     {
         const int k = std::stoi(cmd.substr(4));
-        return k == kWinWeather || k == kWinMarket || k == kWinBalance || k == kWinBank || k == kWinMap || k == kWinEvaluation || k == kWinBuy || k == kWinSell || k == kWinSave || k == kWinLoad || k == kWinExpert || k == kWinCrop || k == kWinAbout || k == kWinHelp || k == kWinEdit || k == kWinSound;
+        return k == kWinWeather || k == kWinMarket || k == kWinBalance || k == kWinBank || k == kWinMap || k == kWinEvaluation || k == kWinBuy || k == kWinSell || k == kWinSave || k == kWinLoad || k == kWinExpert || k == kWinCrop || k == kWinAbout || k == kWinHelp || k == kWinEdit || k == kWinSound || k == kWinLanguage;
     }
     return true;
 }

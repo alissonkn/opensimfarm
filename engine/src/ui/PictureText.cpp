@@ -111,7 +111,7 @@ const PictureLabel kLabels[] = {
     { "airpwndo.bmp", 88, 90, 74, N_("gauge:Spray"), 12, 0, 1, 1, 8, 0 },
     { "airpwndo.bmp", 88, 138, 74, N_("gauge:Damage"), 12, 0, 1, 1, 8, 0 },
     { "airpwndo.bmp", 200, 132, 38, N_("button:FLY!"), 12, 0, 1, 1, 8, 0 },
-    { "airpwndo.bmp", 200, 153, 38, N_("button:CLOSE"), 12, 0, 1, 1, 8, 0 },
+    { "airpwndo.bmp", 200, 153, 38, N_("small button:CLOSE"), 12, 0, 1, 1, 8, 0 },
     { "choscrop.bmp", 15, 14, 120, N_("REPLACE"), 12, 0, 0, 1, 8, 0 },
     { "choscrop.bmp", 160, 14, 120, N_("WITH"), 12, 0, 0, 1, 8, 0 },
     { "choscrop.bmp", 187, 193, 58, N_("button:REPLACE"), 12, 0, 1, 1, 8, 0 },

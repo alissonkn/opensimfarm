@@ -72,6 +72,7 @@ enum WindowKind
     kWinBalance, kWinBank, kWinField, kWinSave, kWinLoad, kWinExamineCard, kWinCrop, kWinAirplane, kWinAbout, kWinHelp,
     kWinFunds, // the engine's money log (a click on the Funds box)
     kWinSound, // the engine's volume window (Options > Sound Volume)
+    kWinLanguage, // the engine's language list (Options > Language)
 };
 
 std::unique_ptr<Window> MakeWindow(int kind);

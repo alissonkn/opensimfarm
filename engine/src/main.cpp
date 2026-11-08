@@ -1699,6 +1699,27 @@ static int NewGameTestSize(const std::string& gameDir, int mapSize)
                    again.PlotOwner(pc, pc) == 1,
                "the far field and plot survive a save and load");
         std::filesystem::remove(path2);
+        // a town plot past the original's 12 plots a side grows like any other (it once stayed at level 0)
+        GameState t = s;
+        int tc = -1, tr = -1;
+        for (int c = 12; c < t.Plots() && tc < 0; ++c)
+            for (int r = 12; r < t.Plots() && tc < 0; ++r)
+                if (t.PlotOwner(c, r) == 0)
+                    tc = c, tr = r;
+        if (tc >= 0)
+        {
+            t.SetPlotOwner(tc, tr, 2);
+            t.SetPlotType(tc, tr, 1);
+            t.scalars["town_work_x"] = tc;
+            t.scalars["town_work_y"] = tr;
+            t.scalars["town_pot"] = 1000;
+            Simulation tsim(t);
+            tsim.SetTownLayout(mega.Read("townly0.cmp"));
+            for (int d = 0; d < 15; ++d)
+                tsim.DayTick();
+        }
+        expect(tc >= 0 && (t.PlotType(tc, tr) >> 4) >= 1,
+               "a town plot at " + std::to_string(tc) + "," + std::to_string(tr) + " grows (level " + std::to_string(tc >= 0 ? t.PlotType(tc, tr) >> 4 : -1) + ")");
     }
     return failures ? 1 : 0;
 }
@@ -2469,6 +2490,28 @@ int main(int argc, char** argv)
         return 0;
     }
 
+    if (argc > 2 && std::strcmp(argv[1], "--town") == 0)
+    {
+        // --town SAVE [folder]: the town's plots (owner 2: column, row, type, level) and its home plot
+        char* fake[2] = { argv[0], argc > 3 ? argv[3] : nullptr };
+        auto dir = ResolveGameDirectory(argc > 3 ? 2 : 1, fake);
+        if (!dir) { Fatal("game folder unknown", false); return 1; }
+        GameState s;
+        std::string err;
+        if (!s.Load(*dir, argv[2], err)) { std::printf("%s\n", err.c_str()); return 1; }
+        std::printf("map %d, plots %d, town home %d,%d, farm home %d,%d, date %d/%d\n", s.world.size, s.Plots(), static_cast<int>(s.scalars["homestead_x"]),
+                    static_cast<int>(s.scalars["homestead_y"]), static_cast<int>(s.scalars["farm_plot_x"]), static_cast<int>(s.scalars["farm_plot_y"]), s.cal.month + 1, s.cal.year);
+        int n = 0;
+        for (int r = 0; r < s.Plots(); ++r)
+            for (int c = 0; c < s.Plots(); ++c)
+                if (s.PlotOwner(c, r) == 2)
+                {
+                    std::printf("town plot %d,%d type %d level %d\n", c, r, s.PlotType(c, r) & 15, s.PlotType(c, r) >> 4);
+                    ++n;
+                }
+        std::printf("%d town plots\n", n);
+        return 0;
+    }
     if (argc > 2 && std::strcmp(argv[1], "--fields") == 0)
     {
         // --fields SAVE [folder]: list the fields in use (state, crop slot and name, position, and the growth values:
@@ -2791,6 +2834,12 @@ int main(int argc, char** argv)
         }
         else if (cmd == "load")
             loadFarm("QUICKSAVE.SFM", true);
+        else if (cmd.rfind("language:", 0) == 0)
+        {
+            // Options > Language: the menus are rebuilt, everything else is translated as it is drawn; settings.txt keeps it
+            SetLanguage(cmd.substr(9));
+            ui.LanguageChanged();
+        }
         else if (cmd.rfind("loadpath:", 0) == 0)
         {
             ui.loadFromStart = false;

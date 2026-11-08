@@ -763,7 +763,7 @@ public:
         const int bars[5] = { b.farm, b.town, b.productivity, b.soil, b.environment };
         for (int i = 0; i < 5; ++i)
         {
-            g.Text(16, 8 + 16 * i, Tr(labels[i]), kBlack);
+            g.TextFit(16, 8 + 16 * i, 176, Tr(labels[i]), kBlack); // up to the bars at 192
             int colour = kGreen;
             if (i == 3) colour = b.soilOk ? kGreen : kRed;
             if (i == 4) colour = b.environmentOk ? kGreen : kRed;
@@ -2202,6 +2202,52 @@ public:
     }
 };
 
+// ---------------------------------------------------------------- LANGUAGE (an engine addition: change the language while playing)
+class LanguageWindow : public Window
+{
+public:
+    static constexpr int kRowH = 14;
+    LanguageWindow() : Window(kWinLanguage, N_("LANGUAGE"), "", 184, 8), _langs(AvailableLanguages())
+    {
+        h = 8 + kRowH * static_cast<int>(_langs.size()) + 4;
+    }
+    Rect Row(size_t i) const { return { 8, 6 + kRowH * static_cast<int>(i), w - 16, kRowH - 2 }; }
+
+    void DrawContent(Gfx& g, UiContext&) override
+    {
+        g.Fill(0, 0, w, h, kLightGrey);
+        for (size_t i = 0; i < _langs.size(); ++i)
+        {
+            const Rect r = Row(i);
+            const bool current = _langs[i].code == CurrentLanguage();
+            if (current)
+                g.Fill(r.x, r.y, r.w, r.h, kBlue);
+            g.TextFit(r.x + 4, r.y + 2, r.w - 8, _langs[i].name, current ? kWhite : kBlack);
+        }
+    }
+    void Click(int x, int y, UiContext& ctx) override
+    {
+        for (size_t i = 0; i < _langs.size(); ++i)
+            if (Row(i).Contains(x, y) && _langs[i].code != CurrentLanguage())
+                ctx.command = "language:" + _langs[i].code;
+    }
+    bool KeyDown(SDL_Keycode k, UiContext& ctx) override
+    {
+        if (k != SDLK_UP && k != SDLK_DOWN)
+            return false;
+        size_t cur = 0;
+        for (size_t i = 0; i < _langs.size(); ++i)
+            if (_langs[i].code == CurrentLanguage())
+                cur = i;
+        const size_t next = k == SDLK_UP ? (cur + _langs.size() - 1) % _langs.size() : (cur + 1) % _langs.size();
+        ctx.command = "language:" + _langs[next].code;
+        return true;
+    }
+
+private:
+    std::vector<LanguageInfo> _langs;
+};
+
 std::unique_ptr<Window> MakeFieldWindow(int field) { return std::make_unique<FieldWindow>(field); }
 
 std::unique_ptr<Window> MakeWindow(int kind)
@@ -2224,6 +2270,7 @@ std::unique_ptr<Window> MakeWindow(int kind)
     case kWinEvaluation: return std::make_unique<EvaluationWindow>();
     case kWinFunds: return std::make_unique<FundsWindow>();
     case kWinSound: return std::make_unique<SoundWindow>();
+    case kWinLanguage: return std::make_unique<LanguageWindow>();
     default: return nullptr;
     }
 }

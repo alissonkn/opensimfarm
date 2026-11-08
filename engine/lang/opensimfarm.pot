@@ -1209,6 +1209,11 @@ msgid "Sound Volume"
 msgstr ""
 
 #: src/ui/GameUi.cpp
+#: src/ui/StartScreen.cpp
+msgid "Language"
+msgstr ""
+
+#: src/ui/GameUi.cpp
 #: src/ui/Windows.cpp
 msgid "Speed"
 msgstr ""
@@ -1823,6 +1828,10 @@ msgid "button:FLY!"
 msgstr ""
 
 #: src/ui/PictureText.cpp
+msgid "small button:CLOSE"
+msgstr ""
+
+#: src/ui/PictureText.cpp
 msgid "REPLACE"
 msgstr ""
 
@@ -1937,10 +1946,6 @@ msgstr ""
 
 #: src/ui/StartScreen.cpp
 msgid "MAP 96 x 96"
-msgstr ""
-
-#: src/ui/StartScreen.cpp
-msgid "Language"
 msgstr ""
 
 #: src/ui/StartScreen.cpp
@@ -2447,4 +2452,8 @@ msgstr ""
 
 #: src/ui/Windows.cpp
 msgid "plays it."
+msgstr ""
+
+#: src/ui/Windows.cpp
+msgid "LANGUAGE"
 msgstr ""

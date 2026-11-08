@@ -21,7 +21,7 @@ game behaves and how its files are laid out.
 * Saves written by OpenSimFarm end with a small signature that records the map size. The original game reads
   a 96 x 96 one as usual; a save without it (one from the original) opens as before and gets it the next time it is
   saved. A 144 x 144 world can only be played in OpenSimFarm
-* Languages: English and Portuguese (Brazil), chosen with the Language button under the region map. The game's own
+* Languages: English, Portuguese (Brazil) and Spanish (Spain), chosen with the Language button under the region map or, while playing, with Options > Language. The game's own
   words printed in its pictures are shown in the chosen language too. More languages can be added without
   programming (see [Languages](#languages))
 * Zoom (mouse wheel or the + / − buttons) and moving around with the arrow keys or WASD, at any window size
@@ -162,7 +162,7 @@ cd engine
 export SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy
 ./build/opensimfarm --selftest      # every prebuilt farm loaded and saved again: the same bytes, then the signature
 ./build/opensimfarm --toolstest     # fields, machines, roads, the shop, land, disasters, the crop duster, save and reload
-./build/opensimfarm --newgametest   # generated worlds of 96 and 144: a field, a ditch, a harvest sold, land, save and reload
+./build/opensimfarm --newgametest   # generated worlds of 96 and 144: a field, a ditch, a harvest sold, land, save and reload, the town growing on 144
 ./build/opensimfarm --audiotest     # Modern Sound: every song and effect rendered (about 10 s)
 ./build/opensimfarm --graphicstest  # Modern Render: smoothing of every tile, and the glides
 ./build/opensimfarm --langtest      # every built-in language: its letters, its {0} {1} ..., and that its words fit
@@ -203,7 +203,7 @@ It uses your own settings (`~/.config/opensimfarm/`); the coordinates assume `sc
 
 ## Languages
 The game starts in your system's language when OpenSimFarm has it, else in English; the Language button under the
-region map changes it, and the choice is remembered (`language=` in `settings.txt`).
+region map changes it, and so does Options > Language while playing (the screen changes at once); the choice is remembered (`language=` in `settings.txt`).
 
 Each language is a dictionary in the gettext `.po` format in `engine/lang/`. Each entry pairs a text of the game
 (`msgid`, in English) with its translation (`msgstr`):

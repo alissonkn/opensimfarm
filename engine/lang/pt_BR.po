@@ -357,7 +357,7 @@ msgstr "Asfalto"
 #: src/game/Editing.cpp
 #: src/ui/GameUi.cpp
 msgid "Dirt Road"
-msgstr "Terra batida"
+msgstr "Terra"
 
 #: src/game/Editing.cpp
 #: src/ui/GameUi.cpp
@@ -1233,6 +1233,11 @@ msgid "Sound Volume"
 msgstr "Volume do som"
 
 #: src/ui/GameUi.cpp
+#: src/ui/StartScreen.cpp
+msgid "Language"
+msgstr "Idioma"
+
+#: src/ui/GameUi.cpp
 #: src/ui/Windows.cpp
 msgid "Speed"
 msgstr "Velocidade"
@@ -1653,7 +1658,7 @@ msgstr "Compra de terras"
 
 #: src/ui/PictureText.cpp
 msgid "Losses on futures"
-msgstr "Perdas em futuros"
+msgstr "Perdas: futuros"
 
 #: src/ui/PictureText.cpp
 msgid "Loan Interest"
@@ -1858,6 +1863,10 @@ msgid "button:FLY!"
 msgstr "VOAR!"
 
 #: src/ui/PictureText.cpp
+msgid "small button:CLOSE"
+msgstr "SAIR"
+
+#: src/ui/PictureText.cpp
 msgid "REPLACE"
 msgstr "TROCAR"
 
@@ -1973,10 +1982,6 @@ msgstr "MAPA 144 x 144"
 #: src/ui/StartScreen.cpp
 msgid "MAP 96 x 96"
 msgstr "MAPA 96 x 96"
-
-#: src/ui/StartScreen.cpp
-msgid "Language"
-msgstr "Idioma"
 
 #: src/ui/StartScreen.cpp
 msgid ""
@@ -2172,11 +2177,11 @@ msgstr "AVALIAÇÃO"
 
 #: src/ui/Windows.cpp
 msgid "Farm Growth"
-msgstr "Crescimento da fazenda"
+msgstr "Cresc. da fazenda"
 
 #: src/ui/Windows.cpp
 msgid "Town Growth"
-msgstr "Crescimento da cidade"
+msgstr "Cresc. da cidade"
 
 #: src/ui/Windows.cpp
 msgid "Productivity"
@@ -2485,6 +2490,10 @@ msgstr "novos instrumentos nas músicas."
 #: src/ui/Windows.cpp
 msgid "plays it."
 msgstr "o toca."
+
+#: src/ui/Windows.cpp
+msgid "LANGUAGE"
+msgstr "IDIOMA"
 
 # Texts of the player's game files, by id
 
@@ -2819,7 +2828,7 @@ msgid "item:4"
 msgstr "Asfalto~Melhor para as máquinas, mas caro de fazer."
 
 msgid "item:5"
-msgstr "Terra batida~Barata de fazer, mas pode danificar as máquinas."
+msgstr "Terra~Barata de fazer, mas pode danificar as máquinas."
 
 msgid "item:6"
 msgstr "Silo pequeno~Guarda até uma colheita."

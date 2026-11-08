@@ -1,0 +1,3314 @@
+# OpenSimFarm in Spanish (Spain).
+# Kept up to date with engine/tools/lang_extract.py --update; see engine/lang/opensimfarm.pot.
+msgid ""
+msgstr ""
+"Project-Id-Version: OpenSimFarm\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: es_ES\n"
+"X-Language-Name: Español (España)\n"
+""
+
+#: src/main.cpp
+msgid ""
+"No folder dialog is available on this system (install zenity or kdialog),\n"
+"so tell OpenSimFarm the folder once by starting it as\n"
+"  opensimfarm /path/to/SIMFARM\n"
+"\n"
+"The folder must contain MEGADATA.IDX and MEGADATA.EEA.\n"
+"OpenSimFarm does not include any of the original game's files."
+msgstr ""
+"No hay ventana para elegir carpetas en este sistema (instala zenity o kdialog),\n"
+"así que indica la carpeta a OpenSimFarm una vez, iniciándolo así:\n"
+"  opensimfarm /ruta/a/SIMFARM\n"
+"\n"
+"La carpeta debe contener MEGADATA.IDX y MEGADATA.EEA.\n"
+"OpenSimFarm no incluye ningún archivo del juego original."
+
+#: src/main.cpp
+msgid "The SimFarm files could not be found."
+msgstr "No se han encontrado los archivos de SimFarm."
+
+#: src/main.cpp
+msgid "Choose folder..."
+msgstr "Elegir carpeta..."
+
+#: src/main.cpp
+msgid ""
+"OpenSimFarm plays with the files of your own copy of SimFarm,\n"
+"but it could not find them."
+msgstr ""
+"OpenSimFarm usa los archivos de tu propia copia de SimFarm,\n"
+"pero no ha podido encontrarlos."
+
+#: src/main.cpp
+msgid ""
+"Choose the SimFarm folder (the one that holds MEGADATA.IDX\n"
+"and MEGADATA.EEA). OpenSimFarm only reads the files there\n"
+"and remembers the folder."
+msgstr ""
+"Elige la carpeta de SimFarm (la que contiene MEGADATA.IDX\n"
+"y MEGADATA.EEA). OpenSimFarm solo lee los archivos que hay\n"
+"en ella y recuerda la carpeta."
+
+#: src/main.cpp
+msgid ""
+"That folder holds only SimFarm files that cannot be used:\n"
+"{0}"
+msgstr ""
+"Esa carpeta solo tiene archivos de SimFarm que no se pueden usar:\n"
+"{0}"
+
+#: src/main.cpp
+msgid ""
+"That folder does not hold SimFarm's files\n"
+"(MEGADATA.IDX and MEGADATA.EEA):\n"
+"{0}"
+msgstr ""
+"Esa carpeta no tiene los archivos de SimFarm\n"
+"(MEGADATA.IDX y MEGADATA.EEA):\n"
+"{0}"
+
+#: src/main.cpp
+msgid ""
+"SimFarm was in\n"
+"{0}\n"
+"but it is no longer there (moved or deleted?)."
+msgstr ""
+"SimFarm estaba en\n"
+"{0}\n"
+"pero ya no está allí (¿se ha movido o borrado?)."
+
+#: src/main.cpp
+#: src/ui/GameUi.cpp
+msgid "Quit"
+msgstr "Salir"
+
+#: src/main.cpp
+msgid "SCEN0.SSM is missing."
+msgstr "Falta el archivo SCEN0.SSM."
+
+#: src/main.cpp
+msgid "The tile sheets or palette are missing from MEGADATA.EEA."
+msgstr "Faltan las imágenes o la paleta en MEGADATA.EEA."
+
+#: src/main.cpp
+msgid ""
+"The SimFarm folder\n"
+"{0}\n"
+"cannot be used: {1}"
+msgstr ""
+"La carpeta de SimFarm\n"
+"{0}\n"
+"no se puede usar: {1}"
+
+#: src/main.cpp
+msgid "Cannot create the window: {0}"
+msgstr "No se ha podido crear la ventana: {0}"
+
+#: src/main.cpp
+msgid "The interface pictures or the font are missing from MEGADATA.EEA."
+msgstr "Faltan las imágenes de la interfaz o la fuente en MEGADATA.EEA."
+
+#: src/main.cpp
+msgid "Could not load {0}"
+msgstr "No se ha podido cargar {0}"
+
+#: src/main.cpp
+msgid "Loaded {0}"
+msgstr "Cargado: {0}"
+
+#: src/main.cpp
+msgid "Saved {0}"
+msgstr "Guardado: {0}"
+
+#: src/main.cpp
+#: src/ui/GameUi.cpp
+msgid "Save failed: {0}"
+msgstr "Error al guardar: {0}"
+
+#: src/main.cpp
+msgid "Modern sound on: cleaner effects placed on the map, new instruments for the music."
+msgstr "Sonido moderno activado: efectos más limpios situados en el mapa e instrumentos nuevos para la música."
+
+#: src/main.cpp
+msgid "Modern sound off: the sound as the original plays it."
+msgstr "Sonido moderno desactivado: el sonido como en el juego original."
+
+#: src/main.cpp
+msgid "Modern render on: smoothed pictures, and animals, machines and cars glide from cell to cell."
+msgstr "Imagen moderna activada: imágenes suavizadas, y animales, máquinas y coches se deslizan de casilla en casilla."
+
+#: src/main.cpp
+msgid "Modern render off: the pictures and the movement as the original draws them."
+msgstr "Imagen moderna desactivada: imágenes y movimiento como en el juego original."
+
+#: src/main.cpp
+msgid ""
+"The SimFarm folder\n"
+"{0}\n"
+"has been moved or deleted. Your farm is kept."
+msgstr ""
+"La carpeta de SimFarm\n"
+"{0}\n"
+"se ha movido o borrado. Tu granja sigue guardada."
+
+#: src/main.cpp
+msgid "Go on without"
+msgstr "Seguir sin ella"
+
+#: src/game/Animals.cpp
+msgid "A fence has broken. Your livestock may run loose."
+msgstr "Se ha roto una valla. Tus animales podrían escaparse."
+
+#: src/game/Animals.cpp
+msgid "A horse starved."
+msgstr "Un caballo ha muerto de hambre."
+
+#: src/game/Animals.cpp
+msgid "A cow starved."
+msgstr "Una vaca ha muerto de hambre."
+
+#: src/game/Animals.cpp
+msgid "A pig starved."
+msgstr "Un cerdo ha muerto de hambre."
+
+#: src/game/Animals.cpp
+msgid "A sheep starved."
+msgstr "Una oveja ha muerto de hambre."
+
+#: src/game/Animals.cpp
+msgid "A horse died of thirst."
+msgstr "Un caballo ha muerto de sed."
+
+#: src/game/Animals.cpp
+msgid "A cow died of thirst."
+msgstr "Una vaca ha muerto de sed."
+
+#: src/game/Animals.cpp
+msgid "A pig died of thirst."
+msgstr "Un cerdo ha muerto de sed."
+
+#: src/game/Animals.cpp
+msgid "A sheep died of thirst."
+msgstr "Una oveja ha muerto de sed."
+
+#: src/game/Animals.cpp
+msgid "Your livestock are hungry."
+msgstr "Tus animales tienen hambre."
+
+#: src/game/Animals.cpp
+msgid "Your livestock are thirsty."
+msgstr "Tus animales tienen sed."
+
+#: src/game/Crops.cpp
+msgid "cropinfo:Chill Hours"
+msgstr "horas de frío"
+
+#: src/game/Crops.cpp
+msgid "cropinfo:Degree Days"
+msgstr "grados-día"
+
+#: src/game/Crops.cpp
+msgid "cropinfo:Avoid freezing"
+msgstr "Evita las heladas"
+
+#: src/game/Crops.cpp
+msgid "cropinfo:Do not freeze"
+msgstr "No debe congelarse"
+
+#: src/game/Crops.cpp
+msgid "cropinfo:Days"
+msgstr "días"
+
+#: src/game/Crops.cpp
+msgid "cropinfo:Low"
+msgstr "Baja"
+
+#: src/game/Crops.cpp
+msgid "cropinfo:High"
+msgstr "Alta"
+
+#: src/game/Crops.cpp
+msgid "cropinfo:Yes"
+msgstr "Sí"
+
+#: src/game/Crops.cpp
+msgid "cropinfo:No"
+msgstr "No"
+
+#: src/game/Crops.cpp
+msgid "cropinfo:Temperature"
+msgstr "Temperatura"
+
+#: src/game/Crops.cpp
+msgid "cropinfo:Rain"
+msgstr "Lluvia"
+
+#: src/game/Crops.cpp
+msgid "cropinfo:Pest Resistance"
+msgstr "Resistencia a plagas"
+
+#: src/game/Crops.cpp
+msgid "cropinfo:Weed Resistance"
+msgstr "Resistencia a hierbas"
+
+#: src/game/Crops.cpp
+msgid "cropinfo:Disease Resistance"
+msgstr "Resistencia a enfermedades"
+
+#: src/game/Crops.cpp
+msgid "cropinfo:Harvest Storage Temp"
+msgstr "Temp. de almacenaje"
+
+#: src/game/Crops.cpp
+msgid "cropinfo:Replant Every Harvest"
+msgstr "Resembrar tras cosechar"
+
+#: src/game/Disasters.cpp
+msgid "The tornado has passed."
+msgstr "El tornado ha pasado."
+
+#: src/game/Disasters.cpp
+msgid "The flood waters are going down."
+msgstr "Las aguas de la inundación están bajando."
+
+#: src/game/Disasters.cpp
+msgid "The wind is back to normal."
+msgstr "El viento ha vuelto a la normalidad."
+
+#: src/game/Disasters.cpp
+msgid "Rain has ended the drought."
+msgstr "La lluvia ha acabado con la sequía."
+
+#: src/game/Disasters.cpp
+msgid "Tornado warning: a tornado has been sighted."
+msgstr "Alerta de tornado: se ha avistado un tornado."
+
+#: src/game/Disasters.cpp
+msgid "Drought warning: ponds and ditches are drying up."
+msgstr "Alerta de sequía: las charcas y acequias se están secando."
+
+#: src/game/Disasters.cpp
+msgid "Flood warning: the river has burst its banks."
+msgstr "Alerta de inundación: el río se ha desbordado."
+
+#: src/game/Disasters.cpp
+msgid "Locusts: a swarm is over your fields."
+msgstr "Langostas: una nube de ellas está sobre tus campos."
+
+#: src/game/Disasters.cpp
+msgid "Frost warning: a hard frost has hit your crops."
+msgstr "Alerta de helada: una helada fuerte ha dañado tus cultivos."
+
+#: src/game/Disasters.cpp
+msgid "Windstorm warning: strong winds are blowing away your topsoil."
+msgstr "Alerta de vendaval: el viento fuerte se está llevando la capa fértil del suelo."
+
+#: src/game/Disasters.cpp
+msgid "The flood has washed a field away."
+msgstr "La inundación ha arrasado un campo."
+
+#: src/game/Disasters.cpp
+msgid "The flood has destroyed a machine."
+msgstr "La inundación ha destruido una máquina."
+
+#: src/game/Disasters.cpp
+msgid "The flood has destroyed a building."
+msgstr "La inundación ha destruido un edificio."
+
+#: src/game/Editing.cpp
+msgid "A field does not fit at the edge of the map."
+msgstr "Un campo no cabe en el borde del mapa."
+
+#: src/game/Editing.cpp
+msgid "There is already a field there."
+msgstr "Ya hay un campo ahí."
+
+#: src/game/Editing.cpp
+msgid "Fields need one free cell between them."
+msgstr "Los campos necesitan una casilla libre entre ellos."
+
+#: src/game/Editing.cpp
+msgid "A field must be on your own land."
+msgstr "El campo tiene que estar en tus tierras."
+
+#: src/game/Editing.cpp
+msgid "A field needs 8 x 8 cells of clear ground."
+msgstr "Un campo necesita 8 x 8 casillas de terreno despejado."
+
+#: src/game/Editing.cpp
+#: src/ui/GameUi.cpp
+msgid "Move"
+msgstr "Mover"
+
+#: src/game/Editing.cpp
+#: src/ui/GameUi.cpp
+#: src/ui/Windows.cpp
+msgid "Examine"
+msgstr "Examinar"
+
+#: src/game/Editing.cpp
+#: src/ui/GameUi.cpp
+msgid "Paved Road"
+msgstr "Asfalto"
+
+#: src/game/Editing.cpp
+#: src/ui/GameUi.cpp
+msgid "Dirt Road"
+msgstr "Tierra"
+
+#: src/game/Editing.cpp
+#: src/ui/GameUi.cpp
+msgid "Fence"
+msgstr "Valla"
+
+#: src/game/Editing.cpp
+msgid "Fence Gate"
+msgstr "Cancela"
+
+#: src/game/Editing.cpp
+msgid "Irrigation Ditch"
+msgstr "Acequia de riego"
+
+#: src/game/Editing.cpp
+msgid "Ditch Valve"
+msgstr "Compuerta"
+
+#: src/game/Editing.cpp
+msgid "Livestock Feed"
+msgstr "Pienso"
+
+#: src/game/Editing.cpp
+msgid "Water Trough"
+msgstr "Abrevadero"
+
+#: src/game/Editing.cpp
+#: src/ui/GameUi.cpp
+msgid "Trees"
+msgstr "Árboles"
+
+#: src/game/Editing.cpp
+#: src/ui/GameUi.cpp
+msgid "Bulldoze"
+msgstr "Allanar"
+
+#: src/game/Editing.cpp
+#: src/ui/GameUi.cpp
+msgid "Plant"
+msgstr "Sembrar"
+
+#: src/game/Editing.cpp
+#: src/ui/GameUi.cpp
+msgid "Spray"
+msgstr "Fumigar"
+
+#: src/game/Editing.cpp
+msgid "Place"
+msgstr "Colocar"
+
+#: src/game/Editing.cpp
+msgid "Click on a field to spray it."
+msgstr "Haz clic en un campo para fumigarlo."
+
+#: src/game/Editing.cpp
+msgid "The job is scheduled."
+msgstr "El trabajo está programado."
+
+#: src/game/Editing.cpp
+msgid "The field is in use."
+msgstr "El campo está en uso."
+
+#: src/game/Editing.cpp
+msgid "There is no room for another field."
+msgstr "No hay sitio para otro campo."
+
+#: src/game/Editing.cpp
+#: src/game/Shop.cpp
+msgid "You do not own this land."
+msgstr "Esta tierra no es tuya."
+
+#: src/game/Editing.cpp
+#: src/game/Flight.cpp
+#: src/game/Shop.cpp
+msgid "Not enough money."
+msgstr "No tienes suficiente dinero."
+
+#: src/game/Editing.cpp
+#: src/game/Shop.cpp
+msgid "That machine is busy."
+msgstr "Esa máquina está ocupada."
+
+#: src/game/Editing.cpp
+msgid "That cannot be bulldozed."
+msgstr "Eso no se puede allanar."
+
+#: src/game/Flight.cpp
+msgid "There is no airport in town for a crop duster."
+msgstr "El pueblo no tiene aeropuerto para una avioneta fumigadora."
+
+#: src/game/Flight.cpp
+msgid "There is no airport in town."
+msgstr "El pueblo no tiene aeropuerto."
+
+#: src/game/Flight.cpp
+#: src/game/Shop.cpp
+msgid "You have too many machines."
+msgstr "Tienes demasiadas máquinas."
+
+#: src/game/Flight.cpp
+msgid "Your crop duster is waiting at the town airport."
+msgstr "Tu avioneta te espera en el aeropuerto del pueblo."
+
+#: src/game/Flight.cpp
+msgid "The airport has no room for another plane."
+msgstr "El aeropuerto no tiene sitio para otra avioneta."
+
+#: src/game/Flight.cpp
+msgid "The airport is full."
+msgstr "El aeropuerto está lleno."
+
+#: src/game/Flight.cpp
+msgid "The crop duster has landed safely."
+msgstr "La avioneta ha aterrizado sin problemas."
+
+#: src/game/Flight.cpp
+msgid "The crop duster has crashed!"
+msgstr "¡La avioneta se ha estrellado!"
+
+#: src/game/Flight.cpp
+msgid "Danger: the tornado is close!"
+msgstr "Peligro: ¡el tornado está cerca!"
+
+#: src/game/Machines.cpp
+msgid "A stuck machine was towed to where it was going. Roads help."
+msgstr "Una máquina atascada ha sido remolcada a su destino. Los caminos ayudan."
+
+#: src/game/Machines.cpp
+msgid "tractor"
+msgstr "tractor"
+
+#: src/game/Machines.cpp
+msgid "plow"
+msgstr "arado"
+
+#: src/game/Machines.cpp
+msgid "planter"
+msgstr "sembradora"
+
+#: src/game/Machines.cpp
+msgid "sprayer"
+msgstr "pulverizador"
+
+#: src/game/Machines.cpp
+msgid "harvester"
+msgstr "cosechadora"
+
+#: src/game/Machines.cpp
+msgid "trailer"
+msgstr "remolque"
+
+#: src/game/Machines.cpp
+msgid "machine"
+msgstr "máquina"
+
+#: src/game/Machines.cpp
+msgid "truck"
+msgstr "camión"
+
+#: src/game/Machines.cpp
+msgid "A job waits for a machine ({0}): buy one or turn on Options > AutoLease."
+msgstr "Un trabajo espera una máquina ({0}): compra una o activa Opciones > Alquiler auto."
+
+#: src/game/Machines.cpp
+msgid "A job waits for a machine ({0}): there is not enough money to lease one."
+msgstr "Un trabajo espera una máquina ({0}): no hay dinero para alquilar una."
+
+#: src/game/Machines.cpp
+msgid "Not enough money to pay the pickers."
+msgstr "No hay dinero para pagar a los recolectores."
+
+#: src/game/Machines.cpp
+msgid "A machine has been lost: it was worn out."
+msgstr "Se ha perdido una máquina: estaba demasiado gastada."
+
+#: src/game/Shop.cpp
+msgid "Horse"
+msgstr "Caballo"
+
+#: src/game/Shop.cpp
+msgid "Cow"
+msgstr "Vaca"
+
+#: src/game/Shop.cpp
+msgid "Pig"
+msgstr "Cerdo"
+
+#: src/game/Shop.cpp
+msgid "Sheep"
+msgstr "Oveja"
+
+#: src/game/Shop.cpp
+msgid "Tractor"
+msgstr "Tractor"
+
+#: src/game/Shop.cpp
+msgid "Plow"
+msgstr "Arado"
+
+#: src/game/Shop.cpp
+msgid "Planter"
+msgstr "Sembradora"
+
+#: src/game/Shop.cpp
+msgid "Sprayer"
+msgstr "Pulverizador"
+
+#: src/game/Shop.cpp
+msgid "Harvester"
+msgstr "Cosechadora"
+
+#: src/game/Shop.cpp
+msgid "Trailer"
+msgstr "Remolque"
+
+#: src/game/Shop.cpp
+msgid "Truck"
+msgstr "Camión"
+
+#: src/game/Shop.cpp
+msgid "Crop Duster"
+msgstr "Avioneta"
+
+#: src/game/Shop.cpp
+msgid "Small Silo"
+msgstr "Silo pequeño"
+
+#: src/game/Shop.cpp
+msgid "Large Silo"
+msgstr "Silo grande"
+
+#: src/game/Shop.cpp
+msgid "Small Shed"
+msgstr "Cobertizo pequeño"
+
+#: src/game/Shop.cpp
+msgid "Large Shed"
+msgstr "Cobertizo grande"
+
+#: src/game/Shop.cpp
+msgid "Small Barn"
+msgstr "Granero pequeño"
+
+#: src/game/Shop.cpp
+msgid "Large Barn"
+msgstr "Granero grande"
+
+#: src/game/Shop.cpp
+msgid "Water Pump"
+msgstr "Bomba de agua"
+
+#: src/game/Shop.cpp
+msgid "Windmill"
+msgstr "Molino de viento"
+
+#: src/game/Shop.cpp
+msgid "Water Tower"
+msgstr "Depósito de agua"
+
+#: src/game/Shop.cpp
+msgid "Fertilizer"
+msgstr "Abono"
+
+#: src/game/Shop.cpp
+#: src/ui/GameUi.cpp
+msgid "Pesticide"
+msgstr "Pesticida"
+
+#: src/game/Shop.cpp
+#: src/ui/GameUi.cpp
+msgid "Herbicide"
+msgstr "Herbicida"
+
+#: src/game/Shop.cpp
+#: src/ui/GameUi.cpp
+msgid "Fungicide"
+msgstr "Fungicida"
+
+#: src/game/Shop.cpp
+msgid "{0} seed"
+msgstr "Semilla: {0}"
+
+#: src/game/Shop.cpp
+msgid "The crop duster waits at the town airport."
+msgstr "La avioneta espera en el aeropuerto del pueblo."
+
+#: src/game/Shop.cpp
+msgid "Seed is kept in a building."
+msgstr "La semilla se guarda en un edificio."
+
+#: src/game/Shop.cpp
+msgid "There is no room there."
+msgstr "No hay sitio allí."
+
+#: src/game/Shop.cpp
+msgid "There is no room here."
+msgstr "No hay sitio aquí."
+
+#: src/game/Shop.cpp
+msgid "There is no room for more supplies."
+msgstr "No hay sitio para más suministros."
+
+#: src/game/Shop.cpp
+msgid "You have too many buildings."
+msgstr "Tienes demasiados edificios."
+
+#: src/game/Shop.cpp
+msgid "{0} sold for {1}."
+msgstr "{0} vendido por {1}."
+
+#: src/game/Shop.cpp
+msgid "Open the building first: right click on it."
+msgstr "Abre antes el edificio: haz clic derecho sobre él."
+
+#: src/game/Shop.cpp
+msgid "Choose a machine, an animal, a barrel or a stored thing to move."
+msgstr "Elige una máquina, un animal, un barril o algo guardado para moverlo."
+
+#: src/game/Shop.cpp
+msgid "You can only move things onto your own land."
+msgstr "Solo puedes mover cosas a tus propias tierras."
+
+#: src/game/Shop.cpp
+msgid "A wrecked aircraft, damaged beyond any repair."
+msgstr "Una avioneta destrozada, sin ninguna reparación posible."
+
+#: src/game/Shop.cpp
+msgid "The inside of a water tower: the blue part shows how much water it holds."
+msgstr "El interior de un depósito de agua: la parte azul muestra cuánta agua tiene."
+
+#: src/game/Shop.cpp
+msgid "Part of the town, where all sorts of things go on."
+msgstr "Parte del pueblo, donde pasa de todo."
+
+#: src/game/Shop.cpp
+msgid "A town building"
+msgstr "Un edificio del pueblo"
+
+#: src/game/Shop.cpp
+msgid "A free storage slot"
+msgstr "Un hueco libre para guardar"
+
+#: src/game/Shop.cpp
+msgid "One of the game's programmers walking home after a long night of work on the farm."
+msgstr "Uno de los programadores del juego volviendo a casa tras una larga noche de trabajo en la granja."
+
+#: src/game/Shop.cpp
+msgid "No description"
+msgstr "Sin descripción"
+
+#: src/game/Simulation.cpp
+msgid "A horse died of old age."
+msgstr "Un caballo ha muerto de viejo."
+
+#: src/game/Simulation.cpp
+msgid "A cow died of old age."
+msgstr "Una vaca ha muerto de vieja."
+
+#: src/game/Simulation.cpp
+msgid "A pig died of old age."
+msgstr "Un cerdo ha muerto de viejo."
+
+#: src/game/Simulation.cpp
+msgid "A sheep died of old age."
+msgstr "Una oveja ha muerto de vieja."
+
+#: src/game/Simulation.cpp
+msgid "A horse was born."
+msgstr "Ha nacido un caballo."
+
+#: src/game/Simulation.cpp
+msgid "A cow was born."
+msgstr "Ha nacido una vaca."
+
+#: src/game/Simulation.cpp
+msgid "A pig was born."
+msgstr "Ha nacido un cerdo."
+
+#: src/game/Simulation.cpp
+msgid "A sheep was born."
+msgstr "Ha nacido una oveja."
+
+#: src/game/Simulation.cpp
+#: src/ui/PictureText.cpp
+msgid "Miscellaneous"
+msgstr "Varios"
+
+#: src/game/Simulation.cpp
+msgid "Building and clearing"
+msgstr "Obras y desbroce"
+
+#: src/game/Simulation.cpp
+msgid "Machinery sold"
+msgstr "Maquinaria vendida"
+
+#: src/game/Simulation.cpp
+#: src/ui/PictureText.cpp
+msgid "Machinery"
+msgstr "Maquinaria"
+
+#: src/game/Simulation.cpp
+msgid "Structure sold"
+msgstr "Edificio vendido"
+
+#: src/game/Simulation.cpp
+#: src/ui/PictureText.cpp
+msgid "Structures"
+msgstr "Edificios"
+
+#: src/game/Simulation.cpp
+#: src/ui/PictureText.cpp
+msgid "Futures"
+msgstr "Futuros"
+
+#: src/game/Simulation.cpp
+msgid "Futures contract"
+msgstr "Contrato de futuros"
+
+#: src/game/Simulation.cpp
+msgid "Livestock sold"
+msgstr "Ganado vendido"
+
+#: src/game/Simulation.cpp
+#: src/ui/PictureText.cpp
+msgid "Livestock"
+msgstr "Ganado"
+
+#: src/game/Simulation.cpp
+msgid "Crop sale"
+msgstr "Venta de cosecha"
+
+#: src/game/Simulation.cpp
+msgid "Seed and supplies"
+msgstr "Semillas y suministros"
+
+#: src/game/Simulation.cpp
+#: src/ui/PictureText.cpp
+msgid "Chemicals"
+msgstr "Químicos"
+
+#: src/game/Simulation.cpp
+msgid "Bank payment"
+msgstr "Pago al banco"
+
+#: src/game/Simulation.cpp
+msgid "Machine lease"
+msgstr "Alquiler de máquina"
+
+#: src/game/Simulation.cpp
+msgid "Land bought"
+msgstr "Tierra comprada"
+
+#: src/game/Simulation.cpp
+#: src/ui/PictureText.cpp
+msgid "Taxes"
+msgstr "Impuestos"
+
+#: src/game/Simulation.cpp
+msgid "Income"
+msgstr "Ingreso"
+
+#: src/game/Simulation.cpp
+msgid "Expense"
+msgstr "Gasto"
+
+#: src/game/Simulation.cpp
+msgid "Other"
+msgstr "Otros"
+
+#: src/game/Simulation.cpp
+msgid "Bank loan"
+msgstr "Préstamo"
+
+#: src/game/Simulation.cpp
+msgid "A crop of {0} died: it was not harvested in time."
+msgstr "Un cultivo de {0} ha muerto: no se cosechó a tiempo."
+
+#: src/game/Simulation.cpp
+msgid "That crop is not loaded."
+msgstr "Ese cultivo no está cargado."
+
+#: src/game/Simulation.cpp
+msgid "There is no {0} seed."
+msgstr "No hay semilla de {0}."
+
+#: src/game/Simulation.cpp
+msgid "The field is busy."
+msgstr "El campo está ocupado."
+
+#: src/game/Simulation.cpp
+msgid "Not enough chemicals for this job."
+msgstr "No hay productos suficientes para este trabajo."
+
+#: src/game/Simulation.cpp
+msgid "The field is cleared."
+msgstr "El campo se ha retirado."
+
+#: src/game/Simulation.cpp
+msgid "Harvested {0}: stored in a silo (worth {1} today)."
+msgstr "Cosecha de {0}: guardada en un silo (vale {1} hoy)."
+
+#: src/game/Simulation.cpp
+msgid "Harvested {0}: sold for {1}."
+msgstr "Cosecha de {0}: vendida por {1}."
+
+#: src/game/Simulation.cpp
+msgid "Harvested {0}: the crop was worth nothing."
+msgstr "Cosecha de {0}: no valía nada."
+
+#: src/game/Simulation.cpp
+msgid "The {0} harvest never started: the crop is lost."
+msgstr "La cosecha de {0} no llegó a empezar: se ha perdido."
+
+#: src/game/Simulation.cpp
+msgid "The town fair has opened!"
+msgstr "¡Ha abierto la fiesta del pueblo!"
+
+#: src/game/Simulation.cpp
+msgid "The town fair has opened! Enter your horse in the horse judging contest? The entry fee is 200."
+msgstr "¡Ha abierto la fiesta del pueblo! ¿Presentas tu caballo al concurso de caballos? La inscripción cuesta 200."
+
+#: src/game/Simulation.cpp
+msgid "The town fair has opened! Enter your cow in the cow judging contest? The entry fee is 200."
+msgstr "¡Ha abierto la fiesta del pueblo! ¿Presentas tu vaca al concurso de vacas? La inscripción cuesta 200."
+
+#: src/game/Simulation.cpp
+msgid "The town fair has opened! Enter your pig in the pig judging contest? The entry fee is 200."
+msgstr "¡Ha abierto la fiesta del pueblo! ¿Presentas tu cerdo al concurso de cerdos? La inscripción cuesta 200."
+
+#: src/game/Simulation.cpp
+msgid "The town fair has opened! Enter your sheep in the sheep judging contest? The entry fee is 200."
+msgstr "¡Ha abierto la fiesta del pueblo! ¿Presentas tu oveja al concurso de ovejas? La inscripción cuesta 200."
+
+#: src/game/Simulation.cpp
+msgid "The town fair has opened."
+msgstr "Ha abierto la fiesta del pueblo."
+
+#: src/game/Simulation.cpp
+msgid "The rodeo is starting: bet 500 on cousin Jed?"
+msgstr "Empieza el rodeo: ¿apuestas 500 por el primo Jed?"
+
+#: src/game/Simulation.cpp
+msgid "The rodeo is starting."
+msgstr "Empieza el rodeo."
+
+#: src/game/Simulation.cpp
+msgid "Cousin Jed won the rodeo! You get 1,000 back, 500 more than the bet."
+msgstr "¡El primo Jed ha ganado el rodeo! Recibes 1.000, 500 más que la apuesta."
+
+#: src/game/Simulation.cpp
+msgid "Rodeo prize"
+msgstr "Premio del rodeo"
+
+#: src/game/Simulation.cpp
+msgid "Cousin Jed lost the rodeo, and your 500 with him."
+msgstr "El primo Jed ha perdido el rodeo, y tus 500 con él."
+
+#: src/game/Simulation.cpp
+msgid "Your horse won first prize at the fair! You win 1,000."
+msgstr "¡Tu caballo ha ganado el primer premio de la fiesta! Ganas 1.000."
+
+#: src/game/Simulation.cpp
+msgid "Your cow won first prize at the fair! You win 1,000."
+msgstr "¡Tu vaca ha ganado el primer premio de la fiesta! Ganas 1.000."
+
+#: src/game/Simulation.cpp
+msgid "Your pig won first prize at the fair! You win 1,000."
+msgstr "¡Tu cerdo ha ganado el primer premio de la fiesta! Ganas 1.000."
+
+#: src/game/Simulation.cpp
+msgid "Your sheep won first prize at the fair! You win 1,000."
+msgstr "¡Tu oveja ha ganado el primer premio de la fiesta! Ganas 1.000."
+
+#: src/game/Simulation.cpp
+msgid "Your horse did not win. Maybe next year."
+msgstr "Tu caballo no ha ganado. Quizá el año que viene."
+
+#: src/game/Simulation.cpp
+msgid "Your cow did not win. Maybe next year."
+msgstr "Tu vaca no ha ganado. Quizá el año que viene."
+
+#: src/game/Simulation.cpp
+msgid "Your pig did not win. Maybe next year."
+msgstr "Tu cerdo no ha ganado. Quizá el año que viene."
+
+#: src/game/Simulation.cpp
+msgid "Your sheep did not win. Maybe next year."
+msgstr "Tu oveja no ha ganado. Quizá el año que viene."
+
+#: src/game/Simulation.cpp
+msgid "Fair prize"
+msgstr "Premio de la fiesta"
+
+#: src/game/Simulation.cpp
+msgid "The tax board sold assets to cover your taxes."
+msgstr "Hacienda ha vendido bienes para cubrir tus impuestos."
+
+#: src/game/Simulation.cpp
+msgid "The bank sold enough of your assets to pay the loan."
+msgstr "El banco ha vendido bastantes bienes tuyos para pagar el préstamo."
+
+#: src/game/Simulation.cpp
+msgid "Rodeo entry"
+msgstr "Apuesta del rodeo"
+
+#: src/game/Simulation.cpp
+msgid "Fair entry"
+msgstr "Inscripción en la fiesta"
+
+#: src/game/Simulation.cpp
+msgid "Only free land can be bought."
+msgstr "Solo se puede comprar tierra libre."
+
+#: src/game/Simulation.cpp
+msgid "Not enough money for this land."
+msgstr "No tienes dinero suficiente para esta tierra."
+
+#: src/game/Simulation.cpp
+msgid "You bought a plot of land for {0}."
+msgstr "Has comprado una parcela por {0}."
+
+#: src/game/Simulation.cpp
+msgid "You can only sell your own land."
+msgstr "Solo puedes vender tus propias tierras."
+
+#: src/game/Simulation.cpp
+msgid "The homestead plot cannot be sold."
+msgstr "La parcela de la casa de la granja no se puede vender."
+
+#: src/game/Simulation.cpp
+msgid "Fields on the plot must be removed before it can be sold."
+msgstr "Hay que quitar los campos de la parcela antes de venderla."
+
+#: src/game/Simulation.cpp
+msgid "Remove the fields on this plot first."
+msgstr "Quita antes los campos de esta parcela."
+
+#: src/game/Simulation.cpp
+msgid "Land sold"
+msgstr "Tierra vendida"
+
+#: src/game/Simulation.cpp
+msgid "You sold a plot of land for {0}."
+msgstr "Has vendido una parcela por {0}."
+
+#: src/game/Simulation.cpp
+msgid "Your cash is shrinking fast, and your home is getting shabbier to match."
+msgstr "Tu dinero se agota deprisa, y tu casa se está quedando igual de descuidada."
+
+#: src/game/Simulation.cpp
+msgid "Business is booming! With all that cash, your family has fixed up the house."
+msgstr "¡El negocio va viento en popa! Con tanto dinero, tu familia ha reformado la casa."
+
+#: src/game/Simulation.cpp
+msgid "The town is too small for another event ground."
+msgstr "El pueblo es demasiado pequeño para otro recinto de eventos."
+
+#: src/game/Simulation.cpp
+msgid "A town plot has been abandoned."
+msgstr "Se ha abandonado una parcela del pueblo."
+
+#: src/game/Simulation.cpp
+msgid "That crop is in use or already loaded. Sell or remove everything that belongs to it first."
+msgstr "Ese cultivo está en uso o ya cargado. Vende o quita antes todo lo que le pertenezca."
+
+#: src/game/Simulation.cpp
+msgid "The crop file could not be read."
+msgstr "No se ha podido leer el archivo del cultivo."
+
+#: src/game/Simulation.cpp
+msgid "Are you sure you want to destroy this field?"
+msgstr "¿Seguro que quieres destruir este campo?"
+
+#: src/game/Simulation.cpp
+msgid "Heavy rain is expected next week."
+msgstr "Se espera lluvia fuerte la semana que viene."
+
+#: src/game/Simulation.cpp
+msgid "A water tower has burst. Bulldoze it and buy a new one."
+msgstr "Ha reventado un depósito de agua. Allánalo y compra otro."
+
+#: src/game/Simulation.cpp
+msgid "Your taxes were not paid in the grace period: your assets will be auctioned."
+msgstr "No pagaste tus impuestos en el plazo de gracia: tus bienes se subastarán."
+
+#: src/game/Simulation.cpp
+msgid "The bank forecloses: your assets will be auctioned to pay the loan."
+msgstr "El banco ejecuta la deuda: tus bienes se subastarán para pagar el préstamo."
+
+#: src/game/Simulation.cpp
+msgid "A plot of your land was auctioned."
+msgstr "Se ha subastado una parcela de tus tierras."
+
+#: src/game/Simulation.cpp
+msgid "Your homestead had to go to pay your debts. Do you want to start a new game?"
+msgstr "Has perdido la casa de la granja para pagar tus deudas. ¿Quieres empezar una partida nueva?"
+
+#: src/game/Simulation.cpp
+msgid "The bank thanks you: the quarter's loan payment is made."
+msgstr "El banco te da las gracias: el pago trimestral del préstamo está hecho."
+
+#: src/game/Simulation.cpp
+msgid "Another month has passed and the loan payment is still due."
+msgstr "Ha pasado otro mes y el pago del préstamo sigue pendiente."
+
+#: src/game/Simulation.cpp
+msgid "Your back taxes are paid in full."
+msgstr "Tus impuestos atrasados están pagados del todo."
+
+#: src/game/Simulation.cpp
+msgid "Another month has passed and your taxes are still unpaid."
+msgstr "Ha pasado otro mes y tus impuestos siguen sin pagar."
+
+#: src/game/Simulation.cpp
+msgid "Your cash is below the estimated yearly tax."
+msgstr "Tu dinero está por debajo del impuesto anual estimado."
+
+#: src/game/Simulation.cpp
+msgid "You could not make the loan payment. The bank will foreclose in three months."
+msgstr "No has podido hacer el pago del préstamo. El banco ejecutará la deuda en tres meses."
+
+#: src/game/Simulation.cpp
+msgid "You could not pay this year's taxes. You have three months of grace."
+msgstr "No has podido pagar los impuestos de este año. Tienes tres meses de gracia."
+
+#: src/game/Simulation.cpp
+msgid "The town has bought another plot and asks for your vote."
+msgstr "El pueblo ha comprado otra parcela y pide tu voto."
+
+#: src/game/WorldGen.cpp
+msgid "The climate tables are missing from MEGADATA.EEA."
+msgstr "Faltan las tablas del clima en MEGADATA.EEA."
+
+#: src/ui/GameUi.cpp
+#: src/ui/Windows.cpp
+msgid "Jan"
+msgstr "Ene"
+
+#: src/ui/GameUi.cpp
+#: src/ui/Windows.cpp
+msgid "Feb"
+msgstr "Feb"
+
+#: src/ui/GameUi.cpp
+#: src/ui/Windows.cpp
+msgid "Mar"
+msgstr "Mar"
+
+#: src/ui/GameUi.cpp
+#: src/ui/Windows.cpp
+msgid "Apr"
+msgstr "Abr"
+
+#: src/ui/GameUi.cpp
+#: src/ui/Windows.cpp
+msgid "May"
+msgstr "May"
+
+#: src/ui/GameUi.cpp
+#: src/ui/Windows.cpp
+msgid "Jun"
+msgstr "Jun"
+
+#: src/ui/GameUi.cpp
+#: src/ui/Windows.cpp
+msgid "Jul"
+msgstr "Jul"
+
+#: src/ui/GameUi.cpp
+#: src/ui/Windows.cpp
+msgid "Aug"
+msgstr "Ago"
+
+#: src/ui/GameUi.cpp
+#: src/ui/Windows.cpp
+msgid "Sep"
+msgstr "Sep"
+
+#: src/ui/GameUi.cpp
+#: src/ui/Windows.cpp
+msgid "Oct"
+msgstr "Oct"
+
+#: src/ui/GameUi.cpp
+#: src/ui/Windows.cpp
+msgid "Nov"
+msgstr "Nov"
+
+#: src/ui/GameUi.cpp
+#: src/ui/Windows.cpp
+msgid "Dec"
+msgstr "Dic"
+
+#: src/ui/GameUi.cpp
+msgid "Fertilize"
+msgstr "Abonar"
+
+#: src/ui/GameUi.cpp
+msgid "File"
+msgstr "Archivo"
+
+#: src/ui/GameUi.cpp
+msgid "About SimFarm"
+msgstr "Acerca de SimFarm"
+
+#: src/ui/GameUi.cpp
+msgid "New Game"
+msgstr "Partida nueva"
+
+#: src/ui/GameUi.cpp
+msgid "Save"
+msgstr "Guardar"
+
+#: src/ui/GameUi.cpp
+msgid "Save As"
+msgstr "Guardar como"
+
+#: src/ui/GameUi.cpp
+msgid "Load Game"
+msgstr "Cargar partida"
+
+#: src/ui/GameUi.cpp
+msgid "Options"
+msgstr "Opciones"
+
+#: src/ui/GameUi.cpp
+#: src/ui/Windows.cpp
+msgid "Music"
+msgstr "Música"
+
+#: src/ui/GameUi.cpp
+msgid "Sound Effects"
+msgstr "Efectos de sonido"
+
+#: src/ui/GameUi.cpp
+msgid "AutoBuy"
+msgstr "Compra auto"
+
+#: src/ui/GameUi.cpp
+msgid "AutoScroll"
+msgstr "Desplazamiento auto"
+
+#: src/ui/GameUi.cpp
+msgid "AutoDoze"
+msgstr "Allanado auto"
+
+#: src/ui/GameUi.cpp
+msgid "AutoGoto"
+msgstr "Ir auto"
+
+#: src/ui/GameUi.cpp
+msgid "Messages"
+msgstr "Mensajes"
+
+#: src/ui/GameUi.cpp
+msgid "AutoLease"
+msgstr "Alquiler auto"
+
+#: src/ui/GameUi.cpp
+msgid "Smart Driving"
+msgstr "Conducción inteligente"
+
+#: src/ui/GameUi.cpp
+msgid "Modern Sound"
+msgstr "Sonido moderno"
+
+#: src/ui/GameUi.cpp
+msgid "Modern Render"
+msgstr "Imagen moderna"
+
+#: src/ui/GameUi.cpp
+msgid "Sound Volume"
+msgstr "Volumen"
+
+#: src/ui/GameUi.cpp
+#: src/ui/StartScreen.cpp
+msgid "Language"
+msgstr "Idioma"
+
+#: src/ui/GameUi.cpp
+#: src/ui/Windows.cpp
+msgid "Speed"
+msgstr "Velocidad"
+
+#: src/ui/GameUi.cpp
+msgid "Ultra"
+msgstr "Ultra"
+
+#: src/ui/GameUi.cpp
+msgid "Fast"
+msgstr "Rápida"
+
+#: src/ui/GameUi.cpp
+msgid "Normal"
+msgstr "Normal"
+
+#: src/ui/GameUi.cpp
+msgid "Slow"
+msgstr "Lenta"
+
+#: src/ui/GameUi.cpp
+msgid "Pause"
+msgstr "Pausa"
+
+#: src/ui/GameUi.cpp
+msgid "Windows"
+msgstr "Ventanas"
+
+#: src/ui/GameUi.cpp
+msgid "Buy"
+msgstr "Comprar"
+
+#: src/ui/GameUi.cpp
+msgid "Sell"
+msgstr "Vender"
+
+#: src/ui/GameUi.cpp
+msgid "Evaluation"
+msgstr "Evaluación"
+
+#: src/ui/GameUi.cpp
+msgid "Map"
+msgstr "Mapa"
+
+#: src/ui/GameUi.cpp
+msgid "Weather"
+msgstr "Tiempo"
+
+#: src/ui/GameUi.cpp
+msgid "Balance Sheet"
+msgstr "Balance"
+
+#: src/ui/GameUi.cpp
+msgid "Bank"
+msgstr "Banco"
+
+#: src/ui/GameUi.cpp
+msgid "Market Value"
+msgstr "Valor de mercado"
+
+#: src/ui/GameUi.cpp
+msgid "Farm Expert"
+msgstr "Experto agrícola"
+
+#: src/ui/GameUi.cpp
+msgid "Disasters"
+msgstr "Desastres"
+
+#: src/ui/GameUi.cpp
+msgid "Tornado"
+msgstr "Tornado"
+
+#: src/ui/GameUi.cpp
+msgid "Locusts"
+msgstr "Langostas"
+
+#: src/ui/GameUi.cpp
+msgid "Drought"
+msgstr "Sequía"
+
+#: src/ui/GameUi.cpp
+msgid "Flood"
+msgstr "Inundación"
+
+#: src/ui/GameUi.cpp
+msgid "Frost"
+msgstr "Helada"
+
+#: src/ui/GameUi.cpp
+msgid "Windstorm"
+msgstr "Vendaval"
+
+#: src/ui/GameUi.cpp
+msgid "Disable"
+msgstr "Desactivar"
+
+#: src/ui/GameUi.cpp
+msgid "Help"
+msgstr "Ayuda"
+
+#: src/ui/GameUi.cpp
+msgid "Tool Help"
+msgstr "Ayuda de herramientas"
+
+#: src/ui/GameUi.cpp
+msgid "This window is not available yet."
+msgstr "Esta ventana aún no está disponible."
+
+#: src/ui/GameUi.cpp
+msgid "Smart driving on: machines plan their way to the field and back."
+msgstr "Conducción inteligente activada: las máquinas planean su camino al campo y de vuelta."
+
+#: src/ui/GameUi.cpp
+msgid "Smart driving off: machines steer as in the original."
+msgstr "Conducción inteligente desactivada: las máquinas conducen como en el original."
+
+#: src/ui/GameUi.cpp
+msgid "TITLE THEME"
+msgstr "TEMA PRINCIPAL"
+
+#: src/ui/GameUi.cpp
+msgid "FARM LIFE"
+msgstr "VIDA EN LA GRANJA"
+
+#: src/ui/GameUi.cpp
+msgid "GOOD YEARS"
+msgstr "AÑOS BUENOS"
+
+#: src/ui/GameUi.cpp
+msgid "HARD TIMES"
+msgstr "TIEMPOS DUROS"
+
+#: src/ui/GameUi.cpp
+msgid "COUNTY FAIR"
+msgstr "FERIA COMARCAL"
+
+#: src/ui/GameUi.cpp
+msgid "RODEO"
+msgstr "RODEO"
+
+#: src/ui/GameUi.cpp
+msgid "CELEBRATION"
+msgstr "CELEBRACIÓN"
+
+#: src/ui/GameUi.cpp
+msgid "Radio: your pick. Press AUTO to let the game choose again."
+msgstr "Radio: tú eliges. Pulsa AUTO para que el juego vuelva a elegir."
+
+#: src/ui/GameUi.cpp
+msgid "Radio: the game chooses the music again."
+msgstr "Radio: el juego vuelve a elegir la música."
+
+#: src/ui/GameUi.cpp
+msgid "NO MUSIC"
+msgstr "SIN MÚSICA"
+
+#: src/ui/GameUi.cpp
+msgid "PAUSED"
+msgstr "EN PAUSA"
+
+#: src/ui/GameUi.cpp
+msgid "AUTO"
+msgstr "AUTO"
+
+#: src/ui/GameUi.cpp
+msgid "Clear"
+msgstr "Despejado"
+
+#: src/ui/GameUi.cpp
+msgid "Fair"
+msgstr "Bueno"
+
+#: src/ui/GameUi.cpp
+msgid "Cloudy"
+msgstr "Nublado"
+
+#: src/ui/GameUi.cpp
+msgid "Rain"
+msgstr "Lluvia"
+
+#: src/ui/GameUi.cpp
+msgid "Snow"
+msgstr "Nieve"
+
+#: src/ui/GameUi.cpp
+msgid "{0} mph"
+msgstr "{0} mph"
+
+#: src/ui/GameUi.cpp
+msgid "Week {0} of {1} {2}"
+msgstr "Semana {0} de {1} {2}"
+
+#: src/ui/GameUi.cpp
+#: src/ui/Windows.cpp
+msgid "W{0} {1} {2}"
+msgstr "S{0} {1} {2}"
+
+#: src/ui/GameUi.cpp
+msgid "No messages yet."
+msgstr "Aún no hay mensajes."
+
+#: src/ui/GameUi.cpp
+msgid "Flying  height {0}"
+msgstr "En vuelo  altura {0}"
+
+#: src/ui/GameUi.cpp
+msgid "SPRAYING"
+msgstr "FUMIGANDO"
+
+#: src/ui/GameUi.cpp
+msgid "Arrows fly, F sprays, Enter lands"
+msgstr "Flechas vuelan, F fumiga, Intro aterriza"
+
+#: src/ui/GameUi.cpp
+msgid "Game Paused..."
+msgstr "Juego en pausa..."
+
+#: src/ui/GameUi.cpp
+msgid "Plant {0}  Seed: {1}"
+msgstr "Sembrar {0}  Semilla: {1}"
+
+#: src/ui/GameUi.cpp
+msgid "{0}: click a field"
+msgstr "{0}: haz clic en un campo"
+
+#: src/ui/GameUi.cpp
+msgid "Examine: click a field or an object"
+msgstr "Examinar: haz clic en un campo o un objeto"
+
+#: src/ui/GameUi.cpp
+msgid "Move: click the new place"
+msgstr "Mover: haz clic en el sitio nuevo"
+
+#: src/ui/GameUi.cpp
+msgid "Move: choose a machine, a barrel or a stored thing"
+msgstr "Mover: elige una máquina, un barril o algo guardado"
+
+#: src/ui/GameUi.cpp
+msgid "Place {0}  Price: {1}"
+msgstr "Colocar {0}  Precio: {1}"
+
+#: src/ui/GameUi.cpp
+msgid "{0}  Cost: {1}"
+msgstr "{0}  Coste: {1}"
+
+#: src/ui/GameUi.cpp
+msgid "{0}: not available yet"
+msgstr "{0}: aún no disponible"
+
+#: src/ui/GameUi.cpp
+msgid "Speed: Ultra"
+msgstr "Velocidad: Ultra"
+
+#: src/ui/GameUi.cpp
+msgid "Speed: Fast"
+msgstr "Velocidad: Rápida"
+
+#: src/ui/GameUi.cpp
+msgid "Speed: Normal"
+msgstr "Velocidad: Normal"
+
+#: src/ui/GameUi.cpp
+msgid "Speed: Slow"
+msgstr "Velocidad: Lenta"
+
+#: src/ui/GameUi.cpp
+msgid "Paused"
+msgstr "En pausa"
+
+#: src/ui/GameUi.cpp
+msgid "Gate"
+msgstr "Cancela"
+
+#: src/ui/GameUi.cpp
+msgid "Ditch"
+msgstr "Acequia"
+
+#: src/ui/GameUi.cpp
+msgid "Valve"
+msgstr "Compuerta"
+
+#: src/ui/GameUi.cpp
+msgid "Feed"
+msgstr "Pienso"
+
+#: src/ui/GameUi.cpp
+msgid "Trough"
+msgstr "Abrevadero"
+
+#: src/ui/GameUi.cpp
+msgid "Plant Field"
+msgstr "Sembrar campo"
+
+#: src/ui/GameUi.cpp
+msgid "Spray Field"
+msgstr "Fumigar campo"
+
+#: src/ui/GameUi.cpp
+msgid "Every crop slot is in use: sell or plant over a crop to make room for {0}."
+msgstr "Todos los huecos de cultivo están en uso: vende o siembra encima de un cultivo para dejar sitio a {0}."
+
+#: src/ui/GameUi.cpp
+msgid "{0} loaded in place of {1}: click a field"
+msgstr "{0} cargado en lugar de {1}: haz clic en un campo"
+
+#: src/ui/GameUi.cpp
+msgid "Now click where it should go."
+msgstr "Ahora haz clic donde debe ir."
+
+#: src/ui/GameUi.cpp
+msgid "Do you want to save your farm before you leave SimFarm?"
+msgstr "¿Quieres guardar tu granja antes de salir de SimFarm?"
+
+#: src/ui/GameUi.cpp
+msgid "Your game has been saved as {0}."
+msgstr "Tu partida se ha guardado como {0}."
+
+#: src/ui/GameUi.cpp
+msgid "SPRAY"
+msgstr "FUMIGAR"
+
+#: src/ui/GameUi.cpp
+msgid "LAND"
+msgstr "ATERRIZAR"
+
+#: src/ui/GameUi.cpp
+msgid "FUEL"
+msgstr "COMBUSTIBLE"
+
+#: src/ui/GameUi.cpp
+msgid "DAMAGE"
+msgstr "DAÑOS"
+
+#: src/ui/GameUi.cpp
+msgid "Edge scrolling on: the map moves when the pointer is at a side."
+msgstr "Desplazamiento por los bordes activado: el mapa se mueve cuando el puntero está en un lado."
+
+#: src/ui/GameUi.cpp
+msgid "Edge scrolling off."
+msgstr "Desplazamiento por los bordes desactivado."
+
+#: src/ui/PictureText.cpp
+msgid "PRICE"
+msgstr "PRECIO"
+
+#: src/ui/PictureText.cpp
+msgid "OWN"
+msgstr "TIENES"
+
+#: src/ui/PictureText.cpp
+msgid "small button:BUY"
+msgstr "OK"
+
+#: src/ui/PictureText.cpp
+msgid "button:CLOSE"
+msgstr "CERRAR"
+
+#: src/ui/PictureText.cpp
+msgid "button:SELL"
+msgstr "VENDE"
+
+#: src/ui/PictureText.cpp
+msgid "ASSETS"
+msgstr "BIENES"
+
+#: src/ui/PictureText.cpp
+msgid "EXPENDITURES"
+msgstr "GASTOS"
+
+#: src/ui/PictureText.cpp
+msgid "Cash"
+msgstr "Dinero"
+
+#: src/ui/PictureText.cpp
+#: src/ui/Windows.cpp
+msgid "Land"
+msgstr "Tierra"
+
+#: src/ui/PictureText.cpp
+msgid "TOTAL ASSETS"
+msgstr "TOTAL BIENES"
+
+#: src/ui/PictureText.cpp
+msgid "ANNUAL REVENUE"
+msgstr "INGRESOS ANUALES"
+
+#: src/ui/PictureText.cpp
+msgid "Crop Sales"
+msgstr "Venta de cosecha"
+
+#: src/ui/PictureText.cpp
+msgid "Machinery Sales"
+msgstr "Venta de máquinas"
+
+#: src/ui/PictureText.cpp
+msgid "Land Sales"
+msgstr "Venta de tierras"
+
+#: src/ui/PictureText.cpp
+msgid "Futures Sold"
+msgstr "Futuros vendidos"
+
+#: src/ui/PictureText.cpp
+msgid "Animal Sales"
+msgstr "Venta de ganado"
+
+#: src/ui/PictureText.cpp
+msgid "TOTAL REVENUE"
+msgstr "TOTAL INGRESOS"
+
+#: src/ui/PictureText.cpp
+msgid "Seed"
+msgstr "Semillas"
+
+#: src/ui/PictureText.cpp
+msgid "Land purchased"
+msgstr "Compra de tierras"
+
+#: src/ui/PictureText.cpp
+msgid "Losses on futures"
+msgstr "Pérdidas: futuros"
+
+#: src/ui/PictureText.cpp
+msgid "Loan Interest"
+msgstr "Intereses"
+
+#: src/ui/PictureText.cpp
+msgid "Machines leased"
+msgstr "Alquileres"
+
+#: src/ui/PictureText.cpp
+msgid "TOTAL EXPENSES"
+msgstr "TOTAL GASTOS"
+
+#: src/ui/PictureText.cpp
+msgid "PROFIT/LOSS"
+msgstr "RESULTADO"
+
+#: src/ui/PictureText.cpp
+msgid "Tax estimate"
+msgstr "Impuestos estimados"
+
+#: src/ui/PictureText.cpp
+msgid "Loan payment per quarter"
+msgstr "Pago trimestral"
+
+#: src/ui/PictureText.cpp
+msgid "CASH ON HAND"
+msgstr "DINERO DISPONIBLE"
+
+#: src/ui/PictureText.cpp
+msgid "TOTAL DEBTS"
+msgstr "DEUDA TOTAL"
+
+#: src/ui/PictureText.cpp
+msgid "CREDIT LIMIT"
+msgstr "LÍMITE DE CRÉDITO"
+
+#: src/ui/PictureText.cpp
+msgid "INTEREST RATE"
+msgstr "TIPO DE INTERÉS"
+
+#: src/ui/PictureText.cpp
+msgid "PAYMENT PER QUARTER"
+msgstr "PAGO TRIMESTRAL"
+
+#: src/ui/PictureText.cpp
+msgid "Type the amount on the keys"
+msgstr "Teclea el importe"
+
+#: src/ui/PictureText.cpp
+msgid "LOAN AMOUNT"
+msgstr "PRÉSTAMO"
+
+#: src/ui/PictureText.cpp
+msgid "button:REPAY"
+msgstr "PAGAR"
+
+#: src/ui/PictureText.cpp
+msgid "Weather today"
+msgstr "Tiempo hoy"
+
+#: src/ui/PictureText.cpp
+msgid "Forecast, next 5 days"
+msgstr "Previsión a 5 días"
+
+#: src/ui/PictureText.cpp
+msgid "Evaporation"
+msgstr "Evaporación"
+
+#: src/ui/PictureText.cpp
+msgid ""
+"Wind\n"
+"Speed"
+msgstr ""
+"Vel. del\n"
+"viento"
+
+#: src/ui/PictureText.cpp
+msgid ""
+"Mean\n"
+"rain"
+msgstr ""
+"Lluvia\n"
+"media"
+
+#: src/ui/PictureText.cpp
+msgid ""
+"Rain\n"
+"so\n"
+"far"
+msgstr ""
+"Lluvia\n"
+"este\n"
+"año"
+
+#: src/ui/PictureText.cpp
+msgid "Last 30 weeks"
+msgstr "Últimas 30 semanas"
+
+#: src/ui/PictureText.cpp
+msgid "Crop"
+msgstr "Tipo"
+
+#: src/ui/PictureText.cpp
+msgid "Price"
+msgstr "Precio"
+
+#: src/ui/PictureText.cpp
+msgid "Futures held"
+msgstr "Tus contratos"
+
+#: src/ui/PictureText.cpp
+#: src/ui/StartScreen.cpp
+#: src/ui/Windows.cpp
+msgid "Low"
+msgstr "Baja"
+
+#: src/ui/PictureText.cpp
+#: src/ui/StartScreen.cpp
+#: src/ui/Windows.cpp
+msgid "High"
+msgstr "Alta"
+
+#: src/ui/PictureText.cpp
+msgid "Problems"
+msgstr "Problemas"
+
+#: src/ui/PictureText.cpp
+msgid "Crops to try"
+msgstr "Cultivos sugeridos"
+
+#: src/ui/PictureText.cpp
+msgid ""
+"Land\n"
+"Value"
+msgstr ""
+"Valor de\n"
+"la tierra"
+
+#: src/ui/PictureText.cpp
+msgid "Tool"
+msgstr "Máquina"
+
+#: src/ui/PictureText.cpp
+msgid "button:TODAY"
+msgstr "HOY"
+
+#: src/ui/PictureText.cpp
+msgid "button:CUT"
+msgstr "CORTAR"
+
+#: src/ui/PictureText.cpp
+msgid "Current Value"
+msgstr "Valor actual"
+
+#: src/ui/PictureText.cpp
+msgid "Maturity"
+msgstr "Madurez"
+
+#: src/ui/PictureText.cpp
+msgid ""
+"Crop\n"
+"Quality"
+msgstr ""
+"Calidad\n"
+"del cultivo"
+
+#: src/ui/PictureText.cpp
+msgid "gauge:Disease"
+msgstr "Enferm."
+
+#: src/ui/PictureText.cpp
+msgid "gauge:Pests"
+msgstr "Plagas"
+
+#: src/ui/PictureText.cpp
+msgid "gauge:Weeds"
+msgstr "Hierbas"
+
+#: src/ui/PictureText.cpp
+msgid "gauge:Water"
+msgstr "Agua"
+
+#: src/ui/PictureText.cpp
+msgid "gauge:Soil"
+msgstr "Suelo"
+
+#: src/ui/PictureText.cpp
+msgid "gauge:Gas"
+msgstr "Combustible"
+
+#: src/ui/PictureText.cpp
+msgid "gauge:Spray"
+msgstr "Producto"
+
+#: src/ui/PictureText.cpp
+msgid "gauge:Damage"
+msgstr "Daños"
+
+#: src/ui/PictureText.cpp
+msgid "button:FLY!"
+msgstr "VOLAR"
+
+#: src/ui/PictureText.cpp
+msgid "small button:CLOSE"
+msgstr "SALIR"
+
+#: src/ui/PictureText.cpp
+msgid "REPLACE"
+msgstr "CAMBIAR"
+
+#: src/ui/PictureText.cpp
+msgid "WITH"
+msgstr "POR"
+
+#: src/ui/PictureText.cpp
+msgid "button:REPLACE"
+msgstr "CAMBIAR"
+
+#: src/ui/PictureText.cpp
+msgid "FILE NAME"
+msgstr "NOMBRE DE ARCHIVO"
+
+#: src/ui/PictureText.cpp
+msgid "DIRECTORY"
+msgstr "CARPETA"
+
+#: src/ui/PictureText.cpp
+msgid "Residential"
+msgstr "Residencial"
+
+#: src/ui/PictureText.cpp
+msgid "Commercial"
+msgstr "Comercial"
+
+#: src/ui/PictureText.cpp
+msgid "Airport"
+msgstr "Aeropuerto"
+
+#: src/ui/PictureText.cpp
+msgid "Recreational"
+msgstr "Ocio"
+
+#: src/ui/PictureText.cpp
+msgid "The town is buying another plot of land, and the mayor asks the voters what should be built on it. Click the kind of plot you would like the town to build."
+msgstr "El pueblo va a comprar otra parcela, y el alcalde pregunta a los vecinos qué se debería construir en ella. Haz clic en el tipo de parcela que te gustaría que construyera el pueblo."
+
+#: src/ui/PictureText.cpp
+#: src/ui/Windows.cpp
+msgid "Date"
+msgstr "Fecha"
+
+#: src/ui/PictureText.cpp
+msgid "Funds"
+msgstr "Fondos"
+
+#: src/ui/PictureText.cpp
+msgid "button:BUY"
+msgstr "COMPRA"
+
+#: src/ui/PictureText.cpp
+msgid "button:CANCEL"
+msgstr "VOLVER"
+
+#: src/ui/PictureText.cpp
+msgid "button:GOTO"
+msgstr "IR"
+
+#: src/ui/PictureText.cpp
+msgid "button:USE"
+msgstr "USAR"
+
+#: src/ui/PictureText.cpp
+msgid "button:EXIT"
+msgstr "SALIR"
+
+#: src/ui/PictureText.cpp
+msgid "button:LOAD"
+msgstr "ABRIR"
+
+#: src/ui/PictureText.cpp
+msgid "button:NEW"
+msgstr "NUEVO"
+
+#: src/ui/PictureText.cpp
+msgid "button:USED"
+msgstr "USADO"
+
+#: src/ui/PictureText.cpp
+msgid "button:YES"
+msgstr "SÍ"
+
+#: src/ui/PictureText.cpp
+msgid "button:NO"
+msgstr "NO"
+
+#: src/ui/PictureText.cpp
+msgid "button:SAVE"
+msgstr "GRABAR"
+
+#: src/ui/PictureText.cpp
+msgid "button:NEXT"
+msgstr "SIG."
+
+#: src/ui/PictureText.cpp
+msgid "button:PREV"
+msgstr "ANT."
+
+#: src/ui/PictureText.cpp
+msgid "button:TOP"
+msgstr "INICIO"
+
+#: src/ui/PictureText.cpp
+msgid "button:RATS"
+msgstr "VAYA"
+
+#: src/ui/StartScreen.cpp
+msgid "MAP 144 x 144"
+msgstr "MAPA 144 x 144"
+
+#: src/ui/StartScreen.cpp
+msgid "MAP 96 x 96"
+msgstr "MAPA 96 x 96"
+
+#: src/ui/StartScreen.cpp
+msgid ""
+"CHOOSE\n"
+"A REGION"
+msgstr ""
+"ELIGE TU\n"
+"REGIÓN"
+
+#: src/ui/StartScreen.cpp
+msgid "RAINFALL"
+msgstr "LLUVIA"
+
+#: src/ui/StartScreen.cpp
+msgid "TEMPERATURE"
+msgstr "TEMPERATURA"
+
+#: src/ui/StartScreen.cpp
+msgid "WIND SPEED"
+msgstr "VIENTO"
+
+#: src/ui/StartScreen.cpp
+msgid "PLAY THIS REGION"
+msgstr "USAR ESTA REGIÓN"
+
+#: src/ui/StartScreen.cpp
+msgid "MAKE YOUR OWN"
+msgstr "CREAR LA TUYA"
+
+#: src/ui/StartScreen.cpp
+msgid "OPEN A SAVED GAME"
+msgstr "CARGAR PARTIDA"
+
+#: src/ui/StartScreen.cpp
+msgid "QUIT"
+msgstr "SALIR"
+
+#: src/ui/StartScreen.cpp
+msgid "MAKE YOUR LAND"
+msgstr "CREA TU TERRENO"
+
+#: src/ui/StartScreen.cpp
+msgid "RIVER"
+msgstr "RÍO"
+
+#: src/ui/StartScreen.cpp
+msgid "LAKE"
+msgstr "LAGO"
+
+#: src/ui/StartScreen.cpp
+msgid "NEW RANDOM WORLD"
+msgstr "GENERAR MUNDO"
+
+#: src/ui/StartScreen.cpp
+msgid "PLAY!"
+msgstr "¡JUGAR!"
+
+#: src/ui/Windows.cpp
+msgid "BALANCE SHEET"
+msgstr "BALANCE"
+
+#: src/ui/Windows.cpp
+msgid "MARKET VALUE"
+msgstr "VALOR DE MERCADO"
+
+#: src/ui/Windows.cpp
+msgid "WEATHER"
+msgstr "TIEMPO"
+
+#: src/ui/Windows.cpp
+msgid "Week {0} of {1}"
+msgstr "Semana {0} de {1}"
+
+#: src/ui/Windows.cpp
+msgid "{0} Week Till"
+msgstr "Falta {0} semana"
+
+#: src/ui/Windows.cpp
+msgid "{0} Weeks Till"
+msgstr "Faltan {0} semanas"
+
+#: src/ui/Windows.cpp
+msgid "evaporation:Slow"
+msgstr "Lenta"
+
+#: src/ui/Windows.cpp
+msgid "evaporation:Average"
+msgstr "Media"
+
+#: src/ui/Windows.cpp
+msgid "evaporation:Fast"
+msgstr "Rápida"
+
+#: src/ui/Windows.cpp
+msgid "{0} Mph"
+msgstr "{0} mph"
+
+#: src/ui/Windows.cpp
+msgid "BANK"
+msgstr "BANCO"
+
+#: src/ui/Windows.cpp
+msgid "Borrow up to your limit."
+msgstr "Pide prestado hasta tu límite."
+
+#: src/ui/Windows.cpp
+msgid "There is no loan to repay."
+msgstr "No hay ningún préstamo que devolver."
+
+#: src/ui/Windows.cpp
+msgid "Not enough cash to repay."
+msgstr "No hay dinero suficiente para devolverlo."
+
+#: src/ui/Windows.cpp
+msgid "Loan repaid in full."
+msgstr "Préstamo devuelto del todo."
+
+#: src/ui/Windows.cpp
+msgid "Repaid {0}."
+msgstr "Devuelto: {0}."
+
+#: src/ui/Windows.cpp
+msgid "Loan granted."
+msgstr "Préstamo concedido."
+
+#: src/ui/Windows.cpp
+msgid "Over your credit limit."
+msgstr "Por encima de tu límite de crédito."
+
+#: src/ui/Windows.cpp
+msgid "MAP"
+msgstr "MAPA"
+
+#: src/ui/Windows.cpp
+msgid "Overhead"
+msgstr "Vista general"
+
+#: src/ui/Windows.cpp
+msgid "Weeds"
+msgstr "Malas hierbas"
+
+#: src/ui/Windows.cpp
+msgid "Soil Toxicity"
+msgstr "Toxicidad del suelo"
+
+#: src/ui/Windows.cpp
+msgid "Groundwater"
+msgstr "Agua subterránea"
+
+#: src/ui/Windows.cpp
+msgid "Soil Nutrients"
+msgstr "Nutrientes del suelo"
+
+#: src/ui/Windows.cpp
+msgid "Field Profit"
+msgstr "Beneficio del campo"
+
+#: src/ui/Windows.cpp
+msgid "Disease"
+msgstr "Enfermedades"
+
+#: src/ui/Windows.cpp
+msgid "Pests"
+msgstr "Plagas"
+
+#: src/ui/Windows.cpp
+msgid "Property"
+msgstr "Propiedad"
+
+#: src/ui/Windows.cpp
+msgid "SELL"
+msgstr "VENDER"
+
+#: src/ui/Windows.cpp
+msgid "BUY"
+msgstr "COMPRAR"
+
+#: src/ui/Windows.cpp
+msgid "Choose a plot on the map first."
+msgstr "Elige antes una parcela en el mapa."
+
+#: src/ui/Windows.cpp
+msgid "The land is yours."
+msgstr "La tierra es tuya."
+
+#: src/ui/Windows.cpp
+msgid "The land is sold."
+msgstr "La tierra se ha vendido."
+
+#: src/ui/Windows.cpp
+msgid "EVALUATION"
+msgstr "EVALUACIÓN"
+
+#: src/ui/Windows.cpp
+msgid "Farm Growth"
+msgstr "Crec. agrícola"
+
+#: src/ui/Windows.cpp
+msgid "Town Growth"
+msgstr "Crec. del pueblo"
+
+#: src/ui/Windows.cpp
+msgid "Productivity"
+msgstr "Productividad"
+
+#: src/ui/Windows.cpp
+msgid "Soil Quality"
+msgstr "Calidad del suelo"
+
+#: src/ui/Windows.cpp
+msgid "Environment Quality"
+msgstr "Calidad del entorno"
+
+#: src/ui/Windows.cpp
+msgid "Winter"
+msgstr "Invierno"
+
+#: src/ui/Windows.cpp
+msgid "Spring"
+msgstr "Primavera"
+
+#: src/ui/Windows.cpp
+msgid "Summer"
+msgstr "Verano"
+
+#: src/ui/Windows.cpp
+msgid "Fall"
+msgstr "Otoño"
+
+#: src/ui/Windows.cpp
+msgid "season box:Winter"
+msgstr "Invier."
+
+#: src/ui/Windows.cpp
+msgid "season box:Spring"
+msgstr "Primav."
+
+#: src/ui/Windows.cpp
+msgid "season box:Summer"
+msgstr "Verano"
+
+#: src/ui/Windows.cpp
+msgid "season box:Fall"
+msgstr "Otoño"
+
+#: src/ui/Windows.cpp
+msgid "SCHEDULE"
+msgstr "CALENDARIO"
+
+#: src/ui/Windows.cpp
+msgid "{0} {1}"
+msgstr "{0} {1}"
+
+#: src/ui/Windows.cpp
+msgid "Click on a building to store a bag of {0}. Each click buys one."
+msgstr "Haz clic en un edificio para guardar un saco de {0}. Cada clic compra uno."
+
+#: src/ui/Windows.cpp
+msgid "Click on your land to place: {0}. Each click buys one."
+msgstr "Haz clic en tus tierras para colocar: {0}. Cada clic compra uno."
+
+#: src/ui/Windows.cpp
+msgid "NOTHING"
+msgstr "NADA"
+
+#: src/ui/Windows.cpp
+msgid "FOR SALE"
+msgstr "EN VENTA"
+
+#: src/ui/Windows.cpp
+msgid "Item: {0} of {1}"
+msgstr "Artículo: {0} de {1}"
+
+#: src/ui/Windows.cpp
+msgid "SAVE GAME"
+msgstr "GUARDAR PARTIDA"
+
+#: src/ui/Windows.cpp
+msgid "LOAD GAME"
+msgstr "CARGAR PARTIDA"
+
+#: src/ui/Windows.cpp
+msgid "Save failed"
+msgstr "Error al guardar"
+
+#: src/ui/Windows.cpp
+msgid "No such saved game"
+msgstr "No existe esa partida"
+
+#: src/ui/Windows.cpp
+msgid "FARM EXPERT"
+msgstr "EXPERTO AGRÍCOLA"
+
+#: src/ui/Windows.cpp
+msgid "Damage:"
+msgstr "Daños:"
+
+#: src/ui/Windows.cpp
+msgid "LOAD CROP"
+msgstr "CARGAR CULTIVO"
+
+#: src/ui/Windows.cpp
+msgid "AIRPLANE"
+msgstr "AVIONETA"
+
+#: src/ui/Windows.cpp
+msgid "Not enough money, or nothing to do."
+msgstr "No hay dinero suficiente, o no hay nada que hacer."
+
+#: src/ui/Windows.cpp
+msgid "The tank is full."
+msgstr "El depósito está lleno."
+
+#: src/ui/Windows.cpp
+msgid "The spray tank is loaded."
+msgstr "El tanque de fumigación está cargado."
+
+#: src/ui/Windows.cpp
+msgid "The plane is repaired."
+msgstr "La avioneta está reparada."
+
+#: src/ui/Windows.cpp
+msgid "Arrows fly, F sprays, Enter lands (or the buttons below)"
+msgstr "Flechas vuelan, F fumiga, Intro aterriza (o los botones de abajo)"
+
+#: src/ui/Windows.cpp
+msgid "ABOUT"
+msgstr "ACERCA DE"
+
+#: src/ui/Windows.cpp
+msgid "An open re-implementation"
+msgstr "Una reimplementación libre"
+
+#: src/ui/Windows.cpp
+msgid "that runs on your own copy"
+msgstr "que funciona con tu copia"
+
+#: src/ui/Windows.cpp
+msgid "of SimFarm (Maxis, 1993)."
+msgstr "de SimFarm (Maxis, 1993)."
+
+#: src/ui/Windows.cpp
+msgid "Free software under the"
+msgstr "Software libre bajo la"
+
+#: src/ui/Windows.cpp
+msgid "GNU GPL version 3."
+msgstr "GNU GPL versión 3."
+
+#: src/ui/Windows.cpp
+msgid "No original files included."
+msgstr "Sin archivos originales."
+
+#: src/ui/Windows.cpp
+msgid "OpenSimFarm by Kalinke"
+msgstr "OpenSimFarm por Kalinke"
+
+#: src/ui/Windows.cpp
+msgid "HOW TO PLAY"
+msgstr "CÓMO SE JUEGA"
+
+#: src/ui/Windows.cpp
+msgid "Mouse"
+msgstr "Ratón"
+
+#: src/ui/Windows.cpp
+msgid "Menus, toolbar and windows. The tools on the left work on the map; drag to paint roads, fences and ditches."
+msgstr "Menús, barra de herramientas y ventanas. Las herramientas de la izquierda actúan sobre el mapa; arrastra para trazar caminos, vallas y acequias."
+
+#: src/ui/Windows.cpp
+msgid "Right button"
+msgstr "Botón derecho"
+
+#: src/ui/Windows.cpp
+msgid "On a building: show what is stored inside. Elsewhere: drop the chosen tool."
+msgstr "Sobre un edificio: muestra lo que hay guardado. En otro sitio: suelta la herramienta elegida."
+
+#: src/ui/Windows.cpp
+msgid "Scroll"
+msgstr "Desplazar"
+
+#: src/ui/Windows.cpp
+msgid "Right or middle drag, arrow keys or WASD, the scroll bars, or the map edges (check box under -)."
+msgstr "Arrastrar con el botón derecho o central, flechas o WASD, las barras de desplazamiento o los bordes del mapa (casilla bajo -)."
+
+#: src/ui/Windows.cpp
+msgid "Zoom"
+msgstr "Zoom"
+
+#: src/ui/Windows.cpp
+msgid "Mouse wheel or the + and - buttons."
+msgstr "Rueda del ratón o los botones + y -."
+
+#: src/ui/Windows.cpp
+msgid "1 Slow, 2 Normal, 3 Fast, 4 Ultra, 0 Pause. Space pauses and resumes."
+msgstr "1 Lenta, 2 Normal, 3 Rápida, 4 Ultra, 0 Pausa. Espacio pausa y reanuda."
+
+#: src/ui/Windows.cpp
+msgid "Save, load"
+msgstr "Guardar, cargar"
+
+#: src/ui/Windows.cpp
+msgid "F5 quick save, F9 quick load."
+msgstr "F5 guardado rápido, F9 carga rápida."
+
+#: src/ui/Windows.cpp
+msgid "Ctrl+1/2/3"
+msgstr "Ctrl+1/2/3"
+
+#: src/ui/Windows.cpp
+msgid "Interface size."
+msgstr "Tamaño de la interfaz."
+
+#: src/ui/Windows.cpp
+msgid "Esc"
+msgstr "Esc"
+
+#: src/ui/Windows.cpp
+msgid "Drop the tool or close the window."
+msgstr "Suelta la herramienta o cierra la ventana."
+
+#: src/ui/Windows.cpp
+msgid "Fields"
+msgstr "Campos"
+
+#: src/ui/Windows.cpp
+msgid "PLANT a crop on 8 x 8 cells of clear land you own, one free cell away from other fields. Machines do the work."
+msgstr "SIEMBRA un cultivo en 8 x 8 casillas de tierra despejada tuya, a una casilla libre de otros campos. Las máquinas hacen el trabajo."
+
+#: src/ui/Windows.cpp
+msgid "Water"
+msgstr "Agua"
+
+#: src/ui/Windows.cpp
+msgid "Wet soil? Dig empty ditches along the field. Dry? Fill ditches from a pump."
+msgstr "¿Suelo encharcado? Cava acequias vacías junto al campo. ¿Seco? Llena las acequias desde una bomba."
+
+#: src/ui/Windows.cpp
+msgid "Click a field for its schedule."
+msgstr "Haz clic en un campo para ver su calendario."
+
+#: src/ui/Windows.cpp
+msgid "Map, Property mode: buy more land."
+msgstr "Mapa, modo Propiedad: compra más tierra."
+
+#: src/ui/Windows.cpp
+msgid "Start"
+msgstr "Empezar"
+
+#: src/ui/Windows.cpp
+msgid "Click a yellow box for a ready-made farm, or a place on land for a new one, then USE THIS REGION."
+msgstr "Haz clic en un recuadro amarillo para una granja ya hecha, o en un lugar de tierra para una nueva, y luego en USAR ESTA REGIÓN."
+
+#: src/ui/Windows.cpp
+msgid "Crop duster"
+msgstr "Avioneta"
+
+#: src/ui/Windows.cpp
+msgid "Left / Right (or A / D) turn, Up / Down (or W / S) climb and dive, F sprays, Enter lands; or the SPRAY and LAND buttons. Space and 0-4 still pause and set the speed."
+msgstr "Izquierda / Derecha (o A / D) giran, Arriba / Abajo (o W / S) suben y bajan, F fumiga, Intro aterriza; o los botones FUMIGAR y ATERRIZAR. Espacio y 0-4 siguen pausando y fijando la velocidad."
+
+#: src/ui/Windows.cpp
+msgid "FUNDS"
+msgstr "FONDOS"
+
+#: src/ui/Windows.cpp
+msgid "Money in and out"
+msgstr "Entradas y salidas de dinero"
+
+#: src/ui/Windows.cpp
+msgid "Amount"
+msgstr "Importe"
+
+#: src/ui/Windows.cpp
+msgid "No money has changed hands yet."
+msgstr "Aún no ha cambiado de manos ningún dinero."
+
+#: src/ui/Windows.cpp
+msgid "Funds  {0}"
+msgstr "Fondos  {0}"
+
+#: src/ui/Windows.cpp
+msgid "SOUND"
+msgstr "SONIDO"
+
+#: src/ui/Windows.cpp
+msgid "Effects"
+msgstr "Efectos"
+
+#: src/ui/Windows.cpp
+msgid "Modern sound"
+msgstr "Sonido moderno"
+
+#: src/ui/Windows.cpp
+msgid "Cleaner effects in stereo,"
+msgstr "Efectos más limpios en estéreo,"
+
+#: src/ui/Windows.cpp
+msgid "The sound as the original"
+msgstr "El sonido como lo toca"
+
+#: src/ui/Windows.cpp
+msgid "new instruments for songs."
+msgstr "instrumentos nuevos."
+
+#: src/ui/Windows.cpp
+msgid "plays it."
+msgstr "el original."
+
+#: src/ui/Windows.cpp
+msgid "LANGUAGE"
+msgstr "IDIOMA"
+
+# Texts of the player's game files, by id
+
+msgid "crop:almonds.crp"
+msgstr "Almendras"
+
+msgid "crop:apples.crp"
+msgstr "Manzanas"
+
+msgid "crop:barley.crp"
+msgstr "Cebada"
+
+msgid "crop:carrots.crp"
+msgstr "Zanahorias"
+
+msgid "crop:corn.crp"
+msgstr "Maíz"
+
+msgid "crop:cotton.crp"
+msgstr "Algodón"
+
+msgid "crop:gladiolu.crp"
+msgstr "Gladiolos"
+
+msgid "crop:grapes.crp"
+msgstr "Uvas"
+
+msgid "crop:lettuce.crp"
+msgstr "Lechuga"
+
+msgid "crop:oats.crp"
+msgstr "Avena"
+
+msgid "crop:onions.crp"
+msgstr "Cebollas"
+
+msgid "crop:oranges.crp"
+msgstr "Naranjas"
+
+msgid "crop:peanuts.crp"
+msgstr "Cacahuetes"
+
+msgid "crop:potatoes.crp"
+msgstr "Patatas"
+
+msgid "crop:rice.crp"
+msgstr "Arroz"
+
+msgid "crop:sorghum.crp"
+msgstr "Sorgo"
+
+msgid "crop:soybeans.crp"
+msgstr "Soja"
+
+msgid "crop:strawber.crp"
+msgstr "Fresas"
+
+msgid "crop:sugar.crp"
+msgstr "Remolacha"
+
+msgid "crop:sunflowe.crp"
+msgstr "Girasol"
+
+msgid "crop:sweet.crp"
+msgstr "Boniato"
+
+msgid "crop:tobacco.crp"
+msgstr "Tabaco"
+
+msgid "crop:tomatoes.crp"
+msgstr "Tomates"
+
+msgid "crop:wheat.crp"
+msgstr "Trigo"
+
+msgid "crophelp:almonds.crp"
+msgstr "Florece mejor en climas fríos."
+
+msgid "crophelp:apples.crp"
+msgstr "Siembra para cosechar en primavera y en otoño."
+
+msgid "crophelp:barley.crp"
+msgstr "Cereal que no depende mucho del calor y se conserva bien."
+
+msgid "crophelp:carrots.crp"
+msgstr "Mantenla cálida y húmeda. Cuidado con el frío."
+
+msgid "crophelp:corn.crp"
+msgstr "Agota los nutrientes del suelo. Abona o rota los cultivos."
+
+msgid "crophelp:cotton.crp"
+msgstr "Siembra de mediados a finales de primavera, con clima cálido."
+
+msgid "crophelp:gladiolu.crp"
+msgstr "Exige un suelo de buena calidad. No inundes el campo."
+
+msgid "crophelp:grapes.crp"
+msgstr "Siembra a principios de primavera. No abones al sembrar."
+
+msgid "crophelp:lettuce.crp"
+msgstr "Madura bien con tiempo fresco."
+
+msgid "crophelp:oats.crp"
+msgstr "Cereal que no depende mucho del calor."
+
+msgid "crophelp:onions.crp"
+msgstr "Cultivo de invierno y de verano."
+
+msgid "crophelp:oranges.crp"
+msgstr "Abona antes de sembrar. Fumiga solo con tiempo cálido."
+
+msgid "crophelp:peanuts.crp"
+msgstr "Siembra con tiempo cálido. Evita sembrar en invierno."
+
+msgid "crophelp:potatoes.crp"
+msgstr "Mantenla húmeda, sin encharcar. Rota cada dos o tres años."
+
+msgid "crophelp:rice.crp"
+msgstr "Crece mejor en días cálidos y secos, de mayo a octubre."
+
+msgid "crophelp:sorghum.crp"
+msgstr "Cultivo de calor. Siembra a finales de mayo o principios de junio."
+
+msgid "crophelp:soybeans.crp"
+msgstr "Muy buena para rotar cultivos. Siembra en febrero y junio."
+
+msgid "crophelp:strawber.crp"
+msgstr "Necesita frío para florecer. Siembra en febrero o marzo."
+
+msgid "crophelp:sugar.crp"
+msgstr "El comienzo del crecimiento es delicado: trátala con cuidado."
+
+msgid "crophelp:sunflowe.crp"
+msgstr "Cuidado al abonar al principio del crecimiento."
+
+msgid "crophelp:sweet.crp"
+msgstr "Cosecha en un día seco y soleado."
+
+msgid "crophelp:tobacco.crp"
+msgstr "Mantén el suelo húmedo, sin encharcar."
+
+msgid "crophelp:tomatoes.crp"
+msgstr "Siembra con tiempo cálido y estable. Mantén el suelo húmedo."
+
+msgid "crophelp:wheat.crp"
+msgstr "Cuenta con las lluvias de verano. Se conserva bien en silos."
+
+msgid "event:0"
+msgstr "No hay ninguna partida GUARDADA."
+
+msgid "event:2"
+msgstr "Uno de tus campos ha muerto del todo porque no se cosechó a tiempo."
+
+msgid "event:3"
+msgstr "Algunos animales no llegan al pienso."
+
+msgid "event:4"
+msgstr "¡Tus animales tienen sed!"
+
+msgid "event:5"
+msgstr "Las reservas de pienso están peligrosamente bajas."
+
+msgid "event:6"
+msgstr "¡Ha reventado una tubería!"
+
+msgid "event:7"
+msgstr "¡Hay animales muriéndose de sed!"
+
+msgid "event:8"
+msgstr "¡Se ha averiado una de las bombas de agua!"
+
+msgid "event:9"
+msgstr "¡Se ha caído un tramo de valla!"
+
+msgid "event:10"
+msgstr "¡Hay animales sueltos!"
+
+msgid "event:11"
+msgstr "Tus animales tienen hambre. ¡Dales de comer pronto!"
+
+msgid "event:12"
+msgstr "¡Tus caballos necesitan agua!"
+
+msgid "event:13"
+msgstr "No puedes vender la parcela donde está la casa de tu granja."
+
+msgid "event:14"
+msgstr "Hay un campo en esa parcela. Allana todos los campos de la parcela antes de venderla."
+
+msgid "event:15"
+msgstr "Las enfermedades han llegado a niveles extremos."
+
+msgid "event:16"
+msgstr "Las malas hierbas están frenando el crecimiento de los cultivos."
+
+msgid "event:17"
+msgstr "¡El agua se ha llevado un tramo de carretera!"
+
+msgid "event:18"
+msgstr "El viento fuerte está levantando tormentas de polvo. Planta más árboles para evitar la erosión del suelo."
+
+msgid "event:19"
+msgstr "No hay sitio en los aeropuertos para otra avioneta."
+
+msgid "event:20"
+msgstr "El tornado ha pasado. Quizá sea hora de reconstruir algunas cosas."
+
+msgid "event:26"
+msgstr "El pueblo no tiene aeropuerto para tu avioneta. Espera a que construya uno."
+
+msgid "event:27"
+msgstr "El mercado de futuros está a la baja."
+
+msgid "event:28"
+msgstr "El banco puede ejecutar tu deuda si no pagas pronto el préstamo."
+
+msgid "event:29"
+msgstr "Has comprado una avioneta nueva. Te espera en el aeropuerto del pueblo."
+
+msgid "event:30"
+msgstr "Guarda las semillas y los productos en cobertizos o graneros. La lluvia puede estropearlos."
+
+msgid "event:31"
+msgstr "¡Atención! No puedes pagar tus impuestos. Hacienda te obligará a vender bienes si no pagas en los próximos tres (3) meses."
+
+msgid "event:32"
+msgstr "¡El pueblo ha comprado otra parcela de tierra!"
+
+msgid "event:33"
+msgstr "¡Atención! No tienes dinero para los impuestos estimados de fin de año. Aumenta tu dinero hasta entonces para evitar multas."
+
+msgid "event:34"
+msgstr "¡Atención! Ha pasado otro mes y sigues sin dinero para los impuestos estimados."
+
+msgid "event:35"
+msgstr "AVISO: Tus impuestos están pagados del todo. Gracias y que tengas un buen día."
+
+msgid "event:36"
+msgstr "AVISO: No pagaste tus impuestos en los 3 meses de gracia. Tus bienes se subastarán para pagar la deuda, con un 10% de recargo por el servicio."
+
+msgid "event:37"
+msgstr "AVISO: Hacienda ha vendido bienes suficientes para pagar tus impuestos atrasados."
+
+msgid "event:38"
+msgstr "¡Atención! No puedes hacer el pago del préstamo. El banco ejecutará la deuda en tres (3) meses si no pagas."
+
+msgid "event:39"
+msgstr "AVISO: El banco ha ejecutado tu deuda. Tus bienes se subastarán para pagar el préstamo."
+
+msgid "event:40"
+msgstr "AVISO: El banco ha vendido bienes suficientes para saldar tu préstamo."
+
+msgid "event:41"
+msgstr "AVISO: Ha pasado otro mes y sigues sin dinero para el pago. Date prisa, o el banco tendrá que ejecutar la deuda."
+
+msgid "event:42"
+msgstr "AVISO: El pago trimestral del préstamo está hecho. Paga los siguientes a tiempo."
+
+msgid "event:43"
+msgstr "El cultivo que quieres cambiar está en uso o ya cargado. Vende o destruye todo lo que le pertenezca antes de cambiarlo."
+
+msgid "event:44"
+msgstr "¡Ha reventado un depósito de agua! Quizá sea mejor allanarlo y comprar otro."
+
+msgid "event:45"
+msgstr "¿Seguro que quieres salir de esta partida? Para guardarla antes, pulsa VOLVER y elige Guardar en el menú Archivo."
+
+msgid "event:46"
+msgstr "¿Seguro que quieres destruir este edificio?"
+
+msgid "event:47"
+msgstr "¿Seguro que quieres destruir este campo?"
+
+msgid "event:48"
+msgstr "El viento ha llegado a un nivel peligroso. Protege tus cultivos de la pérdida de nutrientes con árboles (cortavientos) cerca."
+
+msgid "event:49"
+msgstr "ALERTA DE HELADA~La temperatura está bajo cero. Protege los cultivos sensibles con riego y árboles (cortavientos)."
+
+msgid "event:50"
+msgstr "ENCUENTRO CERCANO~Han aparecido círculos extraños en uno de tus campos. Puede ser una broma de los chavales. ¿O serán Ellos?"
+
+msgid "event:51"
+msgstr "¡Buena parte de tus tierras es demasiado tóxica! Usa menos productos químicos, o la Agencia Ambiental del pueblo podría multarte."
+
+msgid "event:52"
+msgstr "ALERTA DE TORNADO~¡Los fuertes vientos de la zona han formado un tornado!"
+
+msgid "event:53"
+msgstr "ALERTA DE SEQUÍA~Llueve menos de lo normal y el suelo se está secando. Riega los campos o siembra cultivos resistentes a la sequía."
+
+msgid "event:54"
+msgstr "ALERTA DE INUNDACIÓN~La lluvia por encima de la media ha empapado el suelo. Cuidado con ríos y lagos desbordados. Las acequias vacías drenan los campos."
+
+msgid "event:55"
+msgstr "LANGOSTAS~¡Una gran nube de langostas ha caído sobre un campo!"
+
+msgid "event:56"
+msgstr "Las aguas de la inundación vuelven a la normalidad. El suelo sigue muy empapado."
+
+msgid "event:57"
+msgstr "El viento ha vuelto a la normalidad."
+
+msgid "event:58"
+msgstr "¡Más lluvia ha puesto fin a la sequía!"
+
+msgid "event:59"
+msgstr "Atención: se prevé lluvia fuerte la semana que viene."
+
+msgid "event:60"
+msgstr "El pueblo aún no es lo bastante grande para otro estadio."
+
+msgid "event:61"
+msgstr "¡Empieza el rodeo del pueblo! Tu primo Jed quiere saber si apuestas 500 por él. Si gana, recibes 1.000."
+
+msgid "event:62"
+msgstr "¡Empieza la fiesta del pueblo! ¿Quieres presentar a la vaca Lucera al concurso de vacas? La inscripción cuesta $200."
+
+msgid "item:0"
+msgstr "Tierra~"
+
+msgid "item:1"
+msgstr "Agua~"
+
+msgid "item:2"
+msgstr "Acequia vacía~Llena de agua, la acequia riega los campos."
+
+msgid "item:3"
+msgstr "Valla~Impide que los animales entren en los campos."
+
+msgid "item:4"
+msgstr "Asfalto~Mejor para las máquinas, pero caro de hacer."
+
+msgid "item:5"
+msgstr "Tierra~Barato de hacer, pero puede dañar las máquinas."
+
+msgid "item:6"
+msgstr "Silo pequeño~Guarda hasta una cosecha."
+
+msgid "item:7"
+msgstr "Silo grande~Guarda cuatro cosechas."
+
+msgid "item:8"
+msgstr "Cobertizo peq.~Seis huecos para semillas y máquinas."
+
+msgid "item:9"
+msgstr "Cobertizo gde.~Nueve huecos para semillas y máquinas."
+
+msgid "item:10"
+msgstr "Granero pequeño~Nueve huecos para semillas, productos y animales."
+
+msgid "item:11"
+msgstr "Granero grande~Doce huecos para semillas, productos y animales."
+
+msgid "item:12"
+msgstr "Casa~Hogar, dulce hogar. Prospera y será la casa de tus sueños."
+
+msgid "item:13"
+msgstr "Banco~Haz clic aquí para ir al banco y pedir dinero prestado."
+
+msgid "item:14"
+msgstr "Almacén~Compra aquí todo lo que necesites."
+
+msgid "item:15"
+msgstr "Rocas~Caca de llama petrificada, de tiempos remotos."
+
+msgid "item:16"
+msgstr "Procesadora~Hace un delicioso batido de llama."
+
+msgid "item:17"
+msgstr "Bolsa de futuros~Cubre tus apuestas atento al mercado."
+
+msgid "item:34"
+msgstr "Vaca~Una vaca fuerte y buena, para la mejor nata."
+
+msgid "item:35"
+msgstr "Cerdo~Un paquetito de gruñidos para la pocilga."
+
+msgid "item:36"
+msgstr "Oveja~Esquílala y tendrás un buen abrigo de lana."
+
+msgid "item:37"
+msgstr "Caballo~Cría los mejores caballos y hazte rico deprisa."
+
+msgid "item:38"
+msgstr "Árboles~Protegen el suelo de la erosión del viento."
+
+msgid "item:39"
+msgstr "Árboles~Protegen el suelo de la erosión del viento."
+
+msgid "item:40"
+msgstr "Tractor~Necesario para tirar de las otras máquinas."
+
+msgid "item:42"
+msgstr "Arado~Tirado por el tractor, prepara el suelo para sembrar."
+
+msgid "item:44"
+msgstr "Sembradora~Tirada por el tractor, siembra las semillas."
+
+msgid "item:50"
+msgstr "Pulverizador~Tirado por el tractor, aplica productos al suelo."
+
+msgid "item:52"
+msgstr "Cosechadora~Tirando de un remolque, cosecha los campos maduros."
+
+msgid "item:54"
+msgstr "Remolque~Tirado por la cosechadora, lleva la cosecha."
+
+msgid "item:56"
+msgstr "Compuerta~Controla el paso del agua. Verde = ABIERTA Roja = CERRADA"
+
+msgid "item:60"
+msgstr "Molino~Bombea agua del pozo por las acequias para regar."
+
+msgid "item:61"
+msgstr "Bomba de agua~Bombea agua de lagos o ríos por las acequias hasta los campos."
+
+msgid "item:62"
+msgstr "Árboles~Protegen el suelo de la erosión del viento."
+
+msgid "item:63"
+msgstr "Árboles~Protegen el suelo de la erosión del viento."
+
+msgid "item:64"
+msgstr "Árboles~Protegen el suelo de la erosión del viento."
+
+msgid "item:65"
+msgstr "Árboles~Protegen el suelo de la erosión del viento."
+
+msgid "item:70"
+msgstr "Rocas~Caca de llama petrificada, de tiempos remotos."
+
+msgid "item:72"
+msgstr "Camión~Lleva la cosecha a los silos y al pueblo."
+
+msgid "item:74"
+msgstr "Abono~Repone los nutrientes del suelo de forma natural."
+
+msgid "item:75"
+msgstr "Pesticida~Reduce las plagas de los campos."
+
+msgid "item:76"
+msgstr "Herbicida~Reduce las malas hierbas de los campos."
+
+msgid "item:77"
+msgstr "Fungicida~Reduce las enfermedades de los campos."
+
+msgid "item:78"
+msgstr "Valla~Impide que los animales entren en los campos."
+
+msgid "item:79"
+msgstr "Abrevadero~Con el depósito lleno, da agua a los animales."
+
+msgid "item:80"
+msgstr "Cancela~Deja pasar máquinas y animales por la valla."
+
+msgid "item:81"
+msgstr "Pienso~Los animales también tienen que comer, ¿no?"
+
+msgid "item:82"
+msgstr "Avioneta~¡El avión, jefe, el avión!"
+
+msgid "item:83"
+msgstr "Acequia vacía~Llena de agua, la acequia riega los campos."
+
+msgid "item:84"
+msgstr "Acequia llena~Las acequias junto a los campos los riegan."
+
+msgid "item:86"
+msgstr "Casa~Hogar, dulce hogar. Prospera y será la casa de tus sueños."
+
+msgid "item:103"
+msgstr "Depósito~Guarda agua para los abrevaderos y la sequía."
+
+msgid "item:104"
+msgstr "Molino~Bombea agua del pozo por las acequias para regar."
+
+msgid "item:108"
+msgstr "Árboles~Protegen el suelo de la erosión del viento."
+
+msgid "item:125"
+msgstr "Escarabajo 57~Hecho en 1957, un coche con mucho estilo."
+
+msgid "item:128"
+msgstr "Puente~Unido a los caminos, lleva las máquinas sobre el agua."
+
+msgid "item:145"
+msgstr "Rocas~Caca de llama petrificada, de tiempos remotos."
+
+msgid "item:146"
+msgstr "Espantapájaros~Asusta a los niños y es una gran percha para los cuervos."
+
+msgid "item:147"
+msgstr "Evento~¡Vaya, aquí está la diversión!"
+
+msgid "item:87"
+msgstr "Maíz~Agota los nutrientes del suelo. Abona o rota los cultivos."
+
+msgid "item:109"
+msgstr "Maíz~Agota los nutrientes del suelo. Abona o rota los cultivos."
+
+msgid "item:88"
+msgstr "Trigo~Cuenta con las lluvias de verano. Se conserva bien en silos."
+
+msgid "item:110"
+msgstr "Trigo~Cuenta con las lluvias de verano. Se conserva bien en silos."
+
+msgid "item:89"
+msgstr "Cebada~Cereal que no depende mucho del calor y se conserva bien."
+
+msgid "item:111"
+msgstr "Cebada~Cereal que no depende mucho del calor y se conserva bien."
+
+msgid "item:90"
+msgstr "Patatas~Mantenla húmeda, sin encharcar. Rota cada dos o tres años."
+
+msgid "item:112"
+msgstr "Patatas~Mantenla húmeda, sin encharcar. Rota cada dos o tres años."
+
+msgid "item:91"
+msgstr "Avena~Cereal que no depende mucho del calor."
+
+msgid "item:113"
+msgstr "Avena~Cereal que no depende mucho del calor."
+
+msgid "item:92"
+msgstr "Arroz~Crece mejor en días cálidos y secos, de mayo a octubre."
+
+msgid "item:114"
+msgstr "Arroz~Crece mejor en días cálidos y secos, de mayo a octubre."
+
+msgid "item:93"
+msgstr "Sorgo~Cultivo de calor. Siembra a finales de mayo o principios de junio."
+
+msgid "item:115"
+msgstr "Sorgo~Cultivo de calor. Siembra a finales de mayo o principios de junio."
+
+msgid "item:94"
+msgstr "Soja~Muy buena para rotar cultivos. Siembra en febrero y junio."
+
+msgid "item:116"
+msgstr "Soja~Muy buena para rotar cultivos. Siembra en febrero y junio."
+
+msgid "item:95"
+msgstr "Algodón~Siembra de mediados a finales de primavera, con clima cálido."
+
+msgid "item:117"
+msgstr "Algodón~Siembra de mediados a finales de primavera, con clima cálido."
+
+msgid "item:96"
+msgstr "Cebollas~Cultivo de invierno y de verano."
+
+msgid "item:118"
+msgstr "Cebollas~Cultivo de invierno y de verano."
+
+msgid "item:97"
+msgstr "Tomates~Siembra con tiempo cálido y estable. Mantén el suelo húmedo."
+
+msgid "item:119"
+msgstr "Tomates~Siembra con tiempo cálido y estable. Mantén el suelo húmedo."
+
+msgid "item:98"
+msgstr "Lechuga~Madura bien con tiempo fresco."
+
+msgid "item:120"
+msgstr "Lechuga~Madura bien con tiempo fresco."
+
+msgid "item:99"
+msgstr "Zanahorias~Mantenla cálida y húmeda. Cuidado con el frío."
+
+msgid "item:121"
+msgstr "Zanahorias~Mantenla cálida y húmeda. Cuidado con el frío."
+
+msgid "item:100"
+msgstr "Fresas~Necesita frío para florecer. Siembra en febrero o marzo."
+
+msgid "item:122"
+msgstr "Fresas~Necesita frío para florecer. Siembra en febrero o marzo."
+
+msgid "item:101"
+msgstr "Remolacha~El comienzo del crecimiento es delicado: trátala con cuidado."
+
+msgid "item:123"
+msgstr "Remolacha~El comienzo del crecimiento es delicado: trátala con cuidado."
+
+msgid "item:102"
+msgstr "Cacahuetes~Siembra con tiempo cálido. Evita sembrar en invierno."
+
+msgid "item:124"
+msgstr "Cacahuetes~Siembra con tiempo cálido. Evita sembrar en invierno."
+
+msgid "card:1:0"
+msgstr "Bienvenido a la Cooperativa Agrícola. Pulsa una imagen para saber más."
+
+msgid "card:2:0"
+msgstr "Iconos del campo"
+
+msgid "card:2:1"
+msgstr "Cultivo sembrado en el campo"
+
+msgid "card:2:2"
+msgstr "Pocos nutrientes en el suelo"
+
+msgid "card:2:3"
+msgstr "Demasiada agua en el suelo"
+
+msgid "card:2:4"
+msgstr "Poca agua en el suelo"
+
+msgid "card:2:5"
+msgstr "Suelo muy tóxico"
+
+msgid "card:2:6"
+msgstr "Demasiadas malas hierbas"
+
+msgid "card:2:7"
+msgstr "Muchas plagas en el campo"
+
+msgid "card:2:8"
+msgstr "Campo con enfermedad"
+
+msgid "card:5:0"
+msgstr "Sobre los animales"
+
+msgid "card:5:1"
+msgstr "Vaca~Vida: 20 años~Come: 1/4 de fardo de pienso al mes~Se aparea: 15-20 meses~Gestación: 10 meses"
+
+msgid "card:6:0"
+msgstr "Sobre los animales"
+
+msgid "card:6:1"
+msgstr "Cerdo~Vida: 15 años~Come: 1/8 de fardo de pienso al mes~Se aparea: 8 meses~Gestación: 11 meses"
+
+msgid "card:7:0"
+msgstr "Sobre los animales"
+
+msgid "card:7:1"
+msgstr "Oveja~Vida: 10 años~Come: 1/16 de fardo de pienso al mes~Se aparea: 3 meses~Gestación: 6 meses"
+
+msgid "card:8:0"
+msgstr "Sobre los animales"
+
+msgid "card:8:1"
+msgstr "Caballo~Vida: 20 años~Come: 1/4 de fardo de pienso al mes~Se aparea: 4 años~Gestación: 11-12 meses"
+
+msgid "card:26:0"
+msgstr "Sobre los productos"
+
+msgid "card:26:1"
+msgstr "El abono aumenta los nutrientes de los campos. El de SimFarm es natural y no aumenta la toxicidad, pero rotar los cultivos también repone nutrientes."
+
+msgid "card:27:0"
+msgstr "Sobre los productos"
+
+msgid "card:27:1"
+msgstr "El pesticida reduce las plagas de los campos. Bastan dos aplicaciones. No te pases, o el campo se vuelve tóxico."
+
+msgid "card:28:0"
+msgstr "Sobre los productos"
+
+msgid "card:28:1"
+msgstr "El herbicida elimina el exceso de malas hierbas. Bastan dos aplicaciones. No te pases, o el campo se vuelve tóxico."
+
+msgid "card:29:0"
+msgstr "Sobre los productos"
+
+msgid "card:29:1"
+msgstr "El fungicida cura los campos enfermos. Bastan dos aplicaciones. No te pases, o el campo se vuelve tóxico."
+
+msgid "card:30:0"
+msgstr "Sobre las máquinas"
+
+msgid "card:30:1"
+msgstr "El tractor tira de arados, sembradoras, pulverizadores y remolques. Cuesta $400 nuevo y ocupa un (1) hueco en un edificio."
+
+msgid "card:31:0"
+msgstr "Sobre las máquinas"
+
+msgid "card:31:1"
+msgstr "El arado prepara el campo para la siembra y lo arrastra un tractor. Cuesta $200 nuevo y ocupa un (1) hueco en un edificio."
+
+msgid "card:32:0"
+msgstr "Sobre las máquinas"
+
+msgid "card:32:1"
+msgstr "La sembradora siembra las semillas en los campos. Necesita un tractor que tire de ella y semillas. Cuesta $200 nueva y ocupa un (1) hueco en un edificio. El precio de las semillas varía."
+
+msgid "card:33:0"
+msgstr "Sobre las máquinas"
+
+msgid "card:33:1"
+msgstr "El pulverizador aplica abono, pesticida, herbicida y fungicida a los campos. Necesita un tractor y los productos. Cuesta $200 nuevo y ocupa un (1) hueco en un edificio."
+
+msgid "card:34:0"
+msgstr "Sobre las máquinas"
+
+msgid "card:34:1"
+msgstr "La cosechadora cosecha los campos. Necesita un remolque, y un camión para llevar la cosecha a un silo o al pueblo. Cuesta $400 nueva y ocupa dos (2) huecos en un edificio."
+
+msgid "card:35:0"
+msgstr "Sobre las máquinas"
+
+msgid "card:35:1"
+msgstr "El remolque guarda la cosecha mientras se hace y lo arrastra la cosechadora. Cuesta $200 nuevo y ocupa dos (2) huecos en un edificio."
+
+msgid "card:36:0"
+msgstr "Sobre las máquinas"
+
+msgid "card:36:1"
+msgstr "El camión lleva la cosecha de los campos a los silos o al pueblo. Cuesta $500 nuevo y ocupa dos (2) huecos en un edificio."
+
+msgid "card:37:0"
+msgstr "Sobre las máquinas"
+
+msgid "card:37:1"
+msgstr "La avioneta fumiga muchos campos deprisa. Cuesta $6000 y el pueblo debe tener un aeropuerto."
+
+msgid "card:40:0"
+msgstr "Sobre los edificios"
+
+msgid "card:40:1"
+msgstr "El silo pequeño guarda cosechas: cabe una (1) cosecha. Cuesta $800."
+
+msgid "card:41:0"
+msgstr "Sobre los edificios"
+
+msgid "card:41:1"
+msgstr "El silo grande guarda cosechas: caben cuatro (4) cosechas. Cuesta $2400."
+
+msgid "card:42:0"
+msgstr "Sobre los edificios"
+
+msgid "card:42:1"
+msgstr "El cobertizo pequeño guarda máquinas y semillas. Tiene seis (6) huecos. Cuesta $1200."
+
+msgid "card:43:0"
+msgstr "Sobre los edificios"
+
+msgid "card:43:1"
+msgstr "El cobertizo grande guarda máquinas y semillas. Tiene nueve (9) huecos. Cuesta $1440."
+
+msgid "card:44:0"
+msgstr "Sobre los edificios"
+
+msgid "card:44:1"
+msgstr "El granero pequeño guarda productos, semillas y animales, y los protege bien: en el granero comen y beben menos. Tiene nueve (9) huecos. Cuesta $2250."
+
+msgid "card:45:0"
+msgstr "Sobre los edificios"
+
+msgid "card:45:1"
+msgstr "El granero grande guarda productos, semillas y animales. También guarda máquinas, pero los cobertizos son más baratos. Tiene doce (12) huecos. Cuesta $2520."
+
+msgid "card:46:0"
+msgstr "Sobre los edificios"
+
+msgid "card:46:1"
+msgstr "La bomba de agua lleva agua de ríos y lagos a los campos por las acequias de riego. Para llegar más lejos, usa más de una. Las inundaciones pueden dañarla. Cuesta $1000."
+
+msgid "card:47:0"
+msgstr "Sobre los edificios"
+
+msgid "card:47:1"
+msgstr "El molino bombea agua de pozos por las acequias de riego hasta los campos. Solo funciona con viento de al menos 10 mph. Cuesta $2000."
+
+msgid "card:48:0"
+msgstr "Sobre los edificios"
+
+msgid "card:48:1"
+msgstr "El depósito de agua guarda agua para los animales. Se llena junto a una acequia llena, y mantiene llenos los abrevaderos. Cuesta $200."
+
+msgid "card:10:0"
+msgstr "Sobre el cultivo"
+
+msgid "card:11:0"
+msgstr "Sobre el cultivo"
+
+msgid "card:12:0"
+msgstr "Sobre el cultivo"
+
+msgid "card:13:0"
+msgstr "Sobre el cultivo"
+
+msgid "card:14:0"
+msgstr "Sobre el cultivo"
+
+msgid "card:15:0"
+msgstr "Sobre el cultivo"
+
+msgid "card:16:0"
+msgstr "Sobre el cultivo"
+
+msgid "card:17:0"
+msgstr "Sobre el cultivo"
+
+msgid "card:18:0"
+msgstr "Sobre el cultivo"
+
+msgid "card:19:0"
+msgstr "Sobre el cultivo"
+
+msgid "card:20:0"
+msgstr "Sobre el cultivo"
+
+msgid "card:21:0"
+msgstr "Sobre el cultivo"
+
+msgid "card:22:0"
+msgstr "Sobre el cultivo"
+
+msgid "card:23:0"
+msgstr "Sobre el cultivo"
+
+msgid "card:24:0"
+msgstr "Sobre el cultivo"
+
+msgid "card:25:0"
+msgstr "Sobre el cultivo"

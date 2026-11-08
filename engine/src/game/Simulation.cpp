@@ -2499,7 +2499,7 @@ void Simulation::TownGrowthWeek()
 {
     // every week the plot the town works on grows a level while the pot holds 25, or loses one while it is negative
     const int c = static_cast<int>(Scalar("town_work_x")), r = static_cast<int>(Scalar("town_work_y"));
-    if (c < 0 || r < 0 || c >= 12 || r >= 12 || _s.PlotOwner(c, r) != 2)
+    if (c < 0 || r < 0 || c >= _s.Plots() || r >= _s.Plots() || _s.PlotOwner(c, r) != 2)
         return;
     if (_townPot >= 25)
     {
