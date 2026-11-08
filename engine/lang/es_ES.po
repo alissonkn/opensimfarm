@@ -2557,6 +2557,27 @@ msgstr "Remolacha"
 msgid "crop:sunflowe.crp"
 msgstr "Girasol"
 
+msgid "song:sunup.mid"
+msgstr "AMANECER"
+
+msgid "song:chores.mid"
+msgstr "FAENAS DEL ALBA"
+
+msgid "song:harvest_polka.mid"
+msgstr "POLCA COSECHERA"
+
+msgid "song:dry_spell.mid"
+msgstr "TIEMPO SECO"
+
+msgid "song:fairground.mid"
+msgstr "DOS PASOS DE FIESTA"
+
+msgid "song:dust_and_spurs.mid"
+msgstr "POLVO Y ESPUELAS"
+
+msgid "song:hoedown.mid"
+msgstr "BAILE DE LA COSECHA"
+
 msgid "crop:sweet.crp"
 msgstr "Boniato"
 

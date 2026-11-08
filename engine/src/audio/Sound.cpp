@@ -150,13 +150,16 @@ void SoundPlayer::PlayMusic(const std::string& name, bool loop)
 {
     if (std::getenv("OSF_TRACE_SOUND") && name != _songName)
         std::fprintf(stderr, "music %.2f %s\n", SDL_GetTicks() / 1000.0, name.c_str());
-    if (!_dev || !_mega || (name == _songName && !(loop && MusicEnded())))
-        return;
+    if (!_dev || !_mega || (name == _songName && !MusicEnded()))
+        return; // the same song goes on; one played to its end starts again
     auto it = _songs.find(name);
     if (it == _songs.end())
     {
         Song song;
-        ParseXmi(_mega->Read(name), song);
+        if (name.size() > 4 && name.compare(name.size() - 4, 4, ".mid") == 0)
+            LoadBuiltinSong(name, song); // the engine's own songs
+        else
+            ParseXmi(_mega->Read(name), song);
         it = _songs.emplace(name, std::move(song)).first;
     }
     std::lock_guard<std::mutex> g(_lock);
@@ -312,11 +315,54 @@ int SoundPlayer::SelfTest(const Megadata& mega)
         std::printf("%-14s %5.1f s  peak %.3f  rms %.3f  cpu %.0f%%  %s\n", what.c_str(), seconds, peak, rms, 100.0 * cpu / std::max(1e-9, seconds),
                     ok ? "ok" : "FAIL");
     };
-    for (const char* song : { "amain.xmi", "dfarm.xmi", "ffarm.xmi", "genfarm.xmi", "carnival.xmi", "rodeo.xmi", "cowman.xmi" })
+    // the standard MIDI reader on a small file: running status, a note-on at velocity 0 as the note-off, a tempo
+    // change half-way (quarter = 0.5 s, then 0.25 s; 96 ticks a quarter)
+    {
+        const std::vector<uint8_t> mid = { 'M', 'T', 'h', 'd', 0, 0, 0, 6, 0, 0, 0, 1, 0, 96, 'M', 'T', 'r', 'k', 0, 0, 0, 28,
+                                           0x00, 0xC0, 40,                  // fiddle
+                                           0x00, 0x90, 60, 100,             // C4 on
+                                           0x60, 64, 90,                    // one quarter later: E4 on (running status)
+                                           0x00, 60, 0,                     // C4 off (velocity 0)
+                                           0x00, 0xFF, 0x51, 3, 0x03, 0xD0, 0x90, // tempo 250000 us a quarter
+                                           0x60, 0x80, 64, 0,               // E4 off one (faster) quarter later
+                                           0x00, 0xFF, 0x2F, 0 };
+        Song m;
+        const bool parsed = ParseMidi(mid, m);
+        const bool ok = parsed && m.events.size() == 3 && m.events[1].a == 60 && m.events[1].duration == 60 && m.events[2].a == 64 &&
+                        m.events[2].tick == 60 && m.events[2].duration == 30 && m.length == 90;
+        fails += !ok;
+        std::printf("MIDI reader    running status, velocity-0 note-off, tempo change  %s\n", ok ? "ok" : "FAIL");
+    }
+    std::vector<std::string> songs = { "amain.xmi", "dfarm.xmi", "ffarm.xmi", "genfarm.xmi", "carnival.xmi", "rodeo.xmi", "cowman.xmi" };
+    const size_t gameSongs = songs.size();
+    for (const BuiltinSongInfo& b : BuiltinSongs())
+        songs.push_back(b.file);
+    if (BuiltinSongs().size() < 7)
+    {
+        ++fails;
+        std::printf("engine songs: %zu built in  FAIL\n", BuiltinSongs().size());
+    }
+    for (const std::string& song : songs)
     {
         Song s;
-        if (!ParseXmi(mega.Read(song), s))
+        const bool own = &song - &songs[0] >= static_cast<long>(gameSongs);
+        if (own ? !LoadBuiltinSong(song, s) : !ParseXmi(mega.Read(song), s))
+        {
+            fails += own;
             continue;
+        }
+        if (own)
+        {
+            // an engine song: named, with the mood of one of the game's songs, between half a minute and six minutes,
+            // every note sounding
+            bool notes = true;
+            for (const Song::Event& e : s.events)
+                notes &= (e.status & 0xF0) != 0x90 || e.duration > 0;
+            const bool mood = std::find(songs.begin(), songs.begin() + static_cast<long>(gameSongs), s.mood) != songs.begin() + static_cast<long>(gameSongs);
+            const bool ok = !s.title.empty() && mood && notes && s.length >= 30 * 120 && s.length <= 360 * 120;
+            fails += !ok;
+            std::printf("%-20s \"%s\" mood %s, %.0f s  %s\n", song.c_str(), s.title.c_str(), s.mood.c_str(), s.length / 120.0, ok ? "ok" : "FAIL");
+        }
         {
             // which instruments the song uses: channel / program and its note count
             std::map<int, int> notes;
@@ -326,7 +372,7 @@ int SoundPlayer::SelfTest(const Megadata& mega)
                 if ((e.status & 0xF0) == 0xC0) prog[e.status & 15] = e.a;
                 if ((e.status & 0xF0) == 0x90 && e.b) notes[(e.status & 15) * 1000 + ((e.status & 15) == 9 ? 0 : prog[e.status & 15])]++;
             }
-            std::printf("%-14s", song);
+            std::printf("%-14s", song.c_str());
             for (auto [k, c] : notes)
                 std::printf(" ch%d:%s%d x%d", k / 1000, k / 1000 == 9 ? "drums" : "p", k % 1000, c);
             std::printf("\n");

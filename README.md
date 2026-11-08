@@ -25,8 +25,11 @@ game behaves and how its files are laid out.
   words printed in its pictures are shown in the chosen language too. More languages can be added without
   programming (see [Languages](#languages))
 * Zoom (mouse wheel or the + / − buttons) and moving around with the arrow keys or WASD, at any window size
-* A radio at the right of the menu bar: skip back and forth through the game's songs, pause and resume the music,
-  or leave the choice to the game (AUTO)
+* A radio at the right of the menu bar: skip back and forth through the songs, pause and resume the music, or leave
+  the choice to the game (AUTO)
+* Seven new songs of its own, composed for OpenSimFarm and built into the program (free like the rest of it, see
+  `engine/tools/make_songs.py`): each shares the mood of one of the game's songs, takes turns with it while the game
+  chooses, and is on the radio after the game's songs
 * A Funds list of every change to your cash (click the funds), and every crop available from the start (the Plant
   list and the market show all crop files)
 * Window scaling, plus optional extras: smart driving for machines, "Modern Sound" (the game's own sounds,

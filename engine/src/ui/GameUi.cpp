@@ -5,6 +5,7 @@
 
 #include "assets/Graphics.h"
 #include "assets/Megadata.h"
+#include "audio/Music.h"
 #include "audio/Sound.h"
 #include "core/Lang.h"
 #include "core/Paths.h"
@@ -324,15 +325,36 @@ void GameUi::DrawMenus()
 
 // ---------------------------------------------------------------- the radio (an engine addition)
 namespace {
-struct RadioStation { const char* file; const char* title; };
-// the game's songs, with the engine's own descriptive names for when the game plays them
-constexpr RadioStation kStations[GameUi::kRadioSongs] = {
-    { "amain.xmi", N_("TITLE THEME") }, { "genfarm.xmi", N_("FARM LIFE") }, { "ffarm.xmi", N_("GOOD YEARS") },
-    { "dfarm.xmi", N_("HARD TIMES") },  { "carnival.xmi", N_("COUNTY FAIR") }, { "rodeo.xmi", N_("RODEO") },
-    { "cowman.xmi", N_("CELEBRATION") },
-};
+struct RadioStation { std::string file, title; bool own; };
+// the game's songs, with the engine's own descriptive names for when the game plays them, then the engine's songs
+const std::vector<RadioStation>& Stations()
+{
+    static const std::vector<RadioStation> list = [] {
+        std::vector<RadioStation> v = { { "amain.xmi", N_("TITLE THEME"), false }, { "genfarm.xmi", N_("FARM LIFE"), false },
+                                        { "ffarm.xmi", N_("GOOD YEARS"), false },  { "dfarm.xmi", N_("HARD TIMES"), false },
+                                        { "carnival.xmi", N_("COUNTY FAIR"), false }, { "rodeo.xmi", N_("RODEO"), false },
+                                        { "cowman.xmi", N_("CELEBRATION"), false } };
+        // the engine's songs in the order of the game songs whose mood they share
+        const size_t game = v.size();
+        for (size_t m = 0; m <= game; ++m)
+            for (const BuiltinSongInfo& b : BuiltinSongs())
+            {
+                size_t mood = game;
+                for (size_t k = 0; k < game; ++k)
+                    if (b.mood == v[k].file)
+                        mood = k;
+                if (mood == m)
+                    v.push_back({ b.file, b.title, true });
+            }
+        return v;
+    }();
+    return list;
+}
+std::string StationTitle(const RadioStation& st) { return st.own ? TrId("song:" + st.file, st.title) : std::string(Tr(st.title.c_str())); }
 constexpr int kRadioW = GameUi::kRadioWidth, kRadioH = 14; // right after the Help menu at 640 wide; fits "PAUSED CELEBRATION"
 }
+
+int GameUi::RadioCount() { return static_cast<int>(Stations().size()); }
 
 Rect GameUi::RadioBox() const { return { _w - kRadioW - 4, 1, kRadioW, kRadioH }; }
 
@@ -348,8 +370,8 @@ Rect GameUi::RadioButton(int k) const
 
 int GameUi::RadioIndex(const std::string& song) const
 {
-    for (int i = 0; i < kRadioSongs; ++i)
-        if (song == kStations[i].file)
+    for (int i = 0; i < RadioCount(); ++i)
+        if (song == Stations()[static_cast<size_t>(i)].file)
             return i;
     return -1;
 }
@@ -357,10 +379,22 @@ int GameUi::RadioIndex(const std::string& song) const
 std::string GameUi::RadioSong(const std::string& gameSong)
 {
     if (!_radioManual)
-        return gameSong;
+    {
+        // the game's choice; an engine song of the same mood takes turns with it, a whole song each
+        std::vector<std::string> turn = { gameSong };
+        for (const BuiltinSongInfo& b : BuiltinSongs())
+            if (b.mood == gameSong)
+                turn.push_back(b.file);
+        _radioLoops = turn.size() == 1;
+        int& k = _moodTurn[gameSong];
+        if (_ctx.audio && _ctx.audio->MusicEnded() && _ctx.audio->CurrentSong() == turn[static_cast<size_t>(k) % turn.size()])
+            k = (k + 1) % static_cast<int>(turn.size());
+        return turn[static_cast<size_t>(k) % turn.size()];
+    }
+    _radioLoops = false;
     if (_ctx.audio && _ctx.audio->MusicEnded())
-        _radioTrack = (_radioTrack + 1) % kRadioSongs; // a picked song was played to its end: the next one
-    return kStations[_radioTrack].file;
+        _radioTrack = (_radioTrack + 1) % RadioCount(); // a picked song was played to its end: the next one
+    return Stations()[static_cast<size_t>(_radioTrack)].file;
 }
 
 bool GameUi::RadioClick(int x, int y)
@@ -376,7 +410,7 @@ bool GameUi::RadioClick(int x, int y)
             int cur = _radioManual ? _radioTrack : RadioIndex(_ctx.audio ? _ctx.audio->CurrentSong() : "");
             if (cur < 0)
                 cur = 0;
-            _radioTrack = (cur + (k == 2 ? 1 : kRadioSongs - 1)) % kRadioSongs;
+            _radioTrack = (cur + (k == 2 ? 1 : RadioCount() - 1)) % RadioCount();
             if (!_radioManual)
             {
                 // a hint on the status line only (not kept in its message history)
@@ -449,8 +483,8 @@ void GameUi::DrawRadio()
     _g.Fill(d.x, d.y, d.w, d.h, kBlack);
     _g.Frame(d.x, d.y, d.w, d.h, kDarkGrey);
     const int idx = _radioManual ? _radioTrack : RadioIndex(_ctx.audio ? _ctx.audio->CurrentSong() : "");
-    const std::string name = idx >= 0 ? Tr(kStations[idx].title) : Tr("NO MUSIC");
-    std::string prefix = !musicOn ? std::string(Tr("PAUSED")) + " " : idx >= 0 ? std::to_string(idx + 1) + "/" + std::to_string(kRadioSongs) + " " : "";
+    const std::string name = idx >= 0 ? StationTitle(Stations()[static_cast<size_t>(idx)]) : std::string(Tr("NO MUSIC"));
+    std::string prefix = !musicOn ? std::string(Tr("PAUSED")) + " " : idx >= 0 ? std::to_string(idx + 1) + "/" + std::to_string(RadioCount()) + " " : "";
     if (Gfx::SmallTextWidth(prefix + name) > d.w - 5 && musicOn)
         prefix.clear(); // a long name: the number gives way
     _g.SmallText(d.x + 3, d.y + 3, prefix, musicOn ? kGreen : kYellow);

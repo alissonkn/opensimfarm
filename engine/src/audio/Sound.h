@@ -37,8 +37,9 @@ public:
     void Play(const std::string& name, int cellX = -1, int cellY = -1);
     void SetEnabled(bool on) { _enabled = on; }
     bool Enabled() const { return _enabled; }
-    // music: name = an .xmi from the archive; the same song is not restarted
-    // (an ended song that is asked for again with loop starts over)
+    // music: name = an .xmi from the archive or one of the engine's songs (.mid, BuiltinSongs); the same song is not
+    // restarted while it plays
+    // (one played to its end without looping starts over when asked for again)
     void PlayMusic(const std::string& name, bool loop = true);
     bool MusicEnded() const; // the song was played to its end without looping (the radio's next song)
     void StopMusic();

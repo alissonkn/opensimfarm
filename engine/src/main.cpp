@@ -3038,7 +3038,8 @@ int main(int argc, char** argv)
         checkGameFolder();
         if (atStart)
         {
-            sound.PlayMusic(ui.RadioSong("amain.xmi"), !ui.RadioManual());
+            const std::string song = ui.RadioSong("amain.xmi");
+            sound.PlayMusic(song, ui.RadioLoops());
             SDL_Event e;
             while (SDL_PollEvent(&e))
             {
@@ -3149,7 +3150,10 @@ int main(int argc, char** argv)
             view.Update(static_cast<float>(dt));
         if (!ui.Modal())
             sim->Advance(dt);
-        sound.PlayMusic(ui.RadioSong(sim->Song()), !ui.RadioManual());
+        {
+            const std::string song = ui.RadioSong(sim->Song());
+            sound.PlayMusic(song, ui.RadioLoops());
+        }
         std::string m;
         while (sim->TakeMessage(m))
             ui.ShowMessage(m);

@@ -21,6 +21,7 @@ Texts of the player's game files are translated by id; they are not in the code,
     event:<n>          message box n of events.dat; '~' starts a new line, a first line ended by '~' is a centred title
     item:<n>           item text n of itemtext.dat: the name, '~', the description
     card:<card>:<n>    text box n (counting from 0) of the Farm Expert's card <card>
+    song:<file>        the radio title of one of the engine's own songs (song:hoedown.mid; English in the file)
 A crop's information card is translated by its parts (the cropinfo:... texts in the code).
 """
 import os
@@ -153,7 +154,7 @@ def write_pot(found):
     open(os.path.join(LANG, "opensimfarm.pot"), "w", encoding="utf-8").write("".join(out))
 
 
-ID_KINDS = ("crop:", "crophelp:", "event:", "item:", "card:")
+ID_KINDS = ("crop:", "crophelp:", "event:", "item:", "card:", "song:")
 
 
 def is_id(s):

@@ -5,8 +5,19 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <map>
 
 namespace osf {
+
+// the songs in engine/music/, built into the program (music_builtin.cpp, made by tools/EmbedMusic.cmake)
+struct BuiltinMusic
+{
+    const char* file;
+    const unsigned char* data;
+    unsigned long size;
+};
+extern const BuiltinMusic kBuiltinMusic[];
+extern const int kBuiltinMusicCount;
 
 static uint32_t Vlq(const std::vector<uint8_t>& d, size_t& i)
 {
@@ -70,6 +81,179 @@ bool ParseXmi(const std::vector<uint8_t>& d, Song& out)
         out.length = std::max(out.length, tick + ev.duration);
     }
     return !out.events.empty();
+}
+
+bool ParseMidi(const std::vector<uint8_t>& d, Song& out)
+{
+    out = Song{};
+    auto be32 = [&](size_t i) { return (static_cast<uint32_t>(d[i]) << 24) | (d[i + 1] << 16) | (d[i + 2] << 8) | d[i + 3]; };
+    if (d.size() < 14 || std::memcmp(d.data(), "MThd", 4) != 0 || be32(4) < 6)
+        return false;
+    const int format = (d[8] << 8) | d[9], tracks = (d[10] << 8) | d[11], division = (d[12] << 8) | d[13];
+    if (format > 1 || division <= 0 || (division & 0x8000))
+        return false; // format 2 and SMPTE time are not used by songs
+    // every event of every track in file ticks; the tempo map turns them into seconds afterwards
+    struct Raw { uint64_t tick; int order; uint8_t status, a, b; };
+    std::vector<Raw> raw;
+    std::vector<std::pair<uint64_t, uint32_t>> tempos; // (tick, microseconds per quarter)
+    size_t at = 8 + be32(4);
+    for (int t = 0; t < tracks && at + 8 <= d.size(); ++t)
+    {
+        const size_t len = be32(at + 4);
+        if (std::memcmp(&d[at], "MTrk", 4) != 0)
+        {
+            at += 8 + len; // an unknown chunk
+            --t;
+            continue;
+        }
+        size_t i = at + 8;
+        const size_t end = std::min(d.size(), i + len);
+        uint64_t tick = 0;
+        uint8_t running = 0;
+        int order = 0;
+        while (i < end)
+        {
+            uint32_t delta = 0;
+            for (int k = 0; k < 4 && i < end; ++k)
+            {
+                const uint8_t b = d[i++];
+                delta = (delta << 7) | (b & 0x7F);
+                if (!(b & 0x80))
+                    break;
+            }
+            tick += delta;
+            if (i >= end)
+                break;
+            uint8_t status = d[i];
+            if (status == 0xFF)
+            {
+                const uint8_t type = i + 1 < end ? d[i + 1] : 0;
+                i += 2;
+                uint32_t n = 0;
+                for (int k = 0; k < 4 && i < end; ++k)
+                {
+                    const uint8_t b = d[i++];
+                    n = (n << 7) | (b & 0x7F);
+                    if (!(b & 0x80))
+                        break;
+                }
+                const size_t m = std::min<size_t>(n, end - i);
+                const std::string text(reinterpret_cast<const char*>(d.data() + i), m);
+                if (type == 0x51 && m == 3)
+                    tempos.push_back({ tick, (static_cast<uint32_t>(d[i]) << 16) | (d[i + 1] << 8) | d[i + 2] });
+                else if (type == 0x03 && out.title.empty())
+                    out.title = text;
+                else if (type == 0x01 && text.rfind("mood:", 0) == 0)
+                    out.mood = text.substr(5);
+                i += m;
+                if (type == 0x2F)
+                    break;
+                continue;
+            }
+            if (status == 0xF0 || status == 0xF7)
+            {
+                ++i;
+                uint32_t n = 0;
+                for (int k = 0; k < 4 && i < end; ++k)
+                {
+                    const uint8_t b = d[i++];
+                    n = (n << 7) | (b & 0x7F);
+                    if (!(b & 0x80))
+                        break;
+                }
+                i += n;
+                continue;
+            }
+            if (status & 0x80)
+                ++i, running = status;
+            else
+                status = running; // running status: the data byte is already at i
+            if (!(status & 0x80))
+                return false;
+            const int kind = status & 0xF0;
+            Raw r{ tick, order++, status, 0, 0 };
+            if (i < end)
+                r.a = d[i++] & 0x7F;
+            if (kind != 0xC0 && kind != 0xD0 && i < end)
+                r.b = d[i++] & 0x7F;
+            raw.push_back(r);
+        }
+        at += 8 + len;
+    }
+    if (raw.empty())
+        return false;
+    std::stable_sort(raw.begin(), raw.end(), [](const Raw& x, const Raw& y) { return x.tick < y.tick; });
+    std::stable_sort(tempos.begin(), tempos.end());
+    // file ticks -> 120 ticks a second (default tempo 120 beats a minute)
+    auto when = [&](uint64_t tick) {
+        double sec = 0;
+        uint64_t from = 0;
+        uint32_t us = 500000;
+        for (const auto& [tt, tempo] : tempos)
+        {
+            if (tt >= tick)
+                break;
+            sec += static_cast<double>(tt - from) * us / 1e6 / division;
+            from = tt;
+            us = tempo;
+        }
+        sec += static_cast<double>(tick - from) * us / 1e6 / division;
+        return static_cast<uint32_t>(std::lround(sec * 120.0));
+    };
+    // note-ons get their duration from the matching note-off (or note-on at velocity 0), first in first out
+    std::map<int, std::vector<size_t>> open; // channel * 128 + note -> indices into out.events
+    for (const Raw& r : raw)
+    {
+        const int kind = r.status & 0xF0, key = (r.status & 15) * 128 + r.a;
+        const uint32_t t = when(r.tick);
+        if (kind == 0x90 && r.b > 0)
+        {
+            open[key].push_back(out.events.size());
+            out.events.push_back({ t, r.status, r.a, r.b, 0 });
+        }
+        else if (kind == 0x80 || kind == 0x90)
+        {
+            auto it = open.find(key);
+            if (it != open.end() && !it->second.empty())
+            {
+                Song::Event& e = out.events[it->second.front()];
+                e.duration = std::max<uint32_t>(1, t - e.tick);
+                it->second.erase(it->second.begin());
+            }
+        }
+        else if (kind == 0xB0 || kind == 0xC0)
+            out.events.push_back({ t, r.status, r.a, r.b, 0 });
+        out.length = std::max(out.length, t);
+    }
+    for (const auto& [key, list] : open)
+        for (size_t k : list)
+            out.events[k].duration = std::max<uint32_t>(1, out.length - out.events[k].tick); // never released: to the end
+    for (const Song::Event& e : out.events)
+        out.length = std::max(out.length, e.tick + e.duration);
+    return !out.events.empty();
+}
+
+const std::vector<BuiltinSongInfo>& BuiltinSongs()
+{
+    static const std::vector<BuiltinSongInfo> list = [] {
+        std::vector<BuiltinSongInfo> v;
+        for (int i = 0; i < kBuiltinMusicCount; ++i)
+        {
+            Song s;
+            if (ParseMidi(std::vector<uint8_t>(kBuiltinMusic[i].data, kBuiltinMusic[i].data + kBuiltinMusic[i].size), s))
+                v.push_back({ kBuiltinMusic[i].file, s.title.empty() ? kBuiltinMusic[i].file : s.title, s.mood });
+        }
+        return v;
+    }();
+    return list;
+}
+
+bool LoadBuiltinSong(const std::string& file, Song& out)
+{
+    for (int i = 0; i < kBuiltinMusicCount; ++i)
+        if (file == kBuiltinMusic[i].file)
+            return ParseMidi(std::vector<uint8_t>(kBuiltinMusic[i].data, kBuiltinMusic[i].data + kBuiltinMusic[i].size), out);
+    return false;
 }
 
 void Synth::Start(const Song* song, bool loop)

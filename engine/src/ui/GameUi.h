@@ -10,6 +10,7 @@
 #include <array>
 #include <cctype>
 #include <functional>
+#include <map>
 #include <memory>
 #include <string>
 #include <deque>
@@ -103,10 +104,11 @@ public:
     // AUTO (the default): the game chooses the song as before. Previous / next pick a song of the 7 in turn
     // (wrapping); a picked song plays to its end and the next one follows. The AUTO button (lit while the game
     // chooses) gives the choice back to the game. Play-pause is the Options > Music switch (the song stops where it is).
-    static constexpr int kRadioSongs = 7;
+    static int RadioCount(); // the game's 7 songs, then the engine's own (BuiltinSongs)
     static constexpr int kRadioWidth = 208;
     std::string RadioSong(const std::string& gameSong); // what to play now; also moves on after a picked song ends
     bool RadioManual() const { return _radioManual; }
+    bool RadioLoops() const { return _radioLoops; } // the song RadioSong gave loops (the game's choice with no engine song to take turns)
     // the language was changed (the menus are laid out again for the new words)
     void LanguageChanged() { BuildMenus(); }
 
@@ -131,9 +133,10 @@ private:
     Rect RadioBox() const;
     Rect RadioButton(int k) const; // 0 previous, 1 play-pause, 2 next, 3 the display, 4 AUTO
     bool RadioClick(int x, int y);
-    int RadioIndex(const std::string& song) const; // 0..6, or -1
-    bool _radioManual = false;
+    int RadioIndex(const std::string& song) const; // 0 .. RadioCount() - 1, or -1
+    bool _radioManual = false, _radioLoops = true;
     int _radioTrack = 0, _radioPressed = -1;
+    std::map<std::string, int> _moodTurn; // AUTO: which of a game song and its engine songs of the same mood plays
     Uint32 _radioPressedAt = 0;
     void DrawWindow(Window& w);
     // EDIT palette

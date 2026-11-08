@@ -4,6 +4,7 @@
 // characters the font draws and keep the {0} {1} ... of the English text; the words printed over the pictures and
 // the other texts drawn into fixed boxes fit their room.
 #include "ui/LangTest.h"
+#include "audio/Music.h"
 #include "assets/Megadata.h"
 #include "assets/Picture.h"
 #include "core/Lang.h"
@@ -149,6 +150,12 @@ int LangSelfTest(const Megadata& mega)
     auto fits = [&](const std::string& s, int room) { return static_cast<int>(s.size()) * 8 <= room || spaced(s) <= room; };
 
     int fails = 0, texts = 0;
+    // the radio's display (GameUi::RadioButton(3), 121 px, the name from 3 px in, 2 px to spare): the engine's songs'
+    // own titles, and each language's below
+    constexpr int kRadioRoom = 116;
+    for (const BuiltinSongInfo& b : BuiltinSongs())
+        if (Gfx::SmallTextWidth(b.title) > kRadioRoom && ++fails <= 40)
+            std::printf("FAIL en: song title wider than the radio display: %s\n", b.title.c_str());
     const std::vector<Dictionary> dicts = BuiltInDictionaries();
     for (const Dictionary& d : dicts)
     {
@@ -191,6 +198,8 @@ int LangSelfTest(const Megadata& mega)
                 if (!fits(head, 104))
                     fail("name wider than the BUY window's", en);
             }
+            else if (en.rfind("song:", 0) == 0 && Gfx::SmallTextWidth(l1) > kRadioRoom)
+                fail("wider than the radio display", en);
             else if (en.rfind("crophelp:", 0) == 0 && BuyLines(l1) > 10)
                 fail("more than 10 lines in the BUY window", en);
             else if (en.rfind("card:", 0) == 0)

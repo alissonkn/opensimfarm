@@ -3,6 +3,7 @@
 #pragma once
 #include <array>
 #include <cstdint>
+#include <string>
 #include <vector>
 
 namespace osf {
@@ -14,8 +15,20 @@ struct Song
     struct Event { uint32_t tick; uint8_t status, a, b; uint32_t duration; };
     std::vector<Event> events;
     uint32_t length = 0;
+    std::string title, mood; // a standard MIDI file's track name and its "mood:<game song>" text (the engine's songs)
 };
 bool ParseXmi(const std::vector<uint8_t>& data, Song& out);
+// A standard MIDI file (format 0 or 1), turned into the same events: times at 120 ticks/s through the file's tempo
+// changes, each note-on with the duration up to its note-off
+bool ParseMidi(const std::vector<uint8_t>& data, Song& out);
+
+// The engine's own songs (engine/music/*.mid, composed for OpenSimFarm), built into the program
+struct BuiltinSongInfo
+{
+    std::string file, title, mood;
+};
+const std::vector<BuiltinSongInfo>& BuiltinSongs();
+bool LoadBuiltinSong(const std::string& file, Song& out);
 
 // A small General-MIDI-style software synthesizer (the original used FM instrument banks of DOS sound drivers).
 class Synth

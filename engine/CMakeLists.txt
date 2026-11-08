@@ -39,11 +39,20 @@ add_custom_command(OUTPUT ${OSF_LANG_CPP}
     COMMAND ${CMAKE_COMMAND} -DOUT=${OSF_LANG_CPP} "-DFILES=${OSF_LANG_FILES}" -P ${CMAKE_CURRENT_SOURCE_DIR}/tools/EmbedLang.cmake
     DEPENDS ${OSF_LANG_FILES} ${CMAKE_CURRENT_SOURCE_DIR}/tools/EmbedLang.cmake VERBATIM)
 
+# the engine's own songs (music/*.mid, made by tools/make_songs.py) are built into the program
+file(GLOB OSF_MUSIC_FILES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/music/*.mid)
+list(SORT OSF_MUSIC_FILES)
+set(OSF_MUSIC_CPP ${CMAKE_CURRENT_BINARY_DIR}/music_builtin.cpp)
+add_custom_command(OUTPUT ${OSF_MUSIC_CPP}
+    COMMAND ${CMAKE_COMMAND} -DOUT=${OSF_MUSIC_CPP} "-DFILES=${OSF_MUSIC_FILES}" -P ${CMAKE_CURRENT_SOURCE_DIR}/tools/EmbedMusic.cmake
+    DEPENDS ${OSF_MUSIC_FILES} ${CMAKE_CURRENT_SOURCE_DIR}/tools/EmbedMusic.cmake VERBATIM)
+
 add_executable(opensimfarm
     src/main.cpp
     src/core/Paths.cpp
     src/core/Lang.cpp
     ${OSF_LANG_CPP}
+    ${OSF_MUSIC_CPP}
     src/assets/Megadata.cpp
     src/assets/Graphics.cpp
     src/assets/Picture.cpp

@@ -2557,6 +2557,27 @@ msgstr "Beterraba"
 msgid "crop:sunflowe.crp"
 msgstr "Girassol"
 
+msgid "song:sunup.mid"
+msgstr "AMANHECER"
+
+msgid "song:chores.mid"
+msgstr "LIDA DA MANHÃ"
+
+msgid "song:harvest_polka.mid"
+msgstr "POLCA DA COLHEITA"
+
+msgid "song:dry_spell.mid"
+msgstr "TEMPO SECO"
+
+msgid "song:fairground.mid"
+msgstr "DOIS-PASSOS"
+
+msgid "song:dust_and_spurs.mid"
+msgstr "POEIRA E ESPORAS"
+
+msgid "song:hoedown.mid"
+msgstr "BAILE DA COLHEITA"
+
 msgid "crop:sweet.crp"
 msgstr "Batata-doce"
 
