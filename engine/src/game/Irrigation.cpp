@@ -205,6 +205,11 @@ void Irrigation::Pass()
         if (_parity == 0)
             _sim.RefreshFields(true); // start of an emptying pass: the fields still see the filled ditches
         const int n = Sources();
+        if (std::getenv("OSF_TRACE_IRR"))
+            for (int i = 0; i < n; ++i)
+                std::printf("  source %d,%d kind %d beside water %d\n", _s.irrigationLists[static_cast<size_t>(3 * i)],
+                            _s.irrigationLists[static_cast<size_t>(3 * i + 1)], _s.irrigationLists[static_cast<size_t>(3 * i + 2)],
+                            SourceBesideWater(_s.irrigationLists[static_cast<size_t>(3 * i)], _s.irrigationLists[static_cast<size_t>(3 * i + 1)]) ? 1 : 0);
         for (int i = 0; i < n; ++i)
         {
             const int x = _s.irrigationLists[static_cast<size_t>(3 * i)], y = _s.irrigationLists[static_cast<size_t>(3 * i + 1)];

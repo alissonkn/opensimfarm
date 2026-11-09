@@ -3,6 +3,7 @@
 #pragma once
 #include "game/GameState.h"
 
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -26,5 +27,23 @@ struct WorldOptions
 // the record layouts and the town graphics (any original farm); everything game-related is reset.
 class Megadata;
 bool GenerateWorld(const std::string& gameDir, const Megadata& mega, const GameState& tmpl, const WorldOptions& opt, GameState& out, std::string& error);
+
+// The same in two steps, with room for the map editor between them (an engine addition): GenerateTerrain makes the
+// climate and the land (ground, trees, rocks, river, lake) and chooses where the town and the farm go; FinishWorld
+// puts them there and sets up a new game on that land.
+struct WorldSites
+{
+    int townCol = 0, townRow = 0; // the town's home plot
+    int farmCol = 0, farmRow = 0; // the farm's top-left plot (the farm is 3 x 3 plots)
+};
+bool GenerateTerrain(const Megadata& mega, const GameState& tmpl, const WorldOptions& opt, GameState& out, WorldSites& sites, std::string& error);
+void FinishWorld(const std::string& gameDir, const Megadata& mega, GameState& s, const WorldSites& sites);
+
+// water: the flags and the open-water tile; Reshore gives the water cells in x0..x1, y0..y1 the shoreline tile that
+// fits their land neighbours (coin() picks one of each shore's two pictures)
+constexpr int kWater = 39 + 0x10;
+inline bool IsWater(const MapCell& c) { return (c.base & 0x2000) != 0; }
+void SetWater(MapCell& c);
+void Reshore(World& w, int x0, int y0, int x1, int y1, const std::function<int()>& coin);
 
 } // namespace osf

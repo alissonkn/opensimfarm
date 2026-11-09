@@ -151,12 +151,13 @@ int Animals::HeadingTo(int x, int y, int tx, int ty)
 
 bool Animals::NearestItem(int x, int y, int type, int& tx, int& ty, int& best) const
 {
-    // the nearest item record of a type (any amount), squared distance
+    // the nearest item record of a type that is not empty (amount 0 is skipped: an emptied hay pile or a dry trough is no
+    // target), squared distance, a strictly nearer one wins
     bool found = false;
     for (int r = 1; r < 512; ++r)
     {
         const size_t b = static_cast<size_t>(r) * 12;
-        if (!(Rd8(_s.items, b + 10) & 0x20) || Rd16(_s.items, b) != type)
+        if (!(Rd8(_s.items, b + 10) & 0x20) || Rd16(_s.items, b) != type || Rd16(_s.items, b + 2) == 0)
             continue;
         const int ix = Rd8(_s.items, b + 8), iy = Rd8(_s.items, b + 9);
         const int d = (ix - x) * (ix - x) + (iy - y) * (iy - y);
@@ -194,7 +195,7 @@ void Animals::Step(int i)
     }
     else if (water > (kHungerLimit[sp] >> 4))
     {
-        // the nearest trough (item 299, full or not) or barn (0x44 / 0x45, nearer only); none: keep going
+        // the nearest trough (item 299, not empty) or barn (0x44 / 0x45, nearer only); none: keep going
         int best = 1000000;
         NearestItem(x, y, 299, tx, ty, best);
         for (int cat : { 0x44, 0x45 })
@@ -406,15 +407,17 @@ void Animals::Weaken(int i)
 
 void Animals::Needs(int i)
 {
-    // the original's per-step needs check: a sheltered animal is fed by the building, others eat
-    // at a trough or a hay pile in reach; past half the species limit it complains and goes looking, past the limit
-    // it dies
+    // the original's per-step needs check: a sheltered animal is fed by the building, others drink at a trough and eat
+    // at a hay pile (or graze) in reach; past half the species limit it complains and goes looking, past the limit it
+    // dies. Counter +0x0E is cleared at a trough, so its messages are about water (the original shows "thirsty" for it);
+    // +0x0D is cleared at hay or by grazing, so its messages are about food (the original: livestock cannot reach food)
     const size_t b = Rec(i);
     const int fl = Rd8(_s.animals, b + 2);
     const int sp = (Rd16(_s.animals, b + 6) - 0xA0) & 3;
-    static const char* const kDeath[2][4] = { { N_("A horse starved."), N_("A cow starved."), N_("A pig starved."), N_("A sheep starved.") },
-                                               { N_("A horse died of thirst."), N_("A cow died of thirst."), N_("A pig died of thirst."),
-                                                 N_("A sheep died of thirst.") } };
+    static const char* const kDeath[2][4] = { { N_("A horse died of thirst."), N_("A cow died of thirst."), N_("A pig died of thirst."),
+                                                 N_("A sheep died of thirst.") },
+                                               { N_("A horse starved."), N_("A cow starved."), N_("A pig starved."), N_("A sheep starved.") } };
+    // why: 0 no water (counter +0x0E), 1 no food (+0x0D)
     auto die = [&](int why) {
         _sim.Notify(Tr(kDeath[why][sp]));
         _sim.RemoveAnimal(i);
@@ -435,10 +438,10 @@ void Animals::Needs(int i)
             if (h > (kHungerLimit[sp] >> 1) && h < kHungerLimit[sp])
             {
                 Weaken(i); // every step in need costs one point of condition
-                if (_tick - _lastHungry > 2000)
+                if (_tick - _lastThirsty > 2000)
                 {
-                    _sim.Notify(Tr("Your livestock are hungry."));
-                    _lastHungry = _tick;
+                    _sim.Notify(Tr("Your livestock are thirsty."));
+                    _lastThirsty = _tick;
                 }
             }
         }
@@ -455,10 +458,10 @@ void Animals::Needs(int i)
         else if (Rd8(_s.animals, b + 0x0D) > (kThirstLimit[sp] >> 1))
         {
             Weaken(i);
-            if (_tick - _lastThirsty > 2000)
+            if (_tick - _lastHungry > 2000)
             {
-                _sim.Notify(Tr("Your livestock are thirsty."));
-                _lastThirsty = _tick;
+                _sim.Notify(Tr("Your livestock are hungry."));
+                _lastHungry = _tick;
             }
         }
         if (Rd8(_s.animals, b + 0x0D) > kThirstLimit[sp])

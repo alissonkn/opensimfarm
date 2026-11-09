@@ -1579,6 +1579,82 @@ msgstr "Rolagem pelas bordas ligada: o mapa se move quando o ponteiro está num 
 msgid "Edge scrolling off."
 msgstr "Rolagem pelas bordas desligada."
 
+#: src/ui/MapEditor.cpp
+msgid "GROUND"
+msgstr "SOLO"
+
+#: src/ui/MapEditor.cpp
+msgid "Paints plain ground over water, trees and rocks."
+msgstr "Pinta solo limpo sobre água, árvores e pedras."
+
+#: src/ui/MapEditor.cpp
+msgid "WATER"
+msgstr "ÁGUA"
+
+#: src/ui/MapEditor.cpp
+msgid "Paints lakes and rivers, also on your farm. The farmhouse and the town stay dry."
+msgstr "Pinta lagos e rios, também na sua fazenda. A sede e a cidade ficam secas."
+
+#: src/ui/MapEditor.cpp
+msgid "TREES"
+msgstr "ÁRVORES"
+
+#: src/ui/MapEditor.cpp
+msgid "Plants trees."
+msgstr "Planta árvores."
+
+#: src/ui/MapEditor.cpp
+msgid "ROCKS"
+msgstr "PEDRAS"
+
+#: src/ui/MapEditor.cpp
+msgid "Places rocks."
+msgstr "Coloca pedras."
+
+#: src/ui/MapEditor.cpp
+msgid "FARM"
+msgstr "FAZENDA"
+
+#: src/ui/MapEditor.cpp
+msgid "Click where your farm starts: 3 x 3 plots. Water under the farmhouse dries."
+msgstr "Clique onde a fazenda começa: 3 x 3 lotes. A água embaixo da sede seca."
+
+#: src/ui/MapEditor.cpp
+msgid "TOWN"
+msgstr "CIDADE"
+
+#: src/ui/MapEditor.cpp
+msgid "Click where the town starts: one plot. Water under it dries."
+msgstr "Clique onde a cidade começa: um lote. A água embaixo dela seca."
+
+#: src/ui/MapEditor.cpp
+msgid "The farm and the town cannot overlap."
+msgstr "A fazenda e a cidade não podem ficar uma sobre a outra."
+
+#: src/ui/MapEditor.cpp
+msgid "MAP EDITOR"
+msgstr "EDITOR DE MAPA"
+
+#: src/ui/MapEditor.cpp
+msgid "BRUSH"
+msgstr "PINCEL"
+
+#: src/ui/MapEditor.cpp
+msgid "Wheel: zoom. Right drag: move the map."
+msgstr "Roda: zoom. Arrastar com o botão direito: mover o mapa."
+
+#: src/ui/MapEditor.cpp
+msgid "UNDO"
+msgstr "DESFAZER"
+
+#: src/ui/MapEditor.cpp
+msgid "DONE"
+msgstr "PRONTO"
+
+#: src/ui/MapEditor.cpp
+msgid "CANCEL"
+msgstr "CANCELAR"
+
 #: src/ui/PictureText.cpp
 msgid "PRICE"
 msgstr "PREÇO"
@@ -1974,6 +2050,10 @@ msgstr "TOPO"
 #: src/ui/PictureText.cpp
 msgid "button:RATS"
 msgstr "DROGA"
+
+#: src/ui/StartScreen.cpp
+msgid "EDIT MAP"
+msgstr "EDITAR MAPA"
 
 #: src/ui/StartScreen.cpp
 msgid "MAP 144 x 144"

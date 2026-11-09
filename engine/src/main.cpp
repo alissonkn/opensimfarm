@@ -23,6 +23,7 @@
 #include "game/Machines.h"
 #include "game/Shop.h"
 #include "game/WorldGen.h"
+#include "game/MapEdit.h"
 #include "game/GameState.h"
 #include "game/Simulation.h"
 #include "ui/GameUi.h"
@@ -1577,6 +1578,7 @@ static int NewGameTestSize(const std::string& gameDir, int mapSize)
     expect(s.world.size == mapSize && s.Plots() == mapSize / 8 && s.zones.size() == static_cast<size_t>(s.Plots() * s.Plots() * 7),
            "the map is " + std::to_string(s.world.size) + " cells a side, " + std::to_string(s.Plots()) + " plots a side");
     Simulation sim(s);
+    sim.SetTownLayout(mega.Read("townly0.cmp")); // as the game does: the town plots are redrawn when they change level
     const int fc = static_cast<int>(s.scalars["farm_plot_x"]), fr = static_cast<int>(s.scalars["farm_plot_y"]);
     // the new farm: 3 x 3 plots, fenced, the homestead picture in its corner
     int owned = 0;
@@ -1605,6 +1607,9 @@ static int NewGameTestSize(const std::string& gameDir, int mapSize)
                 }
         expect(tc >= 0 && s.PlotType(tc, tr) == 0xA0 && roads >= 20 && town == 64,
                "the town's home plot: roads and the town flag (" + std::to_string(roads) + " road cells)");
+        // no water sources are left over from the template farm (a new world saved by the original has none)
+        expect(!s.irrigationFlag.empty() && s.irrigationFlag[0] == 0, "a new world has no water sources (" +
+               std::to_string(s.irrigationFlag.empty() ? -1 : s.irrigationFlag[0]) + ")");
     }
     // the field goes in the middle of the farm, cleared of trees and rocks first
     for (int x = fc * 8 + 8; x < fc * 8 + 17; ++x)
@@ -1643,6 +1648,21 @@ static int NewGameTestSize(const std::string& gameDir, int mapSize)
         while (sim.TakeEvent(ev)) {}
     }
     expect(harvested > 0, "the crop was harvested within 20 weeks (field state " + std::to_string(s.FieldAt(fi).State()) + ")");
+    {
+        // the town's home plot after its first level change: its roads are paved (the original redraws the home
+        // plot's block with dirt roads, then paves them; seen in a save of the original at level 13)
+        const int tc = static_cast<int>(s.scalars["homestead_x"]), tr = static_cast<int>(s.scalars["homestead_y"]);
+        int paved = 0, dirt = 0;
+        for (int x = tc * 8; x < tc * 8 + 8; ++x)
+            for (int y = tr * 8; y < tr * 8 + 8; ++y)
+            {
+                const int t = s.world.At(x, y).BaseTile();
+                paved += t >= 150 && t <= 160;
+                dirt += t >= 161 && t <= 171;
+            }
+        expect((s.PlotType(tc, tr) >> 4) != 10 && paved >= 20 && dirt == 0,
+               "the town's home plot changed level and its roads are paved (" + std::to_string(paved) + " paved, " + std::to_string(dirt) + " dirt)");
+    }
     std::printf("     cash %lld -> %lld\n", static_cast<long long>(cash0), static_cast<long long>(s.cash));
     const std::string path = (std::filesystem::temp_directory_path() / "osf_newgame.sfm").string();
     GameState back;
@@ -2280,6 +2300,121 @@ int main(int argc, char** argv)
                     static_cast<long long>(s.scalars["homestead_x"]), static_cast<long long>(s.scalars["homestead_y"]));
         return s.Save(argv[4], err) ? 0 : 1;
     }
+    if (argc > 5 && std::strcmp(argv[1], "--editworld") == 0)
+    {
+        // --editworld SIZE SEED LIST OUT [folder]: a generated world changed as in the map editor, saved to OUT. LIST
+        // lines: "farm COL ROW", "town COL ROW", "ground|water|trees|rocks X Y SIZE" (a brush of SIZE cells) or
+        // "line ground|water|trees|rocks X0 Y0 X1 Y1 SIZE" (a brush dragged from one cell to the other)
+        char* fake[2] = { argv[0], argc > 6 ? argv[6] : nullptr };
+        auto dir = ResolveGameDirectory(argc > 6 ? 2 : 1, fake);
+        if (!dir) { Fatal("game folder unknown", false); return 1; }
+        Megadata mega;
+        GameState tmpl, s;
+        std::string err;
+        if (!mega.Open(*dir, err) || !tmpl.Load(*dir, ResolveFarm(*dir, "SCEN0.SSM"), err)) { std::printf("%s\n", err.c_str()); return 1; }
+        WorldOptions opt;
+        opt.mapSize = std::atoi(argv[2]) == kLargeMapSize ? kLargeMapSize : kOriginalMapSize;
+        opt.seed = static_cast<unsigned>(std::strtoul(argv[3], nullptr, 10));
+        WorldSites sites;
+        if (!GenerateTerrain(mega, tmpl, opt, s, sites, err)) { std::printf("%s\n", err.c_str()); return 1; }
+        const std::map<std::string, LandBrush> brushes{ { "ground", LandBrush::Ground }, { "water", LandBrush::Water }, { "trees", LandBrush::Trees }, { "rocks", LandBrush::Rocks } };
+        std::ifstream in(argv[4]);
+        std::string line;
+        uint32_t rnd = opt.seed | 1;
+        int changed = 0, refused = 0;
+        while (std::getline(in, line))
+        {
+            std::istringstream ls(line);
+            std::string first;
+            if (!(ls >> first) || first[0] == '#')
+                continue;
+            std::string why;
+            if (first == "farm" || first == "town")
+            {
+                int c = 0, r = 0;
+                ls >> c >> r;
+                if (!(first == "farm" ? PlaceFarm(s, sites, c, r, opt.wetness, why) : PlaceTown(s, sites, c, r, opt.wetness, why)))
+                {
+                    ++refused;
+                    std::printf("refused: %s (%s)\n", line.c_str(), why.c_str());
+                }
+            }
+            else if (first == "line")
+            {
+                std::string kind;
+                int x0 = 0, y0 = 0, x1 = 0, y1 = 0, size = 1;
+                ls >> kind >> x0 >> y0 >> x1 >> y1 >> size;
+                const int n = std::max({ std::abs(x1 - x0), std::abs(y1 - y0), 1 });
+                if (brushes.count(kind))
+                    for (int i = 0; i <= n; ++i)
+                        changed += PaintLand(s, brushes.at(kind), x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n, size, opt.wetness, rnd, sites);
+            }
+            else if (brushes.count(first))
+            {
+                int x = 0, y = 0, size = 1;
+                ls >> x >> y >> size;
+                changed += PaintLand(s, brushes.at(first), x, y, size, opt.wetness, rnd, sites);
+            }
+            else
+                std::printf("unknown line: %s\n", line.c_str());
+        }
+        FinishWorld(*dir, mega, s, sites);
+        std::printf("world %d x %d, %d cells changed, %d refused, farm at plot %d,%d, town at %d,%d\n", s.world.size, s.world.size, changed, refused,
+                    sites.farmCol, sites.farmRow, sites.townCol, sites.townRow);
+        return s.Save(argv[5], err) ? 0 : 1;
+    }
+    if (argc > 6 && std::strcmp(argv[1], "--cells") == 0)
+    {
+        // --cells SAVE X0 Y0 X1 Y1 [folder]: the map area as text, one row per y: ~ water, T tree, R rock, f field,
+        // # fence or gate, U trough, = empty ditch, W full ditch, + your land (plain), . other plain ground, o anything else
+        char* fake[2] = { argv[0], argc > 7 ? argv[7] : nullptr };
+        auto dir = ResolveGameDirectory(argc > 7 ? 2 : 1, fake);
+        if (!dir) { Fatal("game folder unknown", false); return 1; }
+        GameState s;
+        std::string err;
+        if (!s.Load(*dir, argv[2], err)) { std::printf("%s\n", err.c_str()); return 1; }
+        const int x0 = std::atoi(argv[3]), y0 = std::atoi(argv[4]), x1 = std::atoi(argv[5]), y1 = std::atoi(argv[6]);
+        for (int y = y0; y <= y1; ++y)
+        {
+            std::printf("%3d ", y);
+            for (int x = x0; x <= x1; ++x)
+            {
+                if (!s.world.In(x, y)) { std::putchar(' '); continue; }
+                const MapCell& c = s.world.At(x, y);
+                const int t = c.BaseTile();
+                char ch = 'o';
+                if (c.base & 0x2000) ch = '~';
+                else if (c.overlay & 0x1000) ch = 'f';
+                else if (t >= 128 && t <= 147) ch = 'T';
+                else if (t >= 535 && t <= 538) ch = 'R';
+                else if (t >= 177 && t <= 191) ch = '#';
+                else if (t == 175 || t == 176) ch = 'U';
+                else if (t >= 15 && t <= 30) ch = (c.overlay & 0x800) ? '+' : '.';
+                else if (t >= 87 && t <= 109) ch = (t >= 98 ? 'W' : '=');
+                std::putchar(ch);
+            }
+            std::putchar('\n');
+        }
+        return 0;
+    }
+    if (argc > 2 && std::strcmp(argv[1], "--shoplist") == 0)
+    {
+        // --shoplist SAVE [folder]: the BUY window's items: catalogue record, name, price, cells covered
+        char* fake[2] = { argv[0], argc > 3 ? argv[3] : nullptr };
+        auto dir = ResolveGameDirectory(argc > 3 ? 2 : 1, fake);
+        if (!dir) { Fatal("game folder unknown", false); return 1; }
+        GameState s;
+        std::string err;
+        if (!s.Load(*dir, argv[2], err)) { std::printf("%s\n", err.c_str()); return 1; }
+        for (int cat = kShopMachinery; cat <= kShopSupplies; ++cat)
+            for (int rec : ShopItems(cat))
+            {
+                int w = 1, h = 1;
+                ShopFootprint(s, rec, w, h);
+                std::printf("%3d  %-24s %7d  %dx%d%s\n", rec, ShopName(s, rec).c_str(), ShopPrice(s, rec), w, h, ShopNeedsPlacing(rec) ? "" : "  (not placed)");
+            }
+        return 0;
+    }
     if (argc > 4 && std::strcmp(argv[1], "--applylist") == 0)
     {
         // --applylist FROM LIST TO: many tool clicks in one run; each LIST line is "TOOL X Y PARAM" (see --apply),
@@ -2438,6 +2573,14 @@ int main(int argc, char** argv)
         if (!dir) { Fatal("game folder unknown", false); return 1; }
         return NewGameTest(*dir);
     }
+    if (argc > 1 && std::strcmp(argv[1], "--mapedittest") == 0)
+    {
+        // the map editor's land changes and placing of the farm and the town (game/MapEdit.h)
+        char* fake[2] = { argv[0], argc > 2 ? argv[2] : nullptr };
+        auto dir = ResolveGameDirectory(argc > 2 ? 2 : 1, fake);
+        if (!dir) { Fatal("game folder unknown", false); return 1; }
+        return MapEditSelfTest(*dir);
+    }
     if (argc > 1 && std::strcmp(argv[1], "--toolstest") == 0)
     {
         char* fake[2] = { argv[0], argc > 2 ? argv[2] : nullptr };
@@ -2473,6 +2616,26 @@ int main(int argc, char** argv)
                             if (x + dx >= 0 && y + dy >= 0 && x + dx < s.world.size && y + dy < s.world.size)
                                 std::printf("   (%d,%d) base %d obj %d ov %d\n", x + dx, y + dy, s.world.At(x + dx, y + dy).BaseTile(),
                                             s.world.At(x + dx, y + dy).HasObject(), s.world.At(x + dx, y + dy).overlay & 0x7FF);
+            }
+        }
+        // the water towers: cell and level
+        for (int i = 1; i < 127; ++i)
+        {
+            const size_t sb = static_cast<size_t>(i) * 70;
+            if ((Rd8(s.structures, sb + 2) & 0x20) && Rd16(s.structures, sb) == 0x48)
+                std::printf("tower %d at %d,%d level %d\n", i, Rd8(s.structures, sb + 4), Rd8(s.structures, sb + 5), Rd16(s.structures, sb + 0x0A));
+        }
+        // the troughs (item type 299) and hay piles (300): cell and amount
+        for (int i = 1; i < 512; ++i)
+        {
+            const size_t ib = static_cast<size_t>(i) * 12;
+            const int type = Rd16(s.items, ib);
+            if ((Rd8(s.items, ib + 10) & 0x20) && (type == 299 || type == 300))
+            {
+                const int ix = Rd8(s.items, ib + 8), iy = Rd8(s.items, ib + 9);
+                const bool in = ix < s.world.size && iy < s.world.size;
+                std::printf("%s %d at %d,%d amount %d (cell base %d overlay %d)\n", type == 299 ? "trough" : "hay", i, ix, iy, Rd16(s.items, ib + 2),
+                            in ? s.world.At(ix, iy).base : -1, in ? s.world.At(ix, iy).overlay : -1);
             }
         }
         // and the traffic: index, cell, heading, kind, flags, base word and overlay picture of the cell

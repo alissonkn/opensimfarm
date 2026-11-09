@@ -12,14 +12,13 @@
 #include <algorithm>
 #include <ctime>
 #include <fstream>
+#include <functional>
 #include <random>
 #include <sstream>
 
 namespace osf {
 
 namespace {
-constexpr int kWater = 39 + 0x10;
-bool IsWater(const MapCell& c) { return (c.base & 0x2000) != 0; }
 
 // one of the 12 climate tables: 60 lines x 4 comma-separated values = 240 weeks
 bool ReadTable(const Megadata& mega, const std::string& name, std::vector<int>& out)
@@ -71,14 +70,45 @@ struct WorldRandom
     }
 };
 
+} // namespace
+
 void SetWater(MapCell& c)
 {
     c.base = static_cast<uint16_t>(0x3000 | kWater);
     c.terrain = 1;
 }
-} // namespace
+
+void Reshore(World& w, int x0, int y0, int x1, int y1, const std::function<int()>& coin)
+{
+    static const int shore[16] = { 55, 51, 47, 49, 43, 57, 45, 65, 39, 53, 59, 67, 41, 61, 63, -1 };
+    // the table's N/E/S/W bits follow the original's transposed row/column naming: bit 1 = the cell to the left,
+    // 2 = below, 4 = to the right, 8 = above (checked against the tile pictures: 39 has its land above)
+    static const int dx[4] = { -1, 0, 1, 0 }, dy[4] = { 0, 1, 0, -1 };
+    for (int x = std::max(0, x0); x <= std::min(w.size - 1, x1); ++x)
+        for (int y = std::max(0, y0); y <= std::min(w.size - 1, y1); ++y)
+        {
+            MapCell& c = w.At(x, y);
+            if (!IsWater(c))
+                continue;
+            int mask = 0;
+            for (int k = 0; k < 4; ++k)
+                if (w.In(x + dx[k], y + dy[k]) && !IsWater(w.At(x + dx[k], y + dy[k])))
+                    mask |= 1 << k;
+            const int id = shore[mask] < 0 ? kWater : shore[mask] + coin();
+            c.base = static_cast<uint16_t>((c.base & 0xF800) | id);
+        }
+}
 
 bool GenerateWorld(const std::string& gameDir, const Megadata& mega, const GameState& tmpl, const WorldOptions& opt, GameState& s, std::string& error)
+{
+    WorldSites sites;
+    if (!GenerateTerrain(mega, tmpl, opt, s, sites, error))
+        return false;
+    FinishWorld(gameDir, mega, s, sites);
+    return true;
+}
+
+bool GenerateTerrain(const Megadata& mega, const GameState& tmpl, const WorldOptions& opt, GameState& s, WorldSites& sites, std::string& error)
 {
     s = tmpl;
 
@@ -201,23 +231,7 @@ bool GenerateWorld(const std::string& gameDir, const Megadata& mega, const GameS
         }
     }
     // shorelines
-    static const int shore[16] = { 55, 51, 47, 49, 43, 57, 45, 65, 39, 53, 59, 67, 41, 61, 63, -1 };
-    // the table's N/E/S/W bits follow the original's transposed row/column naming: bit 1 = the cell to the left,
-    // 2 = below, 4 = to the right, 8 = above (checked against the tile pictures: 39 has its land above)
-    static const int dx[4] = { -1, 0, 1, 0 }, dy[4] = { 0, 1, 0, -1 };
-    for (int x = 0; x < s.world.size; ++x)
-        for (int y = 0; y < s.world.size; ++y)
-        {
-            MapCell& c = s.world.At(x, y);
-            if (!IsWater(c))
-                continue;
-            int mask = 0;
-            for (int k = 0; k < 4; ++k)
-                if (s.world.In(x + dx[k], y + dy[k]) && !IsWater(s.world.At(x + dx[k], y + dy[k])))
-                    mask |= 1 << k;
-            const int id = shore[mask] < 0 ? kWater : shore[mask] + (g.Shift() & 1);
-            c.base = static_cast<uint16_t>((c.base & 0xF800) | id);
-        }
+    Reshore(s.world, 0, 0, s.world.size - 1, s.world.size - 1, [&] { return g.Shift() & 1; });
 
     if (opt.terrain)
     {
@@ -251,6 +265,14 @@ bool GenerateWorld(const std::string& gameDir, const Megadata& mega, const GameS
         if (plotDry(fc, fr) && plotDry(tc, tr) && plotDry(fc + 1, fr) && plotDry(fc, fr + 1) && plotDry(fc + 1, fr + 1))
             break;
     }
+    sites = WorldSites{ tc, tr, fc, fr };
+    error.clear();
+    return true;
+}
+
+void FinishWorld(const std::string& gameDir, const Megadata& mega, GameState& s, const WorldSites& sites)
+{
+    const int P = s.Plots(), tc = sites.townCol, tr = sites.townRow, fc = sites.farmCol, fr = sites.farmRow;
     for (int c = 0; c < P; ++c)
         for (int r = 0; r < P; ++r)
         {
@@ -290,6 +312,10 @@ bool GenerateWorld(const std::string& gameDir, const Megadata& mega, const GameS
     std::fill(s.traffic.begin(), s.traffic.end(), 0);
     std::fill(s.timeline.begin(), s.timeline.end(), 0);
     std::fill(s.eventGrounds.begin(), s.eventGrounds.end(), 0);
+    // no water sources: the template's list (pumps and windmills of its own farm) would otherwise stay in the new world
+    // (a new world saved by the original has an empty list)
+    std::fill(s.irrigationFlag.begin(), s.irrigationFlag.end(), 0);
+    std::fill(s.irrigationLists.begin(), s.irrigationLists.end(), 0);
     s.animalCount = s.object20Count = s.machineCount = s.fieldCount = s.structureCount = s.itemCount = s.carCount = 0;
 
     // default crops and market prices at twice the base
@@ -342,8 +368,6 @@ bool GenerateWorld(const std::string& gameDir, const Megadata& mega, const GameS
     s.cal.day = lt ? lt->tm_wday : 0;
     s.speedDelay = 256;
     s.StoreScalarsToTail();
-    error.clear();
-    return true;
 }
 
 } // namespace osf

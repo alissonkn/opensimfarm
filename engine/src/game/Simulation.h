@@ -205,6 +205,7 @@ public:
     void DrawBuilding(int index);                 // its map cells: outside pictures, or the inside view from its slots
     int ToggleInside(int x, int y);               // right click: show a building's inside or its outside again (0 = none)
     int64_t RemoveStructure(int index, bool refund = true);           // bulldozed: sold at its price, ground restored
+    void RefillItem(int index, int amount); // sets an item record's amount
     int NewItem(int type, int amount, int x, int y);
     void RemoveItem(int index);
     void TakeItem(int index, bool freeRecord = true);  // used up: out of its building slot or off the ground, then removed

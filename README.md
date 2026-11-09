@@ -18,6 +18,8 @@ game behaves and how its files are laid out.
 * Larger worlds: Design Your Own can make a world of 144 x 144 cells instead of 96 x 96 (the MAP button under the
   design picture), more than twice the land in the same plots of 8 x 8 cells. Everything else (fields, machines,
   animals, buildings) keeps the original's limits
+* Map editor: in Design Your Own, EDIT MAP opens the new world's map, where you paint ground, water, trees and rocks
+  with a brush (on your farm too), and choose where your farm and the town start. Undo, zoom and scrolling included
 * Saves written by OpenSimFarm end with a small signature that records the map size. The original game reads
   a 96 x 96 one as usual; a save without it (one from the original) opens as before and gets it the next time it is
   saved. A 144 x 144 world can only be played in OpenSimFarm

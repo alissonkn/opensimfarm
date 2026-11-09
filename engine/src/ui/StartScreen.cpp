@@ -6,6 +6,7 @@
 #include "core/Lang.h"
 #include "core/Paths.h"
 #include "game/GameState.h"
+#include "game/MapEdit.h"
 
 #include <algorithm>
 #include <cctype>
@@ -21,7 +22,9 @@ constexpr Button kUseRegion{ 97, 233, 140, 22 }, kDesign{ 97, 258, 140, 22 }, kL
 bool In(const Button& b, int x, int y) { return x >= b.x && y >= b.y && x < b.x + b.w && y < b.y + b.h; }
 // the map size of a designed world, under the design picture (an engine addition: 96 x 96 as the original, or
 // 144 x 144 for more land). The region screen stays as the original: its worlds are 96 x 96.
-constexpr Button kMapSizeButton{ 229, 342, 150, 22 };
+constexpr Button kMapSizeButton{ 150, 342, 150, 22 };
+// the map editor's button beside it (an engine addition)
+constexpr Button kEditButton{ 340, 342, 150, 22 };
 // the language button (an engine addition), centred under the panel in the black part of the picture, and its list
 constexpr Button kLanguageButton{ 200, 350, 240, 20 };
 constexpr int kLanguageRowH = 14;
@@ -105,6 +108,29 @@ std::string StartScreen::HandleEvent(const SDL_Event& e)
             _intro++;
             _introShown = 0;
         }
+        return {};
+    }
+    if (_editing)
+    {
+        int px = 0, py = 0;
+        if (e.type == SDL_MOUSEBUTTONDOWN || e.type == SDL_MOUSEBUTTONUP)
+            px = e.button.x, py = e.button.y;
+        else if (e.type == SDL_MOUSEMOTION)
+            px = e.motion.x, py = e.motion.y;
+        else
+            SDL_GetMouseState(&px, &py);
+        int x = -1, y = -1;
+        ToPicture(px, py, x, y);
+        const std::string r = _editor.HandleEvent(e, x, y);
+        if (r == "done")
+        {
+            _land = _editor.Land();
+            _sites = _editor.Sites();
+            FinishEdited();
+            _editing = false;
+        }
+        else if (r == "cancel")
+            _editing = false;
         return {};
     }
     if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE)
@@ -212,26 +238,44 @@ void StartScreen::Generate(bool byButton)
     _opt.mapSize = _design ? _designMapSize : kOriginalMapSize;
     WorldOptions opt = _opt;
     opt.wetness = byButton ? 4 * _opt.rain : 2;
-    std::vector<uint16_t> terrain;
-    opt.terrain = &terrain;
-    _haveWorld = GenerateWorld(_gameDir, *mega, _template, opt, _world, err);
+    _haveWorld = GenerateTerrain(*mega, _template, opt, _land, _sites, err);
     if (!_haveWorld)
     {
         _note = err;
         return;
     }
+    _wetness = opt.wetness;
+    _world = _land;
+    FinishWorld(_gameDir, *mega, _world, _sites);
+    MakePreview();
+}
+
+void StartScreen::FinishEdited()
+{
+    if (!_g.Mega())
+        return;
+    _world = _land;
+    FinishWorld(_gameDir, *_g.Mega(), _world, _sites);
+    MakePreview();
+}
+
+void StartScreen::MakePreview()
+{
+    const Megadata* mega = _g.Mega();
+    if (!mega)
+        return;
     // the preview as the original draws it: each cell's ground tile (the low 11 bits of its word) as a
     // 2 x 2 block of its overview colours (far_mapc.mbm, the Map window's table) in the design picture's palette
     const std::vector<uint8_t> mapc = mega->Read("far_mapc.mbm");
     const Palette pal = LoadPalette(mega->Read("scenario.pal"));
     // (a larger world is drawn the same way at two pixels a cell and scaled into the preview box)
-    const int N = _world.world.size, D = 2 * N;
+    const int N = _land.world.size, D = 2 * N;
     _previewSide = D;
     _preview.assign(static_cast<size_t>(D) * D, 0xFF000000u);
     for (int x = 0; x < N; ++x)
         for (int y = 0; y < N; ++y)
         {
-            const int t = terrain[static_cast<size_t>(x * N + y)];
+            const int t = _land.world.At(x, y).BaseTile();
             for (int r = 0; r < 2; ++r)
             {
                 const int b = 2 * t + r < static_cast<int>(mapc.size()) ? mapc[static_cast<size_t>(2 * t + r)] : 0;
@@ -251,6 +295,15 @@ void StartScreen::ToggleMapSize()
 {
     _designMapSize = _designMapSize == kLargeMapSize ? kOriginalMapSize : kLargeMapSize;
     Generate(_byButton); // the preview shows a world of the new size at once
+}
+
+void StartScreen::DrawEditButton()
+{
+    const Button& b = kEditButton;
+    _g.Fill(b.x, b.y, b.w, b.h, kBlack);
+    _g.Fill(b.x + 1, b.y + 1, b.w - 2, b.h - 2, kLightGrey);
+    _g.Bevel(b.x + 1, b.y + 1, b.w - 2, b.h - 2, true);
+    _g.TextFit(b.x + 2, b.y + 7, b.w - 4, Tr("EDIT MAP"), kBlack, 1);
 }
 
 void StartScreen::DrawMapSizeButton()
@@ -280,6 +333,11 @@ std::string StartScreen::DesignEvent(int x, int y)
         Generate(true);
     if (In(kMapSizeButton, x, y))
         ToggleMapSize();
+    if (In(kEditButton, x, y) && _haveWorld)
+    {
+        _editor.Open(_land, _sites, _wetness);
+        _editing = true;
+    }
     if (In(kPlay, x, y) && _haveWorld)
     {
         // the climate classes count at PLAY!, so the tables follow the sliders even without a new generation
@@ -350,6 +408,7 @@ void StartScreen::DrawDesign()
         mark(2 * static_cast<int>(_world.scalars["view_x"]), 2 * static_cast<int>(_world.scalars["view_y"]), "H");
     }
     DrawMapSizeButton();
+    DrawEditButton();
     if (!_note.empty())
         _g.Text(140, 376, _note.substr(0, 44), kYellow);
 }
@@ -377,6 +436,23 @@ void StartScreen::Draw(int w, int h)
         SDL_RenderClear(r);
         _g.DrawFullScreen(_intro == 0 ? "prsnt480.int" : "sftitle.int", _intro == 0 ? "prsnt480.pal" : "sftitle.pal",
                           SDL_Rect{ _ox, _oy, 640 * _scale, 480 * _scale });
+        return;
+    }
+    if (_editing)
+    {
+        _scale = std::max(1, std::min(w / 640, h / 480));
+        _ox = (w - 640 * _scale) / 2;
+        _oy = (h - 480 * _scale) / 2;
+        SDL_Renderer* r = _g.Renderer();
+        SDL_SetRenderDrawColor(r, 0, 0, 0, 255);
+        SDL_RenderClear(r);
+        const SDL_Rect vp{ _ox, _oy, 640 * _scale, 480 * _scale };
+        SDL_RenderSetViewport(r, &vp);
+        const int saved = _g.Scale();
+        _g.SetScale(_scale);
+        _editor.Draw();
+        _g.SetScale(saved);
+        SDL_RenderSetViewport(r, nullptr);
         return;
     }
     if (_design)

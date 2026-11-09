@@ -1555,6 +1555,82 @@ msgstr ""
 msgid "Edge scrolling off."
 msgstr ""
 
+#: src/ui/MapEditor.cpp
+msgid "GROUND"
+msgstr ""
+
+#: src/ui/MapEditor.cpp
+msgid "Paints plain ground over water, trees and rocks."
+msgstr ""
+
+#: src/ui/MapEditor.cpp
+msgid "WATER"
+msgstr ""
+
+#: src/ui/MapEditor.cpp
+msgid "Paints lakes and rivers, also on your farm. The farmhouse and the town stay dry."
+msgstr ""
+
+#: src/ui/MapEditor.cpp
+msgid "TREES"
+msgstr ""
+
+#: src/ui/MapEditor.cpp
+msgid "Plants trees."
+msgstr ""
+
+#: src/ui/MapEditor.cpp
+msgid "ROCKS"
+msgstr ""
+
+#: src/ui/MapEditor.cpp
+msgid "Places rocks."
+msgstr ""
+
+#: src/ui/MapEditor.cpp
+msgid "FARM"
+msgstr ""
+
+#: src/ui/MapEditor.cpp
+msgid "Click where your farm starts: 3 x 3 plots. Water under the farmhouse dries."
+msgstr ""
+
+#: src/ui/MapEditor.cpp
+msgid "TOWN"
+msgstr ""
+
+#: src/ui/MapEditor.cpp
+msgid "Click where the town starts: one plot. Water under it dries."
+msgstr ""
+
+#: src/ui/MapEditor.cpp
+msgid "The farm and the town cannot overlap."
+msgstr ""
+
+#: src/ui/MapEditor.cpp
+msgid "MAP EDITOR"
+msgstr ""
+
+#: src/ui/MapEditor.cpp
+msgid "BRUSH"
+msgstr ""
+
+#: src/ui/MapEditor.cpp
+msgid "Wheel: zoom. Right drag: move the map."
+msgstr ""
+
+#: src/ui/MapEditor.cpp
+msgid "UNDO"
+msgstr ""
+
+#: src/ui/MapEditor.cpp
+msgid "DONE"
+msgstr ""
+
+#: src/ui/MapEditor.cpp
+msgid "CANCEL"
+msgstr ""
+
 #: src/ui/PictureText.cpp
 msgid "PRICE"
 msgstr ""
@@ -1938,6 +2014,10 @@ msgstr ""
 
 #: src/ui/PictureText.cpp
 msgid "button:RATS"
+msgstr ""
+
+#: src/ui/StartScreen.cpp
+msgid "EDIT MAP"
 msgstr ""
 
 #: src/ui/StartScreen.cpp

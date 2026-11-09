@@ -1800,6 +1800,11 @@ int Simulation::ItemAt(int x, int y, int type) const
     return 0;
 }
 
+void Simulation::RefillItem(int index, int amount)
+{
+    Wr16(_s.items, static_cast<size_t>(index) * 12 + 2, amount);
+}
+
 int Simulation::NewItem(int type, int amount, int x, int y)
 {
     for (int i = 1; i < 512; ++i)
@@ -2079,7 +2084,7 @@ void Simulation::ContestWeek()
 bool Simulation::Consume(int x, int y, int type, int amount)
 {
     // an animal eats from the hay pile (type 300) or drinks from the trough (type 299) on cell (x, y): the amount
-    // falls by the animal's appetite; an emptied pile disappears, an emptied trough shows the empty picture
+    // falls by the animal's appetite; an emptied pile disappears from the map, an emptied trough shows the empty picture
     // There is no daily decay of hay piles: the routine for that is never called in the original.
     for (int i = 1; i < 512; ++i)
     {
@@ -2095,7 +2100,9 @@ bool Simulation::Consume(int x, int y, int type, int amount)
         {
             if (left == 0)
             {
-                RemoveItem(i);
+                // the pile's picture goes but its record stays in use at amount 0 (seen in the original's saves: all
+                // three emptied piles of a farm still in use, animals standing on their cells), so animals looking
+                // for hay still walk to where it was
                 c.base &= static_cast<uint16_t>(~0x800);
                 c.overlay &= 0xF800;
             }

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(OpenSimFarm VERSION 0.3.0 LANGUAGES CXX)
+project(OpenSimFarm VERSION 0.4.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -66,6 +66,7 @@ add_executable(opensimfarm
     src/game/Crops.cpp
     src/game/Disasters.cpp
     src/game/Editing.cpp
+    src/game/MapEdit.cpp
     src/game/Flight.cpp
     src/game/GameState.cpp
     src/game/Irrigation.cpp
@@ -80,6 +81,7 @@ add_executable(opensimfarm
     src/ui/MapView.cpp
     src/ui/PixelArt.cpp
     src/ui/StartScreen.cpp
+    src/ui/MapEditor.cpp
     src/ui/Windows.cpp
 )
 target_include_directories(opensimfarm PRIVATE src)

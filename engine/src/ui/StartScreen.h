@@ -3,6 +3,7 @@
 #pragma once
 #include "game/GameState.h"
 #include "game/WorldGen.h"
+#include "ui/MapEditor.h"
 #include "ui/Gfx.h"
 
 #include <SDL.h>
@@ -27,7 +28,7 @@ public:
     std::string HandleEvent(const SDL_Event& e);
     void Draw(int pixelsW, int pixelsH);
     GameState& World() { return _world; }
-    void Reset() { _design = false; }
+    void Reset() { _design = false; _editing = false; }
     void SkipIntro() { _intro = 2; }
 
 private:
@@ -44,6 +45,9 @@ private:
     void Climate(int gx, int gy);
     bool Valid(int gx, int gy) const; // the region grid's valid cells
     void Generate(bool byButton = false);
+    void MakePreview();      // the design screen's picture of the land (_land)
+    void FinishEdited();     // the world from the edited land: the town and the farm put in their places
+    void DrawEditButton();
 
     Gfx& _g;
     std::string _gameDir;
@@ -63,6 +67,13 @@ private:
     bool _byButton = false;
     int _designMapSize = 96; // the design screen's MAP button (96 or 144)
     GameState _template, _world;
+    // the map editor (an engine addition): the land before the town and the farm are placed, where they go, and the
+    // ground shade term the generator used
+    GameState _land;
+    WorldSites _sites;
+    int _wetness = 2;
+    bool _editing = false;
+    MapEditor _editor{ _g };
     bool _haveWorld = false;
     std::vector<uint32_t> _preview;
     int _previewSide = 192;

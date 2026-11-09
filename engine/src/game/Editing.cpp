@@ -270,6 +270,11 @@ void RedrawTownPlot(GameState& s, const std::vector<uint16_t>& layout, int col, 
                 else
                     put(i, j, id);
             }
+        // the home plot then has a second pass that paves every road cell of its block, so after its first level
+        // change its roads are paved (seen in a save of the original at level 13). The plot's placement in a new
+        // world lays dirt roads; only this redraw paves them.
+        if (type == 0)
+            pave(8, 0, 8);
         return;
     }
     switch (level)
@@ -550,7 +555,12 @@ EditResult ApplyTool(GameState& s, Simulation& sim, Tool tool, int cx, int cy, i
         MapCell& c = s.world.At(cx, cy);
         c.base |= 0x800;
         c.overlay = static_cast<uint16_t>((c.overlay & 0xF800) | kHayTile);
-        sim.NewItem(300, 512, cx, cy);
+        // an emptied pile's record stays in use on its cell (as in the original); new hay there refills it, so a cell
+        // never holds two hay records (engine choice: what the original does here is not known)
+        if (const int it = sim.ItemAt(cx, cy, 300))
+            sim.RefillItem(it, 512);
+        else
+            sim.NewItem(300, 512, cx, cy);
         break;
     }
     default: break;

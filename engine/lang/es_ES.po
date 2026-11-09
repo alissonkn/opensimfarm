@@ -1579,6 +1579,82 @@ msgstr "Desplazamiento por los bordes activado: el mapa se mueve cuando el punte
 msgid "Edge scrolling off."
 msgstr "Desplazamiento por los bordes desactivado."
 
+#: src/ui/MapEditor.cpp
+msgid "GROUND"
+msgstr "SUELO"
+
+#: src/ui/MapEditor.cpp
+msgid "Paints plain ground over water, trees and rocks."
+msgstr "Pinta suelo limpio sobre agua, árboles y rocas."
+
+#: src/ui/MapEditor.cpp
+msgid "WATER"
+msgstr "AGUA"
+
+#: src/ui/MapEditor.cpp
+msgid "Paints lakes and rivers, also on your farm. The farmhouse and the town stay dry."
+msgstr "Pinta lagos y ríos, también en tu granja. La casa y el pueblo quedan secos."
+
+#: src/ui/MapEditor.cpp
+msgid "TREES"
+msgstr "ÁRBOLES"
+
+#: src/ui/MapEditor.cpp
+msgid "Plants trees."
+msgstr "Planta árboles."
+
+#: src/ui/MapEditor.cpp
+msgid "ROCKS"
+msgstr "ROCAS"
+
+#: src/ui/MapEditor.cpp
+msgid "Places rocks."
+msgstr "Coloca rocas."
+
+#: src/ui/MapEditor.cpp
+msgid "FARM"
+msgstr "GRANJA"
+
+#: src/ui/MapEditor.cpp
+msgid "Click where your farm starts: 3 x 3 plots. Water under the farmhouse dries."
+msgstr "Haz clic donde empieza la granja: 3 x 3 parcelas. El agua bajo la casa se seca."
+
+#: src/ui/MapEditor.cpp
+msgid "TOWN"
+msgstr "PUEBLO"
+
+#: src/ui/MapEditor.cpp
+msgid "Click where the town starts: one plot. Water under it dries."
+msgstr "Haz clic donde empieza el pueblo: una parcela. El agua debajo se seca."
+
+#: src/ui/MapEditor.cpp
+msgid "The farm and the town cannot overlap."
+msgstr "La granja y el pueblo no pueden quedar uno sobre otro."
+
+#: src/ui/MapEditor.cpp
+msgid "MAP EDITOR"
+msgstr "EDITOR DE MAPAS"
+
+#: src/ui/MapEditor.cpp
+msgid "BRUSH"
+msgstr "PINCEL"
+
+#: src/ui/MapEditor.cpp
+msgid "Wheel: zoom. Right drag: move the map."
+msgstr "Rueda: zoom. Arrastrar con el botón derecho: mover el mapa."
+
+#: src/ui/MapEditor.cpp
+msgid "UNDO"
+msgstr "DESHACER"
+
+#: src/ui/MapEditor.cpp
+msgid "DONE"
+msgstr "LISTO"
+
+#: src/ui/MapEditor.cpp
+msgid "CANCEL"
+msgstr "CANCELAR"
+
 #: src/ui/PictureText.cpp
 msgid "PRICE"
 msgstr "PRECIO"
@@ -1974,6 +2050,10 @@ msgstr "INICIO"
 #: src/ui/PictureText.cpp
 msgid "button:RATS"
 msgstr "VAYA"
+
+#: src/ui/StartScreen.cpp
+msgid "EDIT MAP"
+msgstr "EDITAR MAPA"
 
 #: src/ui/StartScreen.cpp
 msgid "MAP 144 x 144"
