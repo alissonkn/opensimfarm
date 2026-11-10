@@ -17,7 +17,8 @@ namespace osf {
 
 class Megadata;
 
-// Decodes a Creative Voice File (8-bit unsigned mono PCM blocks) to signed 16-bit samples.
+// Decodes a Creative Voice File (8-bit unsigned mono PCM blocks), or a PCM .WAV file (the Windows edition), to signed
+// 16-bit samples.
 bool DecodeVoc(const std::vector<uint8_t>& data, std::vector<int16_t>& samples, int& rate);
 // Modern Sound's version of one effect: the cleaned, brightened recording (AudioFx)
 std::vector<float> ModernEffect(const std::string& name, const std::vector<int16_t>& pcm, int srcRate, int dstRate);

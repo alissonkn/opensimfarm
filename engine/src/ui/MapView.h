@@ -63,8 +63,8 @@ public:
     void SetOrigin(int left, int top) { _left = left; _top = top; } // the map area's top-left in window pixels
 
 private:
-    SDL_Texture* BuildAtlas(SDL_Renderer* renderer, const TileSheet& sheet, const Palette& pal, bool transparent7);
-    SDL_Texture* BuildSmoothAtlas(SDL_Renderer* renderer, const TileSheet& sheet, const Palette& pal, bool transparent7, int size);
+    SDL_Texture* BuildAtlas(SDL_Renderer* renderer, const TileSheet& sheet, const Palette& pal, bool seeThrough);
+    SDL_Texture* BuildSmoothAtlas(SDL_Renderer* renderer, const TileSheet& sheet, const Palette& pal, bool seeThrough, int size);
     void ClampCamera();
     void DropSmooth(bool plainOnly);
     // movers: a cell's moving thing changed; finds where each one went and starts its glide

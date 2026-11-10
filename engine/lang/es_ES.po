@@ -1,5 +1,3 @@
-# OpenSimFarm in Spanish (Spain).
-# Kept up to date with engine/tools/lang_extract.py --update; see engine/lang/opensimfarm.pot.
 msgid ""
 msgstr ""
 "Project-Id-Version: OpenSimFarm\n"
@@ -71,6 +69,27 @@ msgstr ""
 "{0}"
 
 #: src/main.cpp
+msgid "Choose the SimFarm files to play with."
+msgstr "Elige los archivos de SimFarm con los que jugar."
+
+#: src/main.cpp
+msgid ""
+"OpenSimFarm now plays with the SimFarm files in\n"
+"{0}"
+msgstr ""
+"OpenSimFarm juega ahora con los archivos de SimFarm de\n"
+"{0}"
+
+#: src/main.cpp
+#: src/ui/GameUi.cpp
+msgid "Quit"
+msgstr "Salir"
+
+#: src/main.cpp
+msgid "Keep this folder"
+msgstr "Mantener esta carpeta"
+
+#: src/main.cpp
 msgid ""
 "SimFarm was in\n"
 "{0}\n"
@@ -79,11 +98,6 @@ msgstr ""
 "SimFarm estaba en\n"
 "{0}\n"
 "pero ya no está allí (¿se ha movido o borrado?)."
-
-#: src/main.cpp
-#: src/ui/GameUi.cpp
-msgid "Quit"
-msgstr "Salir"
 
 #: src/main.cpp
 msgid "SCEN0.SSM is missing."
@@ -163,22 +177,6 @@ msgid "A fence has broken. Your livestock may run loose."
 msgstr "Se ha roto una valla. Tus animales podrían escaparse."
 
 #: src/game/Animals.cpp
-msgid "A horse starved."
-msgstr "Un caballo ha muerto de hambre."
-
-#: src/game/Animals.cpp
-msgid "A cow starved."
-msgstr "Una vaca ha muerto de hambre."
-
-#: src/game/Animals.cpp
-msgid "A pig starved."
-msgstr "Un cerdo ha muerto de hambre."
-
-#: src/game/Animals.cpp
-msgid "A sheep starved."
-msgstr "Una oveja ha muerto de hambre."
-
-#: src/game/Animals.cpp
 msgid "A horse died of thirst."
 msgstr "Un caballo ha muerto de sed."
 
@@ -195,12 +193,28 @@ msgid "A sheep died of thirst."
 msgstr "Una oveja ha muerto de sed."
 
 #: src/game/Animals.cpp
-msgid "Your livestock are hungry."
-msgstr "Tus animales tienen hambre."
+msgid "A horse starved."
+msgstr "Un caballo ha muerto de hambre."
+
+#: src/game/Animals.cpp
+msgid "A cow starved."
+msgstr "Una vaca ha muerto de hambre."
+
+#: src/game/Animals.cpp
+msgid "A pig starved."
+msgstr "Un cerdo ha muerto de hambre."
+
+#: src/game/Animals.cpp
+msgid "A sheep starved."
+msgstr "Una oveja ha muerto de hambre."
 
 #: src/game/Animals.cpp
 msgid "Your livestock are thirsty."
 msgstr "Tus animales tienen sed."
+
+#: src/game/Animals.cpp
+msgid "Your livestock are hungry."
+msgstr "Tus animales tienen hambre."
 
 #: src/game/Crops.cpp
 msgid "cropinfo:Chill Hours"

@@ -1612,9 +1612,16 @@ void GameUi::UpdateCursor()
     if (_cursorScale != scale && _g.Mega())
     {
         // cursors.til: 6 cursors, each a group of four mask bitmaps then four image bitmaps (16x16, 1 bpp);
-        // a pixel shows where the mask bit is set, white where the image bit is set, else black
+        // a pixel shows where the mask bit is set, white where the image bit is set, else black. The Windows
+        // edition's cursors bring their own hot spots (after the bitmaps)
         const std::vector<uint8_t> d = _g.Mega()->Read("cursors.til");
-        static const int hot[6][2] = { { 8, 8 }, { 8, 8 }, { 5, 5 }, { 2, 7 }, { 8, 8 }, { 4, 0 } };
+        int hot[6][2] = { { 8, 8 }, { 8, 8 }, { 5, 5 }, { 2, 7 }, { 8, 8 }, { 4, 0 } };
+        if (d.size() >= 1536 + 12)
+            for (int c = 0; c < 6; ++c)
+            {
+                hot[c][0] = d[1536 + 2 * c];
+                hot[c][1] = d[1536 + 2 * c + 1];
+            }
         for (int c = 0; c < 6 && d.size() >= 1536; ++c)
         {
             if (_cursors[c])

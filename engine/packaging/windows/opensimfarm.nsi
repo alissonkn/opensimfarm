@@ -180,6 +180,8 @@ Section "${APP}" SecMain
     FileClose $0
   ${EndIf}
   CreateShortcut "$SMPROGRAMS\${APP}.lnk" "$INSTDIR\opensimfarm.exe" "" "$INSTDIR\opensimfarm.exe" 0
+  ; the same game, but it first lets the player choose the SimFarm folder again
+  CreateShortcut "$SMPROGRAMS\${APP} - choose SimFarm folder.lnk" "$INSTDIR\opensimfarm.exe" "--reconfigure" "$INSTDIR\opensimfarm.exe" 0
   WriteUninstaller "$INSTDIR\uninstall.exe"
   WriteRegStr HKCU "Software\OpenSimFarm" "InstallDir" "$INSTDIR"
   WriteRegStr HKCU "${UNINSTKEY}" "DisplayName" "${APP}"
@@ -212,6 +214,7 @@ Section "Uninstall"
   Delete "$INSTDIR\uninstall.exe"
   RMDir "$INSTDIR"
   Delete "$SMPROGRAMS\${APP}.lnk"
+  Delete "$SMPROGRAMS\${APP} - choose SimFarm folder.lnk"
   Delete "$DESKTOP\${APP}.lnk"
   DeleteRegKey HKCU "${UNINSTKEY}"
   DeleteRegKey HKCU "Software\OpenSimFarm"

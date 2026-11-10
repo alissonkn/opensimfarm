@@ -34,6 +34,25 @@ static uint32_t Vlq(const std::vector<uint8_t>& d, size_t& i)
 
 bool ParseXmi(const std::vector<uint8_t>& d, Song& out)
 {
+    if (d.size() >= 4 && std::memcmp(d.data(), "MThd", 4) == 0)
+    {
+        // the Windows edition's songs are standard MIDI files in the dual format of their time: the song on channels
+        // 1-10 for a General MIDI synthesizer and again on 13-16 for a simpler one, of which Windows' MIDI setup
+        // played one; with notes in both, channels 13-16 are left out (else every part would sound twice)
+        if (!ParseMidi(d, out))
+            return false;
+        bool extended = false, base = false;
+        for (const Song::Event& e : out.events)
+            if ((e.status & 0xF0) == 0x90)
+            {
+                extended = extended || (e.status & 15) <= 9;
+                base = base || (e.status & 15) >= 12;
+            }
+        if (extended && base)
+            out.events.erase(std::remove_if(out.events.begin(), out.events.end(), [](const Song::Event& e) { return e.status < 0xF0 && (e.status & 15) >= 12; }),
+                             out.events.end());
+        return !out.events.empty();
+    }
     out = Song{};
     size_t at = 0;
     for (; at + 8 <= d.size(); ++at)

@@ -46,6 +46,9 @@ public:
     SDL_Renderer* Renderer() const { return _r; }
     const Megadata* Mega() const { return _mega; }
     const Palette& Pal() const { return _pal; }
+    // the RGB of one of the engine's interface colours (Colour): for the Windows edition the Windows colour that
+    // stands for it
+    const std::array<uint8_t, 3>& Ui(int c) const { return _pal[_ui[static_cast<size_t>(c & 15)]]; }
     // the play palette: 0 = simfarm.pal, 1 = rainpal.pal, 2 = frostpal.pal (they differ only in colour 7). Switching
     // remakes the tile atlas and the cached pictures, as the original reprograms the whole screen's palette
     void SetPlayPalette(int which);
@@ -102,12 +105,13 @@ private:
     SDL_Renderer* _r = nullptr;
     const Megadata* _mega = nullptr;
     Palette _pal{};
+    std::array<uint8_t, 16> _ui{}; // interface colour -> palette index (the same for the DOS edition)
     int _playPalette = 0;
     TileSheet _plain;             // the plain tiles of the atlas (kept to remake it with another palette)
     int _scale = 1;
     SDL_Texture* _font = nullptr;   // 16x16 glyph grid, white with alpha
     SDL_Texture* _tiles = nullptr;  // plain tile atlas
-    SDL_Texture* _masked = nullptr; // masked tile atlas (colour 7 transparent)
+    SDL_Texture* _masked = nullptr; // masked tile atlas (kSeeThrough transparent)
     std::map<std::string, SDL_Texture*> _pictures;
     std::vector<uint32_t> _tileColour;  // average colour of each plain tile (overview map)
     SDL_Texture* _pixels = nullptr;

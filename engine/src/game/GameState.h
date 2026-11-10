@@ -76,6 +76,9 @@ struct GameState
     std::vector<uint8_t> version, animals, objects20, machines, fields, structures, items, traffic, timeline, weather,
         catalog, irrigationFlag, irrigationLists, cropNames, zones, eventGrounds, tail;
     int animalCount = 0, object20Count = 0, machineCount = 0, fieldCount = 0, structureCount = 0, itemCount = 0, carCount = 0;
+    // the file held the irrigation source list as plain 3-byte entries (the Windows edition's files) rather than the
+    // DOS edition's overlapping ones; a save is written back the same way
+    bool plainIrrigationList = false;
     World world;
 
     // decoded scalars of the tail

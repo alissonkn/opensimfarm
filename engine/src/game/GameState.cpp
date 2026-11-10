@@ -100,12 +100,20 @@ bool GameState::Load(const std::string& gameDir, const std::string& path, std::s
     {
         // the original writes its source list (3-byte entries x, y, kind) with a stride of 2 (for i < 64
         // the bytes at 2i, 2i + 1, 2i + 2) and reads it back the same way, so the file holds overlapping
-        // triples; read them back in order to get the entries (seen live: SCEN2's four pumps all registered)
-        std::vector<uint8_t> m(192, 0);
-        for (size_t i = 0; i < 64; ++i)
-            for (size_t k = 0; k < 3; ++k)
-                m[2 * i + k] = irrigationLists[3 * i + k];
-        irrigationLists = m;
+        // triples; read them back in order to get the entries (seen live: SCEN2's four pumps all registered).
+        // In such a file each triple's last byte is the next one's first. The Windows edition's files hold the
+        // entries one after another (its SCEN7.SSM: the same three pumps as the DOS edition's, not overlapping)
+        plainIrrigationList = false;
+        for (size_t i = 0; i + 1 < 64 && irrigationLists.size() >= 192; ++i)
+            plainIrrigationList = plainIrrigationList || irrigationLists[3 * i + 2] != irrigationLists[3 * i + 3];
+        if (!plainIrrigationList)
+        {
+            std::vector<uint8_t> m(192, 0);
+            for (size_t i = 0; i < 64; ++i)
+                for (size_t k = 0; k < 3; ++k)
+                    m[2 * i + k] = irrigationLists[3 * i + k];
+            irrigationLists = m;
+        }
     }
     take(cropNames, 16 * 14);
     take(zones, static_cast<size_t>(world.Plots()) * world.Plots() * 7);
@@ -193,11 +201,11 @@ bool GameState::Save(const std::string& path, std::string& error) const
         d.push_back(c.terrain);
     }
     {
-        // back to the file's stride-2 layout (see the loader)
+        // back to the file's stride-2 layout (see the loader), or as plain entries when the file had them so
         std::vector<uint8_t> f(192, 0);
         for (size_t i = 0; i < 64; ++i)
             for (size_t k = 0; k < 3; ++k)
-                f[3 * i + k] = copy.irrigationLists.size() >= 192 ? copy.irrigationLists[2 * i + k] : 0;
+                f[3 * i + k] = copy.irrigationLists.size() >= 192 ? copy.irrigationLists[(plainIrrigationList ? 3 : 2) * i + k] : 0;
         copy.irrigationLists = f;
     }
     put(copy.weather); put(copy.catalog); put(copy.irrigationFlag); put(copy.irrigationLists);

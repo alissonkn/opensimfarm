@@ -65,8 +65,19 @@ bool LoadMapGraphics(const Megadata& mega, MapGraphics& out)
     if (pal.size() < 48 || plain.size() < 848 * 128 || masked.size() < 200 * 128)
         return false;
     out.palette = LoadPalette(pal);
+    out.windowsEdition = mega.WindowsEdition();
     out.plain = DecodeTiles16(plain, 848);
     out.masked = DecodeTiles16(masked, 200);
+    // the see-through pixels: the Windows edition's own masks (1 bit a pixel, 1 = see-through), else colour 7
+    const auto mask = mega.Read("mskdtile.msk");
+    for (int t = 0; t < out.masked.count; ++t)
+        for (int i = 0; i < 256; ++i)
+        {
+            uint8_t& c = out.masked.pixels[static_cast<size_t>(t) * 256 + i];
+            const size_t bit = static_cast<size_t>(t) * 256 + i;
+            if (mask.size() >= 200 * 32 ? ((mask[bit / 8] >> (7 - bit % 8)) & 1) != 0 : c == 7)
+                c = kSeeThrough;
+        }
     out.events = DecodeTiles16(mega.Read("twnevent.til"), 105);
     return true;
 }

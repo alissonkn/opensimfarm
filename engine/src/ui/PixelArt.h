@@ -29,11 +29,11 @@ std::vector<uint8_t> CalmMask(const uint8_t* tile16); // 16 x 16: 1 where the ti
 // With `calm` (s x s), only the pixels marked there are rounded; the others are just repeated
 std::vector<uint8_t> Double(const std::vector<uint8_t>& px, int s, const std::vector<uint8_t>* calm = nullptr);
 
-// a 16 x 16 tile of indices as `size` x `size` ARGB pixels; with transparent7, colour 7 is see-through (the
+// a 16 x 16 tile of indices as `size` x `size` ARGB pixels; with seeThrough, kSeeThrough pixels are see-through (the
 // transparent pixels get the colour of the nearby opaque ones, so a scaled edge shows no fringe)
-std::vector<uint32_t> SmoothTile(const uint8_t* tile16, const Palette& pal, bool transparent7, int size);
+std::vector<uint32_t> SmoothTile(const uint8_t* tile16, const Palette& pal, bool seeThrough, int size);
 
 // the same tile at `size` with plain pixel repetition (the classic look), for comparison and tests
-std::vector<uint32_t> PlainTile(const uint8_t* tile16, const Palette& pal, bool transparent7, int size);
+std::vector<uint32_t> PlainTile(const uint8_t* tile16, const Palette& pal, bool seeThrough, int size);
 
 } // namespace osf

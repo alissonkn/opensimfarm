@@ -358,17 +358,17 @@ std::string StartScreen::DesignEvent(int x, int y)
 void StartScreen::DrawDesign()
 {
     // the sliders: 80 x 10 bars at x 160, filled from the left with value x 27 pixels (at most 80) in the
-    // design palette's colours 3 (rain), 1 (temperature), 8 (wind), the rest black; the original's planar fill ends
+    // design palette's colours 3 (rain), 1 (temperature), 8 (wind), the rest black (the main palette's red, yellow
+    // and green; for the Windows edition the Windows colours that stand for them); the original's planar fill ends
     // on whole bytes, so the steps show 0, 24, 48 and 80 pixels
     if (_g.Mega())
     {
-        const Palette pal = LoadPalette(_g.Mega()->Read("scenario.pal"));
-        const int sy[3] = { 105, 163, 222 }, colour[3] = { 3, 1, 8 };
+        const int sy[3] = { 105, 163, 222 }, colour[3] = { kRed, kYellow, kGreen };
         const int cls[3] = { _opt.rain, _opt.temperature, _opt.wind };
         for (int k = 0; k < 3; ++k)
         {
             const int w = (160 + std::min(80, 27 * cls[k])) / 8 * 8 - 160;
-            const auto& c = pal[static_cast<size_t>(colour[k])];
+            const auto& c = _g.Ui(colour[k]);
             std::vector<uint32_t> bar(80, 0xFF000000u);
             for (int i = 0; i < w; ++i)
                 bar[static_cast<size_t>(i)] = 0xFF000000u | (c[0] << 16) | (c[1] << 8) | c[2];

@@ -94,7 +94,8 @@ if has rpm || has deb; then
     rm -rf "$T" && mkdir -p "$T/usr/bin" "$T/usr/share/applications" "$T/usr/share/doc/opensimfarm"
     strip -o "$T/usr/bin/opensimfarm" "$BUILD_PKG/opensimfarm"
     chmod 755 "$T/usr/bin/opensimfarm"
-    install -m 644 "$ENGINE/packaging/linux/opensimfarm.desktop" "$T/usr/share/applications/"
+    install -m 644 "$ENGINE/packaging/linux/opensimfarm.desktop" "$ENGINE/packaging/linux/opensimfarm-reconfigure.desktop" \
+        "$T/usr/share/applications/"
     for n in 16 24 32 48 64 128 256; do
         install -D -m 644 "$WORK/icon/opensimfarm-$n.png" "$T/usr/share/icons/hicolor/${n}x$n/apps/opensimfarm.png"
     done
@@ -129,6 +130,7 @@ install -D -m 644 "$ENGINE/LICENSE.txt" %{buildroot}%{_datadir}/licenses/opensim
 %files
 %{_bindir}/opensimfarm
 %{_datadir}/applications/opensimfarm.desktop
+%{_datadir}/applications/opensimfarm-reconfigure.desktop
 %{_datadir}/icons/hicolor/*/apps/opensimfarm.png
 %doc %{_datadir}/doc/opensimfarm/README.md
 %license %{_datadir}/licenses/opensimfarm/LICENSE.txt

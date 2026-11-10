@@ -5,6 +5,7 @@
 //
 // Usage:
 //   opensimfarm [path-to-SimFarm-folder] [farm.SSM|save.SFM]      play (the folder is remembered)
+//   opensimfarm --reconfigure [farm.SSM|save.SFM]                  choose the SimFarm folder again (folder dialog), then play
 //   opensimfarm --findgame [folder]                                where SimFarm is found (search of the usual places)
 //   opensimfarm --selftest [folder]                                 load and re-save every prebuilt farm, compare bytes
 //   opensimfarm --simulate DAYS [farm] [folder]                     run DAYS game days without a window and print a report
@@ -14,9 +15,11 @@
 #include "assets/Graphics.h"
 #include "audio/Sound.h"
 #include "assets/Megadata.h"
+#include "assets/Picture.h"
 #include "core/Lang.h"
 #include "ui/LangTest.h"
 #include "core/Paths.h"
+#include "game/AutoPlayer.h"
 #include "game/Editing.h"
 #include "game/Flight.h"
 #include "game/Irrigation.h"
@@ -90,6 +93,98 @@ static std::string StatusLine(const GameState& s, const Simulation& sim)
                   s.cal.week + 1, kMonths[s.cal.month], s.cal.year, static_cast<long long>(s.cash),
                   speeds[static_cast<int>(sim.GetSpeed())], sim.Wind(), sim.SoilWetness(), sim.Temperature());
     return buf;
+}
+
+// The archive's pictures as the interface draws them (both editions; for the Windows edition they are made from its
+// program, WindowsEdition.h): each window picture at its size, the button and gauge faces, the font, the sprites (some
+// of each frame see-through), the cursors and the picture banks (pictures, not noise)
+static int ArchivePictureTest(const Megadata& mega)
+{
+    int fails = 0;
+    auto check = [&](bool ok, const std::string& what) {
+        std::printf("%s %s\n", ok ? "ok  " : "FAIL", what.c_str());
+        fails += !ok;
+    };
+    static const struct { const char* name; int w, h; } kWindows[] = {
+        { "about.bmp", 400, 224 },    { "airpwndo.bmp", 256, 176 }, { "bankterm.bmp", 288, 224 }, { "buywndo.bmp", 256, 224 },
+        { "cashflow.bmp", 400, 224 }, { "choscrop.bmp", 320, 224 }, { "cntlbtnh.bmp", 640, 32 },  { "evaluate.bmp", 352, 192 },
+        { "examine.bmp", 208, 208 },  { "farmburo.bmp", 400, 224 }, { "fdstatus.bmp", 336, 224 }, { "filegenr.bmp", 208, 208 },
+        { "futures.bmp", 320, 208 },  { "mapwndo.bmp", 288, 240 },  { "popup.bmp", 256, 192 },    { "sellwndo.bmp", 192, 256 },
+        { "twnchoic.bmp", 368, 224 }, { "weather.bmp", 336, 192 },
+    };
+    // a picture, not noise: most pixels have the colour of their right-hand neighbour
+    auto calm = [](const Picture& p) {
+        long same = 0;
+        for (int y = 0; y < p.h; ++y)
+            for (int x = 0; x + 1 < p.w; ++x)
+                same += p.px[static_cast<size_t>(y) * p.w + x] == p.px[static_cast<size_t>(y) * p.w + x + 1];
+        return same * 100 >= static_cast<long>(p.h) * (p.w - 1) * 40;
+    };
+    for (const auto& w : kWindows)
+    {
+        Picture p;
+        const bool ok = DecodePlanarBitmap(mega.Read(w.name), p) && p.w == w.w && p.h == w.h && calm(p);
+        check(ok, std::string(w.name) + " " + std::to_string(p.w) + " x " + std::to_string(p.h));
+    }
+    {
+        Picture p;
+        check(DecodePlanarBitmap(DecodeLzss(mega.Read("editeasy.lzs")), p) && p.w == 48 && p.h == 208, "editeasy.lzs 48 x 208");
+    }
+    for (const auto& [file, faces, wb, h] : { std::tuple<const char*, int, int, int>{ "buttons.til", 18, 6, 24 }, { "fldgrph.til", 20, 6, 24 }, { "wethvane.til", 2, 4, 32 } })
+    {
+        Picture p;
+        // (the weather vane's rotor is drawn over a dotted sky: only its size is checked)
+        check(DecodeButtonFace(mega.Read(file), faces - 1, p, wb, h) && (wb == 4 || calm(p)), std::string(file) + " " + std::to_string(faces) + " faces");
+    }
+    {
+        Font8 f;
+        const bool ok = DecodeFont(mega.Read("egafont.fnt"), f);
+        int inkA = 0, inkSpace = 0;
+        for (int r = 0; r < 8; ++r)
+        {
+            inkA += __builtin_popcount(f.glyphs['A'][static_cast<size_t>(r)]);
+            inkSpace += __builtin_popcount(f.glyphs[' '][static_cast<size_t>(r)]);
+        }
+        check(ok && inkA >= 10 && inkSpace == 0, "the font: A has " + std::to_string(inkA) + " ink pixels, the space none");
+    }
+    for (const auto& [file, frames] : { std::pair<const char*, int>{ "airplane.spr", 8 }, { "apshadow.spr", 8 }, { "tornado.spr", 4 }, { "swarm.spr", 4 }, { "cowman1.spr", 5 } })
+    {
+        bool ok = true;
+        std::string shares;
+        for (int f = 0; f < frames; ++f)
+        {
+            Picture p;
+            if (!DecodeSprite(mega.Read(file), f, p))
+            {
+                ok = false;
+                break;
+            }
+            const long clear = std::count(p.px.begin(), p.px.end(), 255);
+            const long share = clear * 100 / static_cast<long>(p.px.size());
+            ok = ok && share >= 2 && share <= 98;
+            shares += " " + std::to_string(share);
+        }
+        check(ok, std::string(file) + " " + std::to_string(frames) + " frames, % see-through:" + shares);
+    }
+    {
+        const std::vector<uint8_t> d = mega.Read("cursors.til");
+        bool ok = d.size() >= 1536;
+        for (int c = 0; c < 6 && ok; ++c)
+        {
+            int shown = 0;
+            for (int i = 0; i < 32; ++i)
+                shown += __builtin_popcount(d[static_cast<size_t>(2 * c) * 128 + i]);
+            ok = shown >= 20 && shown < 256;
+        }
+        check(ok, "cursors.til: six cursors with shapes");
+    }
+    for (const char* bank : { "alltiles.btl", "wethgrnd.btl", "wethsky.btl" })
+    {
+        Picture p;
+        check(DecodeBankRecord(mega.Read(bank), 0, p) && p.w == 112 && calm(p), std::string(bank) + ": the first picture");
+    }
+    std::printf("archive pictures %s\n", fails ? "FAIL" : "ok");
+    return fails;
 }
 
 static int SelfTest(const std::string& gameDir)
@@ -1888,6 +1983,20 @@ static std::optional<std::string> AskPlayerForGameFolder(std::string problem, co
 
 int main(int argc, char** argv)
 {
+    // --reconfigure (anywhere on the line): the player chooses the SimFarm folder again before the game starts; it is
+    // taken out of the arguments, so the rest reads as usual (a farm or save may follow)
+    bool reconfigure = false;
+    std::vector<char*> args;
+    for (int i = 0; i < argc; ++i)
+    {
+        if (i > 0 && std::strcmp(argv[i], "--reconfigure") == 0)
+            reconfigure = true;
+        else
+            args.push_back(argv[i]);
+    }
+    args.push_back(nullptr);
+    argc = static_cast<int>(args.size()) - 1;
+    argv = args.data();
     // command-line modes without a window
     if (argc > 1 && std::strcmp(argv[1], "--audiotest") == 0)
     {
@@ -1922,7 +2031,8 @@ int main(int argc, char** argv)
         if (!mega.Open(*dir, err)) { std::printf("%s\n", err.c_str()); return 1; }
         MapGraphics gfx;
         if (!LoadMapGraphics(mega, gfx)) { std::printf("tiles could not be read\n"); return 1; }
-        return MapView::SelfTest(gfx);
+        const int pictures = ArchivePictureTest(mega);
+        return MapView::SelfTest(gfx) || pictures ? 1 : 0;
     }
     if (argc > 1 && std::strcmp(argv[1], "--selftest") == 0)
     {
@@ -2279,6 +2389,44 @@ int main(int argc, char** argv)
         const EditResult r = ApplyTool(s, sim, static_cast<Tool>(std::atoi(argv[3])), std::atoi(argv[4]), std::atoi(argv[5]), std::atoi(argv[6]));
         std::printf("%s %s\n", r.ok ? "ok" : "refused", r.message.c_str());
         return s.Save(argv[7], err) ? 0 : 1;
+    }
+    if (argc > 4 && std::strcmp(argv[1], "--autoplay") == 0)
+    {
+        // --autoplay FROM YEARS OUTDIR [folder]: the autoplayer runs the farm for YEARS game years (headless, with the
+        // engine's route planner); a checkpoint save OUTDIR/APyyyy.SFM at every year change, its notes on the console
+        char* fake[2] = { argv[0], argc > 5 ? argv[5] : nullptr };
+        auto dir = ResolveGameDirectory(argc > 5 ? 2 : 1, fake);
+        if (!dir) { Fatal("game folder unknown", false); return 1; }
+        GameState s;
+        std::string err;
+        if (!s.Load(*dir, argv[2], err, true)) { std::printf("%s\n", err.c_str()); return 1; }
+        Simulation sim(s);
+        sim.SetGameDir(*dir);
+        Machines::smartDriving = true;
+        Megadata mega;
+        if (mega.Open(*dir, err))
+            sim.SetTownLayout(mega.Read("townly0.cmp"));
+        AutoPlayer ap(s, sim, argv[4]);
+        const int endYear = s.cal.year + std::atoi(argv[3]);
+        while (s.cal.year < endYear && !sim.Bankrupt() && sim.GameOverChoice() == 0)
+        {
+            sim.TimerTick();
+            ap.Tick();
+            std::string m;
+            while (sim.TakeMessage(m))
+                if (std::getenv("OSF_APVERBOSE"))
+                    std::printf("  [%d/%d/%d] %s\n", s.cal.week + 1, s.cal.month + 1, s.cal.year, m.c_str());
+            GameEvent ev;
+            while (sim.TakeEvent(ev))
+                if (!ap.Answer(ev))
+                    std::printf("  [%d/%d/%d] box %d: %s\n", s.cal.week + 1, s.cal.month + 1, s.cal.year, ev.id, ev.text.c_str());
+            while (ap.TakeNote(m))
+                std::printf("  [%d/%d/%d] %s\n", s.cal.week + 1, s.cal.month + 1, s.cal.year, m.c_str());
+            sim.TakeYearEvaluation();
+        }
+        std::printf("end %d/%d/%d: %d fields, town levels %d, cash %lld%s\n", s.cal.week + 1, s.cal.month + 1, s.cal.year, ap.Fields(),
+                    sim.TownLevels(), static_cast<long long>(s.cash), sim.Bankrupt() ? " (bankrupt)" : "");
+        return s.Save(std::string(argv[4]) + "/APEND.SFM", err) ? 0 : 1;
     }
     if (argc > 4 && std::strcmp(argv[1], "--newworld") == 0)
     {
@@ -2727,7 +2875,37 @@ int main(int argc, char** argv)
             lang.pop_back();
         SetLanguage(lang.empty() ? SystemLanguage() : lang);
     }
-    auto gameDir = ResolveGameDirectory(argc, argv);
+    std::optional<std::string> gameDir;
+#ifndef __EMSCRIPTEN__
+    if (reconfigure)
+    {
+        // the folder box at once; a farm or save given without a folder stays the farm (after the chosen folder)
+        if (argc > 1 && !IsGameDirectory(argv[1]))
+        {
+            args.insert(args.begin() + 1, argv[0]); // the folder's place, filled below
+            argc = static_cast<int>(args.size()) - 1;
+            argv = args.data();
+        }
+        const std::string now = RememberedGameDirectory();
+        const std::string ask = now.empty() ? std::string(Tr("Choose the SimFarm files to play with."))
+                                            : TrF("OpenSimFarm now plays with the SimFarm files in\n{0}", now);
+        bool noDialog = false;
+        gameDir = AskPlayerForGameFolder(ask, now.empty() ? N_("Quit") : N_("Keep this folder"), {}, noDialog);
+        if (noDialog)
+            std::fprintf(stderr, "%s\n", Tr(kNoDialogText));
+        if (gameDir && argc > 1)
+            argv[1] = gameDir->data(); // the chosen folder in the folder's place
+        else if (!gameDir && argc > 1 && argv[1] == argv[0])
+            argv[1] = const_cast<char*>(""); // kept folder: no folder given, the farm stays argv[2]
+        if (!gameDir && now.empty())
+        {
+            SDL_Quit();
+            return 1;
+        }
+    }
+#endif
+    if (!gameDir)
+        gameDir = ResolveGameDirectory(argc, argv);
     if (!gameDir)
     {
         // not given and not remembered: try the program's folder, the current folder and a SIMFARM folder beside either
@@ -3313,6 +3491,24 @@ int main(int argc, char** argv)
             view.Update(static_cast<float>(dt));
         if (!ui.Modal())
             sim->Advance(dt);
+        // the autoplayer (OSF_AUTOPLAY=folder for its yearly checkpoint saves): a test player that runs the farm
+        // by itself at Ultra; a game loaded or started later gets a new one
+        static const char* const autoplayDir = std::getenv("OSF_AUTOPLAY");
+        static std::unique_ptr<AutoPlayer> autoplayer;
+        static const Simulation* autoplaySim = nullptr;
+        if (autoplayDir && autoplaySim != sim.get())
+        {
+            autoplayer = std::make_unique<AutoPlayer>(*state, *sim, autoplayDir);
+            autoplaySim = sim.get();
+            sim->SetSpeed(Speed::Ultra);
+        }
+        if (autoplayer)
+        {
+            autoplayer->Tick();
+            std::string note;
+            while (autoplayer->TakeNote(note))
+                ui.ShowMessage(note);
+        }
         {
             const std::string song = ui.RadioSong(sim->Song());
             sound.PlayMusic(song, ui.RadioLoops());
@@ -3334,6 +3530,8 @@ int main(int argc, char** argv)
         GameEvent ev;
         while (sim->TakeEvent(ev))
         {
+            if (autoplayer && autoplayer->Answer(ev))
+                continue;
             ui.ShowEvent(ev);
             sound.Play("compbeep.voc");
         }

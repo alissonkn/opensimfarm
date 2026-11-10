@@ -214,6 +214,13 @@ bool Gfx::Init(SDL_Renderer* r, const Megadata& mega, const MapGraphics& map)
     _r = r;
     _mega = &mega;
     _pal = map.palette;
+    // for the Windows edition the engine's interface colours are drawn as the Windows colours its pictures show
+    // them in
+    for (int i = 0; i < 16; ++i)
+        _ui[static_cast<size_t>(i)] = static_cast<uint8_t>(i);
+    if (const std::vector<uint8_t> map16 = mega.Read("uicolour.map"); map16.size() >= 16)
+        for (int i = 0; i < 16; ++i)
+            _ui[static_cast<size_t>(i)] = static_cast<uint8_t>(map16[static_cast<size_t>(i)] & 15);
 
     // font atlas: 16x16 grid of 8x8 glyphs, white on transparent (tinted per draw)
     Font8 font;
@@ -237,13 +244,13 @@ bool Gfx::Init(SDL_Renderer* r, const Megadata& mega, const MapGraphics& map)
     Picture masked;
     masked.w = kTileColumns * 16;
     masked.h = (map.masked.count + kTileColumns - 1) / kTileColumns * 16;
-    masked.px.assign(static_cast<size_t>(masked.w) * masked.h, 7);
+    masked.px.assign(static_cast<size_t>(masked.w) * masked.h, kSeeThrough);
     for (int t = 0; t < map.masked.count; ++t)
         for (int y = 0; y < 16; ++y)
             for (int x = 0; x < 16; ++x)
                 masked.px[static_cast<size_t>((t / kTileColumns) * 16 + y) * masked.w + (t % kTileColumns) * 16 + x] =
                     map.masked.Tile(t)[y * 16 + x];
-    _masked = MakeTexture(masked, 7);
+    _masked = MakeTexture(masked, kSeeThrough);
 
     return _tiles != nullptr;
 }
@@ -286,8 +293,8 @@ void Gfx::SetPlayPalette(int which)
         return;
     _playPalette = which;
     _pal = LoadPalette(pal);
-    // everything drawn from palette indices is made again with the new colours; the masked tiles keep colour 7 as
-    // their transparent colour, so they look the same
+    // everything drawn from palette indices is made again with the new colours; the masked tiles' see-through
+    // pixels are no colour, so they look the same
     for (auto& [k, t] : _pictures)
         if (t)
             SDL_DestroyTexture(t);
@@ -364,7 +371,7 @@ SDL_Texture* Gfx::PictureTexture(const std::string& key)
 void Gfx::Fill(int x, int y, int w, int h, int c)
 {
     SDL_SetRenderDrawBlendMode(_r, SDL_BLENDMODE_NONE);
-    SDL_SetRenderDrawColor(_r, _pal[c][0], _pal[c][1], _pal[c][2], 255);
+    SDL_SetRenderDrawColor(_r, Ui(c)[0], Ui(c)[1], Ui(c)[2], 255);
     const SDL_Rect rc = R(x, y, w, h);
     SDL_RenderFillRect(_r, &rc);
 }
@@ -388,7 +395,7 @@ void Gfx::Bevel(int x, int y, int w, int h, bool raised)
 
 void Gfx::Line(int x0, int y0, int x1, int y1, int c)
 {
-    SDL_SetRenderDrawColor(_r, _pal[c][0], _pal[c][1], _pal[c][2], 255);
+    SDL_SetRenderDrawColor(_r, Ui(c)[0], Ui(c)[1], Ui(c)[2], 255);
     for (int o = 0; o < _scale; ++o)
         SDL_RenderDrawLine(_r, x0 * _scale + o, y0 * _scale, x1 * _scale + o, y1 * _scale);
     for (int o = 1; o < _scale; ++o)
@@ -489,7 +496,7 @@ void Gfx::DrawAnyTile(int id, int x, int y, int size)
 
 void Gfx::Text(int x, int y, const std::string& s, int c)
 {
-    SDL_SetTextureColorMod(_font, _pal[c][0], _pal[c][1], _pal[c][2]);
+    SDL_SetTextureColorMod(_font, Ui(c)[0], Ui(c)[1], Ui(c)[2]);
     for (size_t i = 0; i < s.size(); ++i)
     {
         const auto ch = static_cast<unsigned char>(s[i]);
@@ -554,7 +561,7 @@ void Gfx::TextFit(int x, int y, int room, const std::string& s, int c, int align
         Text(pen, y, s, c);
         return;
     }
-    SDL_SetTextureColorMod(_font, _pal[c][0], _pal[c][1], _pal[c][2]);
+    SDL_SetTextureColorMod(_font, Ui(c)[0], Ui(c)[1], Ui(c)[2]);
     for (const char ch : s)
     {
         const auto u = static_cast<unsigned char>(ch);
@@ -619,7 +626,7 @@ void Gfx::SmallText(int x, int y, const std::string& s, int c)
         }
         x += gl.w + kSmallFontGap;
     }
-    SDL_SetRenderDrawColor(_r, _pal[c][0], _pal[c][1], _pal[c][2], 255);
+    SDL_SetRenderDrawColor(_r, Ui(c)[0], Ui(c)[1], Ui(c)[2], 255);
     if (!px.empty())
         SDL_RenderFillRects(_r, px.data(), static_cast<int>(px.size()));
 }

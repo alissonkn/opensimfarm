@@ -18,10 +18,12 @@ public:
     // Returns the resource bytes, or an empty vector when missing. Names are matched case-insensitively.
     std::vector<uint8_t> Read(const std::string& name) const;
     const std::map<std::string, std::pair<uint32_t, uint32_t>>& Entries() const { return _entries; }
+    bool WindowsEdition() const { return _windows; } // the files are SimFarm for Windows'
 
 private:
     std::vector<uint8_t> _data;
     std::map<std::string, std::pair<uint32_t, uint32_t>> _entries; // lower-case name -> (offset, size)
+    bool _windows = false;
 };
 
 } // namespace osf

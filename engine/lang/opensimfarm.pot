@@ -56,15 +56,29 @@ msgid ""
 msgstr ""
 
 #: src/main.cpp
+msgid "Choose the SimFarm files to play with."
+msgstr ""
+
+#: src/main.cpp
 msgid ""
-"SimFarm was in\n"
-"{0}\n"
-"but it is no longer there (moved or deleted?)."
+"OpenSimFarm now plays with the SimFarm files in\n"
+"{0}"
 msgstr ""
 
 #: src/main.cpp
 #: src/ui/GameUi.cpp
 msgid "Quit"
+msgstr ""
+
+#: src/main.cpp
+msgid "Keep this folder"
+msgstr ""
+
+#: src/main.cpp
+msgid ""
+"SimFarm was in\n"
+"{0}\n"
+"but it is no longer there (moved or deleted?)."
 msgstr ""
 
 #: src/main.cpp
@@ -139,22 +153,6 @@ msgid "A fence has broken. Your livestock may run loose."
 msgstr ""
 
 #: src/game/Animals.cpp
-msgid "A horse starved."
-msgstr ""
-
-#: src/game/Animals.cpp
-msgid "A cow starved."
-msgstr ""
-
-#: src/game/Animals.cpp
-msgid "A pig starved."
-msgstr ""
-
-#: src/game/Animals.cpp
-msgid "A sheep starved."
-msgstr ""
-
-#: src/game/Animals.cpp
 msgid "A horse died of thirst."
 msgstr ""
 
@@ -171,11 +169,27 @@ msgid "A sheep died of thirst."
 msgstr ""
 
 #: src/game/Animals.cpp
-msgid "Your livestock are hungry."
+msgid "A horse starved."
+msgstr ""
+
+#: src/game/Animals.cpp
+msgid "A cow starved."
+msgstr ""
+
+#: src/game/Animals.cpp
+msgid "A pig starved."
+msgstr ""
+
+#: src/game/Animals.cpp
+msgid "A sheep starved."
 msgstr ""
 
 #: src/game/Animals.cpp
 msgid "Your livestock are thirsty."
+msgstr ""
+
+#: src/game/Animals.cpp
+msgid "Your livestock are hungry."
 msgstr ""
 
 #: src/game/Crops.cpp

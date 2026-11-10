@@ -124,7 +124,7 @@ std::vector<Span> Spans(int n, int m)
 
 } // namespace
 
-std::vector<uint32_t> SmoothTile(const uint8_t* tile16, const Palette& pal, bool transparent7, int size)
+std::vector<uint32_t> SmoothTile(const uint8_t* tile16, const Palette& pal, bool seeThrough, int size)
 {
     std::vector<uint8_t> px(tile16, tile16 + 256);
     const std::vector<uint8_t> calm16 = CalmMask(tile16);
@@ -138,11 +138,11 @@ std::vector<uint32_t> SmoothTile(const uint8_t* tile16, const Palette& pal, bool
     // stays as drawn. Where the rounded silhouette covers a see-through pixel it takes the nearest colour of the
     // object; where it cuts a pixel away, that pixel becomes see-through
     std::vector<uint8_t> edge16(256, 0);
-    if (transparent7)
+    if (seeThrough)
     {
         std::vector<uint8_t> solid(256);
         for (int i = 0; i < 256; ++i)
-            solid[static_cast<size_t>(i)] = tile16[i] != 7;
+            solid[static_cast<size_t>(i)] = tile16[i] != kSeeThrough;
         for (int y = 0; y < 16; ++y)
             for (int x = 0; x < 16; ++x)
                 for (int d = 0; d < 4; ++d)
@@ -158,8 +158,8 @@ std::vector<uint32_t> SmoothTile(const uint8_t* tile16, const Palette& pal, bool
             {
                 uint8_t& c = px[static_cast<size_t>(y * n + x)];
                 if (!solid64[static_cast<size_t>(y * n + x)])
-                    c = 7;
-                else if (c == 7)
+                    c = kSeeThrough;
+                else if (c == kSeeThrough)
                 {
                     int best = 1 << 30;
                     for (int j = -3; j <= 3; ++j)
@@ -169,7 +169,7 @@ std::vector<uint32_t> SmoothTile(const uint8_t* tile16, const Palette& pal, bool
                             if (xx < 0 || yy < 0 || xx >= n || yy >= n)
                                 continue;
                             const uint8_t o = before[static_cast<size_t>(yy * n + xx)];
-                            if (o != 7 && i * i + j * j < best)
+                            if (o != kSeeThrough && i * i + j * j < best)
                             {
                                 best = i * i + j * j;
                                 c = o;
@@ -186,7 +186,7 @@ std::vector<uint32_t> SmoothTile(const uint8_t* tile16, const Palette& pal, bool
     for (int i = 0; i < n * n; ++i)
     {
         const uint8_t c = px[static_cast<size_t>(i)];
-        const bool clear = transparent7 && c == 7;
+        const bool clear = seeThrough && c == kSeeThrough;
         src[static_cast<size_t>(i)] = clear ? std::array<float, 4>{ 0, 0, 0, 0 }
                                             : std::array<float, 4>{ lin[pal[c][0]], lin[pal[c][1]], lin[pal[c][2]], 1 };
         const size_t s16 = static_cast<size_t>((i / n / 4) * 16 + (i % n) / 4);
@@ -258,7 +258,7 @@ std::vector<uint32_t> SmoothTile(const uint8_t* tile16, const Palette& pal, bool
     return out;
 }
 
-std::vector<uint32_t> PlainTile(const uint8_t* tile16, const Palette& pal, bool transparent7, int size)
+std::vector<uint32_t> PlainTile(const uint8_t* tile16, const Palette& pal, bool seeThrough, int size)
 {
     std::vector<uint32_t> out(static_cast<size_t>(size) * size);
     for (int y = 0; y < size; ++y)
@@ -266,7 +266,7 @@ std::vector<uint32_t> PlainTile(const uint8_t* tile16, const Palette& pal, bool 
         {
             const uint8_t c = tile16[(y * 16 / size) * 16 + x * 16 / size];
             out[static_cast<size_t>(y) * size + x] =
-                (transparent7 && c == 7) ? 0 : (0xFFu << 24) | (pal[c][0] << 16) | (pal[c][1] << 8) | pal[c][2];
+                (seeThrough && c == kSeeThrough) ? 0 : (0xFFu << 24) | (pal[c & 15][0] << 16) | (pal[c & 15][1] << 8) | pal[c & 15][2];
         }
     return out;
 }

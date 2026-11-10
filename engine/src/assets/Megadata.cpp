@@ -2,6 +2,7 @@
 // Licensed under the GNU General Public License version 3 (see LICENSE.txt).
 #include "assets/Megadata.h"
 
+#include "assets/WindowsEdition.h"
 #include "core/Paths.h"
 
 #include <algorithm>
@@ -56,6 +57,21 @@ bool Megadata::Open(const std::string& gameDir, std::string& error)
         while (len < 16 && n[len]) ++len;
         std::string name(n, len);
         _entries[Lower(name)] = { offsetOf(i), offsetOf(i + 1) - offsetOf(i) };
+    }
+    // the Windows edition: its archive has only the tiles and tables; the rest is made from its program and sounds
+    if (!Has("simfarm.pal") && IsWindowsEdition(gameDir))
+    {
+        std::map<std::string, std::vector<uint8_t>> own, made;
+        for (const char* name : { "alltiles.btl", "wethgrnd.btl", "wethsky.btl", "far_mapc.mbm" })
+            own[name] = Read(name);
+        if (!MakeWindowsEntries(gameDir, own, made, error))
+            return false;
+        for (const auto& [name, bytes] : made)
+        {
+            _entries[name] = { static_cast<uint32_t>(_data.size()), static_cast<uint32_t>(bytes.size()) };
+            _data.insert(_data.end(), bytes.begin(), bytes.end());
+        }
+        _windows = true;
     }
     return true;
 }

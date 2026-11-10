@@ -15,8 +15,48 @@
 
 namespace osf {
 
+// a RIFF WAVE file of PCM samples (8-bit unsigned or 16-bit signed, channels mixed): the Windows edition's sounds
+static bool DecodeWav(const std::vector<uint8_t>& d, std::vector<int16_t>& out, int& rate)
+{
+    auto u16 = [&](size_t i) { return static_cast<uint32_t>(d[i] | (d[i + 1] << 8)); };
+    auto u32 = [&](size_t i) { return u16(i) | (u16(i + 2) << 16); };
+    if (d.size() < 12 || std::memcmp(d.data(), "RIFF", 4) != 0 || std::memcmp(&d[8], "WAVE", 4) != 0)
+        return false;
+    int channels = 0, bits = 0;
+    out.clear();
+    for (size_t o = 12; o + 8 <= d.size();)
+    {
+        const size_t len = u32(o + 4), body = o + 8;
+        if (body + len > d.size())
+            break;
+        if (std::memcmp(&d[o], "fmt ", 4) == 0 && len >= 16)
+        {
+            if (u16(body) != 1)
+                return false; // only plain PCM
+            channels = static_cast<int>(u16(body + 2));
+            rate = static_cast<int>(u32(body + 4));
+            bits = static_cast<int>(u16(body + 14));
+        }
+        else if (std::memcmp(&d[o], "data", 4) == 0 && channels > 0 && (bits == 8 || bits == 16))
+        {
+            const size_t frame = static_cast<size_t>(channels * bits / 8);
+            for (size_t i = body; i + frame <= body + len; i += frame)
+            {
+                int sum = 0;
+                for (int c = 0; c < channels; ++c)
+                    sum += bits == 8 ? (d[i + c] - 128) * 256 : static_cast<int16_t>(u16(i + 2 * c));
+                out.push_back(static_cast<int16_t>(sum / channels));
+            }
+        }
+        o = body + len + (len & 1);
+    }
+    return !out.empty() && rate > 0;
+}
+
 bool DecodeVoc(const std::vector<uint8_t>& d, std::vector<int16_t>& out, int& rate)
 {
+    if (DecodeWav(d, out, rate))
+        return true;
     static const char kMagic[] = "Creative Voice File";
     if (d.size() < 26 || std::memcmp(d.data(), kMagic, 19) != 0)
         return false;

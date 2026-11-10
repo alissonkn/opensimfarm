@@ -13,6 +13,8 @@ The engine contains no code from the original program. It was written from scrat
 game behaves and how its files are laid out.
 
 ## Features
+* Plays with SimFarm for DOS or SimFarm for Windows. With the Windows edition you see its pictures in the Windows
+  colours and hear its own sounds and music; the game is the same
 * The farm, its crops, animals, machines, weather, disasters, market, bank and town, as in the original
 * Loads and saves the original's saved games
 * Larger worlds: Design Your Own can make a world of 144 x 144 cells instead of 96 x 96 (the MAP button under the
@@ -148,11 +150,25 @@ GitHub Pages on every push to `main` that changes `site/`, `engine/src/`, `engin
 opensimfarm /path/to/SimFarm             # first start: where your SimFarm is installed (remembered afterwards)
 opensimfarm                              # later starts
 opensimfarm /path/to/SimFarm MYFARM.SFM  # open a saved game
+opensimfarm --reconfigure                # choose the SimFarm folder again (another copy, DOS or Windows)
 ```
 At the first start without a folder, OpenSimFarm looks for SimFarm in the usual places (your home folder, the
 drive roots on Windows, `/opt`, `/media` ...). If that fails, it asks you to choose the folder in the system's folder
 dialog (on Linux this needs zenity or kdialog). The folder is remembered. `opensimfarm --findgame` prints what
-the search finds.
+the search finds. `--reconfigure` shows the folder box at every start you use it: "Choose folder..." picks new
+SimFarm files (they are remembered once they work), "Keep this folder" plays with the current ones. A farm or saved
+game can follow it (`opensimfarm --reconfigure MYFARM.SFM`). The installers add it to the menus as well: "OpenSimFarm:
+choose SimFarm folder" on Linux (also in the right-click menu of OpenSimFarm's icon) and "OpenSimFarm - choose
+SimFarm folder" in the Windows Start menu.
+
+The SimFarm folder is the one that holds `MEGADATA.IDX` and `MEGADATA.EEA`: the installed DOS game, the installed
+Windows game, or the `SIMFARM` folder on the Windows CD as it is (nothing needs installing; saves go to the settings
+folder). On Linux a combined Windows and Macintosh CD may open as its Macintosh side, which OpenSimFarm cannot read.
+Its Windows side can be opened without root (the drive or a disc image), and the game then finds it:
+```
+udisksctl loop-setup -r --no-partition-scan -f /dev/sr0     # or -f simfarm.iso; prints /dev/loopN
+udisksctl mount -b /dev/loopN                                 # the CD's SIMFARM folder in /run/media/$USER/SIMFARM
+```
 Settings and saved games are kept in `~/.config/opensimfarm/` (Linux) or `%APPDATA%\OpenSimFarm\` (Windows).
 
 ## Tests

@@ -17,7 +17,7 @@ struct Song
     uint32_t length = 0;
     std::string title, mood; // a standard MIDI file's track name and its "mood:<game song>" text (the engine's songs)
 };
-bool ParseXmi(const std::vector<uint8_t>& data, Song& out);
+bool ParseXmi(const std::vector<uint8_t>& data, Song& out); // a standard MIDI file (the Windows edition) is read too
 // A standard MIDI file (format 0 or 1), turned into the same events: times at 120 ticks/s through the file's tempo
 // changes, each note-on with the duration up to its note-off
 bool ParseMidi(const std::vector<uint8_t>& data, Song& out);

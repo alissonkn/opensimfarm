@@ -8,3 +8,8 @@ Icon=opensimfarm
 Terminal=false
 Categories=Game;Simulation;
 Keywords=farm;simulation;simfarm;
+Actions=Reconfigure;
+
+[Desktop Action Reconfigure]
+Name=Choose SimFarm folder
+Exec=opensimfarm --reconfigure

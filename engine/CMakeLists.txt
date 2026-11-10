@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(OpenSimFarm VERSION 0.4.0 LANGUAGES CXX)
+project(OpenSimFarm VERSION 0.5.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -56,6 +56,7 @@ add_executable(opensimfarm
     src/assets/Megadata.cpp
     src/assets/Graphics.cpp
     src/assets/Picture.cpp
+    src/assets/WindowsEdition.cpp
     src/assets/SaveGame.cpp
     src/audio/AudioFx.cpp
     src/audio/ModernSynth.cpp
@@ -63,6 +64,7 @@ add_executable(opensimfarm
     src/audio/Sound.cpp
     src/game/Animals.cpp
     src/game/Traffic.cpp
+    src/game/AutoPlayer.cpp
     src/game/Crops.cpp
     src/game/Disasters.cpp
     src/game/Editing.cpp

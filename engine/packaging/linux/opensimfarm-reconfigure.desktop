@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=OpenSimFarm: choose SimFarm folder
+GenericName=Farm simulation
+Comment=Choose the SimFarm files OpenSimFarm plays with (another copy, DOS or Windows), then play
+Exec=opensimfarm --reconfigure
+Icon=opensimfarm
+Terminal=false
+Categories=Game;Simulation;
+Keywords=farm;simulation;simfarm;folder;reconfigure;
