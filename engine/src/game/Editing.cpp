@@ -18,7 +18,9 @@ struct Family
 };
 // tile families
 constexpr Family kGround{ 15, 16 }, kDitchEmpty{ 87, 11 }, kDitchFull{ 98, 11 }, kPaved{ 150, 11 }, kDirt{ 161, 11 },
-    kFence{ 177, 11 }, kGate{ 188, 4 }, kValve{ 122, 4 }, kTrees{ 128, 19 }, kTrough{ 175, 2 }, kRocks{ 535, 4 }; // rocks: family 145 (the bulldozer tests it)
+    kFence{ 177, 11 }, kGate{ 188, 4 }, kValve{ 122, 4 }, kTrees{ 128, 19 }, kTrough{ 175, 2 }, kRocks{ 535, 4 }, // rocks: family 145 (the bulldozer tests it)
+    kBridge{ 172, 2 };
+constexpr int kBridgeCost = 40; // a road over a ditch or water, or a ditch across a road
 constexpr int kTreeBase = 131;   // family k62: base + (random & 15)
 constexpr int kHayTile = 1020;   // masked object tile
 constexpr int kSignBase = 539;
@@ -47,9 +49,9 @@ bool Connects(int set, int id)
 {
     switch (set)
     {
-    case 1: return kPaved.Has(id) || kDirt.Has(id) || kGate.Has(id);
+    case 1: return kPaved.Has(id) || kDirt.Has(id) || kGate.Has(id) || kBridge.Has(id);
     case 2: return kFence.Has(id) || kGate.Has(id);
-    case 3: return kDitchEmpty.Has(id) || kDitchFull.Has(id) || kValve.Has(id);
+    case 3: return kDitchEmpty.Has(id) || kDitchFull.Has(id) || kValve.Has(id) || kBridge.Has(id);
     default: return false;
     }
 }
@@ -519,9 +521,24 @@ EditResult ApplyTool(GameState& s, Simulation& sim, Tool tool, int cx, int cy, i
     {
     case Tool::Gate: fits = id == kFence.base || id == kFence.base + 1; break; // only a straight fence piece
     case Tool::Valve: fits = kDitchEmpty.Has(id) || kDitchFull.Has(id); break;
-    case Tool::PavedRoad: fits = kGround.Has(id) || kDirt.Has(id); break;   // paving a dirt road is allowed
-    case Tool::DirtRoad: fits = kGround.Has(id); break;
+    case Tool::PavedRoad:
+    case Tool::DirtRoad: fits = kGround.Has(id); break; // a road goes on ground only (not over the other road kind)
+    case Tool::Ditch: fits = kGround.Has(id); break;    // on a road it is a bridge (below)
     default: fits = Buildable(id); break;
+    }
+    // A road on a ditch (tiles 87-109) or on water (39-69), or a ditch on a road, becomes a road bridge (tile 172,
+    // whichever way it runs; the cell keeps its water flags) at the bridge price. The bridge keeps its picture; the
+    // road and ditch pieces around it connect to it.
+    const bool roadTool = tool == Tool::PavedRoad || tool == Tool::DirtRoad;
+    if (!fits && !HasObject(s, cx, cy) &&
+        ((roadTool && ((id >= 87 && id <= 109) || (id >= 39 && id <= 69))) ||
+         (tool == Tool::Ditch && (kPaved.Has(id) || kDirt.Has(id)))))
+    {
+        if (!sim.Spend(-1, kBridgeCost))
+            return Refuse(Tr("Not enough money."));
+        SetBase(s, cx, cy, kBridge.base);
+        ReshapeAround(s, cx, cy);
+        return { true, "", "ploptool.voc" };
     }
     if (!fits && !HasObject(s, cx, cy) && s.scalars["opt_autodoze"] && tool != Tool::Gate && tool != Tool::Valve && AutoDozable(id))
     {

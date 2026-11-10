@@ -872,6 +872,56 @@ static int ToolsTest(const std::string& gameDir, const std::string& farm)
         }
     }
     {
+        // road bridges (seen live 2026-11-10, user report "bridges are not working"): a road laid on a ditch or on water
+        // becomes the road bridge 172 for 40 (the same picture whichever way it runs, the water flags kept), a ditch dug
+        // across a road too; the road and ditch pieces around it connect to it; a paved road on a dirt road is refused
+        GameState t = s;
+        Simulation tsim(t);
+        int bx = -1, by = -1;
+        auto freeGround = [&](int x, int y) {
+            const MapCell& c = t.world.At(x, y);
+            return t.PlotOwner(x / 8, y / 8) == 1 && !c.HasObject() && !tsim.FieldIndexAt(x, y) && c.BaseTile() >= 15 &&
+                   c.BaseTile() <= 30 && !(c.base & 0x2000);
+        };
+        for (int x = 2; x < t.world.size - 2 && bx < 0; ++x)
+            for (int y = 2; y < t.world.size - 2 && bx < 0; ++y)
+            {
+                bool ok = true;
+                for (int dx = -2; dx <= 2; ++dx)
+                    for (int dy = -2; dy <= 2; ++dy)
+                        ok = ok && freeGround(x + dx, y + dy);
+                if (ok)
+                {
+                    bx = x;
+                    by = y;
+                }
+            }
+        if (bx >= 0) // (a farm with no free 5 x 5 block of ground is skipped)
+        {
+            auto tile = [&](int x, int y) { return t.world.At(x, y).BaseTile(); };
+            for (int dx = -1; dx <= 1; ++dx)
+                ApplyTool(t, tsim, Tool::Ditch, bx + dx, by, 0);
+            const int64_t cash0 = t.cash;
+            const bool bridged = ApplyTool(t, tsim, Tool::DirtRoad, bx, by, 0).ok;
+            const int64_t paid = cash0 - t.cash;
+            ApplyTool(t, tsim, Tool::DirtRoad, bx, by - 1, 0);
+            ApplyTool(t, tsim, Tool::DirtRoad, bx, by + 1, 0);
+            expect(bridged && paid == 40 && tile(bx, by) == 172, "a dirt road on a ditch is the bridge 172 for 40 (tile " +
+                   std::to_string(tile(bx, by)) + ", paid " + std::to_string(paid) + ")");
+            expect(tile(bx, by - 1) == 161 && tile(bx, by + 1) == 161 && tile(bx - 1, by) == 88 && tile(bx + 1, by) == 88,
+                   "the road (161) and the ditch (88) connect to the bridge");
+            const int64_t cash1 = t.cash;
+            expect(!ApplyTool(t, tsim, Tool::PavedRoad, bx, by - 1, 0).ok && tile(bx, by - 1) == 161 && t.cash == cash1,
+                   "a paved road on a dirt road is refused");
+            const bool dug = ApplyTool(t, tsim, Tool::Ditch, bx, by + 1, 0).ok;
+            expect(dug && tile(bx, by + 1) == 172 && cash1 - t.cash == 40, "a ditch across a road is a bridge for 40");
+            MapCell& w = t.world.At(bx + 2, by + 2);
+            w.base = static_cast<uint16_t>(0x3000 | 55); // a river cell
+            expect(ApplyTool(t, tsim, Tool::PavedRoad, bx + 2, by + 2, 0).ok && w.base == (0x3000 | 172),
+                   "a road on water is a bridge that keeps the water flags");
+        }
+    }
+    {
         // the Move tool on an animal (engine addition, user finding Q20): picked, dropped on a free neighbouring cell
         GameState t = s;
         Simulation tsim(t);
