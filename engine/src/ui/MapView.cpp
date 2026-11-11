@@ -5,6 +5,7 @@
 #include "ui/PixelArt.h"
 
 #include <algorithm>
+#include <cstring>
 #include <cmath>
 #include <cstdio>
 #include <vector>
@@ -92,7 +93,7 @@ bool MapView::Init(SDL_Renderer* renderer, const MapGraphics& gfx)
 {
     _renderer = renderer;
     _src = gfx;
-    _maskedPal = gfx.palette;
+    _maskedPal = _plainPal = _eventsPal = gfx.palette;
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "nearest"); // keep the pixel art sharp at any zoom
     _plain = BuildAtlas(renderer, gfx.plain, gfx.palette, false);
     _masked = BuildAtlas(renderer, gfx.masked, gfx.palette, true);
@@ -101,11 +102,53 @@ bool MapView::Init(SDL_Renderer* renderer, const MapGraphics& gfx)
     return _plain && _masked;
 }
 
+void MapView::UpdateSmooth(SDL_Texture* Smooth::*which, const TileSheet& oldSheet, const Palette& oldPal,
+                           const TileSheet& sheet, const Palette& pal)
+{
+    // the smooth atlases already made keep their texture: only the tiles whose picture changed (a crop's art) or
+    // that use a colour the palette changed (rain, frost and plain days differ in one colour) are drawn again, in
+    // place. Rebuilding whole atlases at a phone's tile size took a second or more in a phone's browser at every
+    // weather change (user 2026-11-11: "the game is struggling a bit when weather changes")
+    bool colour[16];
+    for (int i = 0; i < 16; ++i)
+        colour[i] = oldPal[static_cast<size_t>(i)] != pal[static_cast<size_t>(i)];
+    std::vector<int> redo;
+    const bool same = oldSheet.count == sheet.count && oldSheet.pixels.size() == sheet.pixels.size();
+    for (int t = 0; t < sheet.count && same; ++t)
+    {
+        const uint8_t* a = oldSheet.Tile(t);
+        const uint8_t* b = sheet.Tile(t);
+        bool changed = std::memcmp(a, b, 256) != 0;
+        for (int k = 0; k < 256 && !changed; ++k)
+            changed = colour[b[k] & 15];
+        if (changed)
+            redo.push_back(t);
+    }
+    for (auto& [size, sm] : _smooth)
+    {
+        SDL_Texture*& tex = sm.*which;
+        if (!tex)
+            continue;
+        if (!same)
+        {
+            SDL_DestroyTexture(tex); // (a different sheet: made again when next drawn)
+            tex = nullptr;
+            continue;
+        }
+        for (const int t : redo)
+        {
+            const std::vector<uint32_t> px = SmoothTile(sheet.Tile(t), pal, false, size);
+            const SDL_Rect r{ (t % kAtlasColumns) * size, (t / kAtlasColumns) * size, size, size };
+            SDL_UpdateTexture(tex, &r, px.data(), size * 4);
+        }
+    }
+}
+
 void MapView::SetPlainTiles(SDL_Renderer* renderer, const MapGraphics& gfx)
 {
+    UpdateSmooth(&Smooth::plain, _src.plain, _plainPal, gfx.plain, gfx.palette);
     _src.plain = gfx.plain;
-    _src.palette = gfx.palette;
-    DropSmooth(true);
+    _src.palette = _plainPal = gfx.palette;
     if (SDL_Texture* t = BuildAtlas(renderer, gfx.plain, gfx.palette, false))
     {
         if (_plain)
@@ -118,9 +161,9 @@ void MapView::SetEventTiles(SDL_Renderer* renderer, const MapGraphics& gfx)
 {
     if (gfx.events.count < 105)
         return;
+    UpdateSmooth(&Smooth::events, _src.events, _eventsPal, gfx.events, gfx.palette);
     _src.events = gfx.events;
-    _src.palette = gfx.palette;
-    DropSmooth(true);
+    _src.palette = _eventsPal = gfx.palette;
     if (SDL_Texture* t = BuildAtlas(renderer, gfx.events, gfx.palette, false))
     {
         if (_events)
@@ -159,6 +202,13 @@ bool MapView::CellAt(int sx, int sy, int& cx, int& cy) const
     cx = static_cast<int>(std::floor((std::lround(_camX * _zoom) + sx) / tile));
     cy = static_cast<int>(std::floor((std::lround(_camY * _zoom) + sy) / tile));
     return cx >= 0 && cy >= 0 && cx < MapSize() && cy < MapSize();
+}
+
+void MapView::PanBy(float dx, float dy)
+{
+    _camX -= dx / _zoom;
+    _camY -= dy / _zoom;
+    ClampCamera();
 }
 
 void MapView::HandleEvent(const SDL_Event& e)
@@ -205,17 +255,48 @@ void MapView::HandleEvent(const SDL_Event& e)
 // number of pixels (12 .. 48) and its pixels keep one size at the whole-number levels, so the picture never
 // shimmers. Narrowed to half / double size (user finding Q14), then one more level out (Q29)
 static constexpr float kZoomLevels[] = { 0.75f, 1.0f, 1.5f, 2.0f, 3.0f }; // 4 dropped (user, Q31)
+static constexpr float kPinchMin = 1.0f / 3, kPinchMax = 2.0f;
+
+void MapView::SetZoomBase(float base)
+{
+    base = std::max(0.25f, base);
+    if (base == _zoomBase)
+        return;
+    // keep the world point in the middle of the view where it is
+    const float mx = _camX + _viewW / _zoom / 2, my = _camY + _viewH / _zoom / 2;
+    _zoom = _zoom / _zoomBase * base;
+    _zoomBase = base;
+    _camX = mx - _viewW / _zoom / 2;
+    _camY = my - _viewH / _zoom / 2;
+    ClampCamera();
+}
 
 void MapView::ZoomStep(int dir, int ax, int ay)
 {
     const int n = static_cast<int>(sizeof kZoomLevels / sizeof kZoomLevels[0]);
     int cur = 0;
+    const float level = _zoom / _zoomBase;
     for (int i = 0; i < n; ++i)
-        if (std::fabs(kZoomLevels[i] - _zoom) < std::fabs(kZoomLevels[cur] - _zoom))
+        if (std::fabs(kZoomLevels[i] - level) < std::fabs(kZoomLevels[cur] - level))
             cur = i;
     const int next = std::clamp(cur + dir, 0, n - 1);
     const float wx = _camX + ax / _zoom, wy = _camY + ay / _zoom;
-    _zoom = kZoomLevels[next];
+    _zoom = kZoomLevels[next] * _zoomBase;
+    _camX = wx - ax / _zoom;
+    _camY = wy - ay / _zoom;
+    ClampCamera();
+}
+
+void MapView::ZoomBy(float factor, int sx, int sy)
+{
+    const float ax = static_cast<float>(sx - _left), ay = static_cast<float>(sy - _top);
+    const float wx = _camX + ax / _zoom, wy = _camY + ay / _zoom;
+    // the phone layout's pinch goes further out than the wheel's levels and not as far in (user 2026-11-11: "zoom out
+    // more and zoom in less"): from a third of the base (a tile no smaller than 8 pixels) to twice it
+    const int n = static_cast<int>(sizeof kZoomLevels / sizeof kZoomLevels[0]);
+    const float lo = _phoneZoom ? std::max(kPinchMin * _zoomBase, 0.5f) : kZoomLevels[0] * _zoomBase;
+    const float hi = std::max(lo, (_phoneZoom ? kPinchMax : kZoomLevels[n - 1]) * _zoomBase);
+    _zoom = std::clamp(_zoom * factor, std::min(lo, _zoom), std::max(hi, _zoom)); // (never a jump from a wheel level)
     _camX = wx - ax / _zoom;
     _camY = wy - ay / _zoom;
     ClampCamera();
@@ -252,24 +333,38 @@ void MapView::Draw(SDL_Renderer* renderer, int width, int height)
     // Modern Render: the smooth atlases for this tile size, and the movers' glides
     const double now = Now();
     const int size = static_cast<int>(std::lround(16 * _zoom));
+    // the smooth tiles are made for the zoom levels' sizes; a zoom between them (a smooth pinch) scales the nearest
+    int atlasSize = size;
+    {
+        float best = 1e9f;
+        for (const float lv : kZoomLevels)
+        {
+            const int sz = static_cast<int>(std::lround(16 * lv * _zoomBase));
+            if (std::fabs(static_cast<float>(sz - size)) < best)
+            {
+                best = std::fabs(static_cast<float>(sz - size));
+                atlasSize = sz;
+            }
+        }
+    }
     const Smooth* sm = nullptr;
     if (_modern && size > 0)
     {
-        auto it = _smooth.find(size);
+        auto it = _smooth.find(atlasSize);
         if (it == _smooth.end())
-            it = _smooth.emplace(size, Smooth{}).first;
+            it = _smooth.emplace(atlasSize, Smooth{}).first;
         Smooth& s = it->second;
         if (!s.plain)
-            s.plain = BuildSmoothAtlas(renderer, _src.plain, _src.palette, false, size);
+            s.plain = BuildSmoothAtlas(renderer, _src.plain, _src.palette, false, atlasSize);
         if (!s.masked)
-            s.masked = BuildSmoothAtlas(renderer, _src.masked, _maskedPal, true, size);
+            s.masked = BuildSmoothAtlas(renderer, _src.masked, _maskedPal, true, atlasSize);
         if (!s.events && _src.events.count >= 105)
-            s.events = BuildSmoothAtlas(renderer, _src.events, _src.palette, false, size);
+            s.events = BuildSmoothAtlas(renderer, _src.events, _src.palette, false, atlasSize);
         if (s.plain && s.masked)
             sm = &s;
         TrackMovers(now);
     }
-    const int cellPx = sm ? size : 16;
+    const int cellPx = sm ? atlasSize : 16;
     SDL_Texture* const plainTex = sm ? sm->plain : _plain;
     SDL_Texture* const maskedTex = sm ? sm->masked : _masked;
     SDL_Texture* const eventTex = sm ? sm->events : _events;
@@ -743,6 +838,43 @@ int MapView::SelfTest(const MapGraphics& gfx)
         v.SetModern(false);
         b = v.SmoothCellRectAt(0, 12, 10, 3, 3, 6.1);
         check(b.x == 384, "without Modern Render it is drawn at its cell");
+    }
+    // a weather palette change (or a crop's new art) redraws only the changed tiles of a smooth atlas, in place:
+    // the result is the atlas made afresh (software renderer, one atlas size)
+    if (gfx.plain.count > 0)
+    {
+        SDL_Surface* target = SDL_CreateRGBSurfaceWithFormat(0, kAtlasColumns * 32, ((gfx.plain.count + kAtlasColumns - 1) / kAtlasColumns) * 32, 32,
+                                                             SDL_PIXELFORMAT_ARGB8888);
+        SDL_Renderer* rd = target ? SDL_CreateSoftwareRenderer(target) : nullptr;
+        if (rd)
+        {
+            MapView v;
+            v.Init(rd, gfx);
+            v._smooth[32].plain = v.BuildSmoothAtlas(rd, gfx.plain, gfx.palette, false, 32);
+            MapGraphics changed = gfx;
+            changed.palette[7] = { 0, 0, 255 }; // as rainpal.pal: colour 7 blue
+            for (int k = 0; k < 256; ++k)
+                changed.plain.pixels[static_cast<size_t>(100) * 256 + static_cast<size_t>(k)] = static_cast<uint8_t>(k % 3); // a new picture
+            v.SetPlainTiles(rd, changed);
+            auto shot = [&](SDL_Texture* t) {
+                SDL_RenderClear(rd);
+                SDL_RenderCopy(rd, t, nullptr, nullptr);
+                SDL_RenderPresent(rd);
+                const uint32_t* p = static_cast<const uint32_t*>(target->pixels);
+                return std::vector<uint32_t>(p, p + static_cast<size_t>(target->w) * target->h);
+            };
+            const std::vector<uint32_t> updated = shot(v._smooth[32].plain);
+            SDL_Texture* fresh = v.BuildSmoothAtlas(rd, changed.plain, changed.palette, false, 32);
+            const std::vector<uint32_t> made = shot(fresh);
+            SDL_DestroyTexture(fresh);
+            const std::vector<uint32_t> before = [&] { SDL_Texture* t = v.BuildSmoothAtlas(rd, gfx.plain, gfx.palette, false, 32); auto r = shot(t); SDL_DestroyTexture(t); return r; }();
+            check(updated == made && updated != before, "a palette change redraws the smooth atlas as made afresh");
+            v.DropSmooth(false);
+            SDL_DestroyRenderer(rd);
+        }
+        else
+            check(false, "a software renderer for the atlas check");
+        SDL_FreeSurface(target);
     }
     std::printf("graphicstest %s\n", fails ? "FAIL" : "ok");
     return fails ? 1 : 0;

@@ -47,6 +47,16 @@ public:
     float Zoom() const { return _zoom; }
     // one step up or down the zoom levels, keeping the world point under (ax, ay) (map-area pixels) in place
     void ZoomStep(int dir, int ax, int ay);
+    void ZoomAt(int dir, int sx, int sy) { ZoomStep(dir, sx - _left, sy - _top); } // around a window point (pinch)
+    // any zoom between the smallest and the largest level, times factor, around a window point (a smooth pinch);
+    // Modern Render then uses the smooth tiles of the nearest level, scaled
+    void ZoomBy(float factor, int sx, int sy);
+    void PanBy(float dx, float dy);                         // the picture follows a finger by (dx, dy) window pixels
+    // the phone layout: every zoom level times this many (window pixels are the phone's own small pixels there);
+    // the shown picture keeps its level
+    void SetZoomBase(float base);
+    float ZoomBase() const { return _zoomBase; }
+    void SetPhoneZoom(bool on) { _phoneZoom = on; } // the phone layout's pinch range (ZoomBy)
     // visible cell rectangle and re-centring, for the overview map
     void VisibleCells(float& x0, float& y0, float& w, float& h) const { x0 = _camX / 16; y0 = _camY / 16; w = _viewW / _zoom / 16; h = _viewH / _zoom / 16; }
     void SetTopLeft(int cx, int cy) { _camX = cx * 16.0f; _camY = cy * 16.0f; ClampCamera(); }
@@ -82,6 +92,8 @@ private:
         SDL_Texture* masked = nullptr;
         SDL_Texture* events = nullptr;
     };
+    void UpdateSmooth(SDL_Texture* Smooth::*which, const TileSheet& oldSheet, const Palette& oldPal, const TileSheet& sheet,
+                      const Palette& pal); // after a palette or tile change: the changed tiles redrawn in place
     struct Glide
     {
         float fromX = 0, fromY = 0; // world pixels at the start
@@ -97,6 +109,7 @@ private:
     bool _modern = false;
     MapGraphics _src;                       // the sheets and palettes the atlases were last made from
     Palette _maskedPal{};
+    Palette _plainPal{}, _eventsPal{}; // the palettes the plain and event atlases were made with
     std::map<int, Smooth> _smooth;          // by tile size in pixels
     std::vector<uint16_t> _prevMover;       // per cell: the moving thing's overlay tile at the last frame (0 none)
     std::vector<double> _arrived;           // per cell: when a glide into it started
@@ -112,6 +125,8 @@ private:
     int _eventBank = 0;
     float _camX = 40 * 16, _camY = 30 * 16; // world pixel at the window's top-left
     float _zoom = 2.0f;
+    float _zoomBase = 1.0f;
+    bool _phoneZoom = false;
     int _viewW = 1280, _viewH = 720;
     bool _dragging = false;
     int _lastMouseX = 0, _lastMouseY = 0;

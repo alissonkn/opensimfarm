@@ -14,6 +14,7 @@
 #include <memory>
 #include <string>
 #include <deque>
+#include <cmath>
 #include <vector>
 
 namespace osf {
@@ -71,7 +72,12 @@ public:
     bool IsOpen(int kind) const;
     // the map scroll bars are kScrollBar thick (an engine change: the original's are 16; user findings F18, Q13)
     static constexpr int kScrollBar = 11, kScrollArrow = 16;
-    Rect MapRect() const { return { MapLeft(), kMapTop, _w - MapLeft() - kScrollBar, _h - kMapTop - kScrollBar }; } // interface units
+    Rect MapRect() const // interface units
+    {
+        if (_phone)
+            return { PhoneLeftW(), PhoneTopH(), std::max(1, _w - PhoneSideW() - PhoneLeftW()), std::max(1, _h - PhoneTopH() - PhoneBottomH()) };
+        return { MapLeft(), kMapTop, _w - MapLeft() - kScrollBar, _h - kMapTop - kScrollBar };
+    }
     SDL_Rect MapPixels() const { const Rect r = MapRect(); const int s = _g.Scale(); return { r.x * s, r.y * s, r.w * s, r.h * s }; }
     bool OverMap(int x, int y) const { return MapRect().Contains(x, y); }
     void ShowEvent(const GameEvent& e);                    // modal box; the clock stops while it is open
@@ -94,6 +100,25 @@ public:
     bool ToolNamesOn() const { return _toolNames; }
     void SetToolNamesOn(bool on) { _toolNames = on; }
     bool Modal() const { return !_events.empty(); } // an event box stops the clock
+    // touch screens: whether a touch at (x, y) (window pixels after the mouse conversion) lands on the free farm map,
+    // to be read as map gestures (pan, pinch, tap, long press) rather than as a mouse; touch mode also stops the edge
+    // scrolling, which a finger lifted near an edge would otherwise keep going
+    bool TouchOnMap(int x, int y);
+    // a touch screen's held press moves the chosen tool (the road, fence, ditch, trees, bulldozer, the plant mark)
+    bool ToolDragWanted();
+    void SetTouchMode(bool on) { _touchMode = on; }
+    // The phone layout (an engine addition for the browser version on phones and tablets; README "Phone layout"):
+    // the farm fills the screen between a top bar (date, funds, the status text, the speed) and a bottom bar of large
+    // buttons (tool, BUY, SELL, MAP, more windows, menu). Windows, event boxes, the Examine card and the engine's own
+    // lists (tools, crops, sprays, menus) open one at a time over the dimmed farm, magnified to fill the screen; a
+    // tap beside a window closes it. The interface is drawn at scale 1 there: one interface unit per window pixel.
+    void SetPhone(bool on);
+    void SetAskText(std::function<bool(const std::string&, std::string&)> f) { _ctx.askText = std::move(f); }
+    bool Phone() const { return _phone; }
+    // window pixels per interface pixel at most for the windows and lists (the screen's short side / 200); also the
+    // map's zoom base
+    int PhoneScale() const { return _fs; }
+
     // File > Quit (and the engine's Esc): "save before leaving?" YES / CANCEL / NO; NO or no answer leaves the program,
     // YES opens Save and leaves after a save. File > New Game: events.dat 45, CANCEL / YES (no answer = CANCEL).
     void AskQuit();
@@ -113,6 +138,63 @@ public:
     void LanguageChanged() { BuildMenus(); }
 
 private:
+    bool HandleEventCore(const SDL_Event& e);
+    std::string StatusText();
+    // ---- the phone layout (ui/PhoneUi.cpp)
+    bool _phone = false;
+    int _bs = 1;   // the bars: window pixels per bar pixel
+    int _fs = 1;   // the windows' and lists' largest scale
+    bool _side = false; // landscape: the big buttons in a column at the right instead of a bar at the bottom
+    int _pw = 1, _ph = 1; // the phone's screen in window pixels (_w / _h are the layer's space while it is handled)
+    // the top, from the top: the date and funds row (drawn at the windows' scale), at _ts the menu bar's titles and
+    // the toolbar's buttons, then the status line and the speed (at the windows' scale again)
+    static constexpr int kDateRowH = 13, kStatusRowH = 11, kMenuRowH = 12, kIconBarH = 35;
+    int _ts = 1;     // the icon bar's scale
+    float _ms = 1;   // the menu titles' scale (window pixels per unit; as large as lets all the titles fit)
+    std::vector<Rect> _menuBox; // the titles' places in the menu rows, in their units (y from the first row's top)
+    static constexpr int kMenuWindows = 3, kMenuHelp = 5; // (BuildMenus' order) not on the phone's menu row
+    int _menuRows = 1;          // two when one row would keep the titles small (a phone upright)
+    int MenuRowY() const { return static_cast<int>(std::ceil(kDateRowH * _fs / _ms)); } // in _ms units
+    int MenuRowBottom() const { return static_cast<int>(std::lround((MenuRowY() + kMenuRowH * _menuRows) * _ms)); } // window pixels
+    int IconRowY() const { return (MenuRowBottom() + _ts - 1) / _ts; } // in _ts units
+    // (sideways the toolbar is a column at the left instead, user 2026-11-11: "when in horizontal position can we
+    // move the top menu (buy, sell ...) to the left")
+    int StatusRowY() const { return ((_side ? MenuRowBottom() : (IconRowY() + kIconBarH) * _ts) + _fs - 1) / _fs; } // in _fs units
+    int PhoneLeftW() const { return _side ? 36 * _ts : 0; } // window pixels
+    int PhoneTopH() const { return (StatusRowY() + kStatusRowH) * _fs; } // window pixels
+    Rect IconBarButton(int k) const;
+    Rect MenuTitleBox(int m) const; // in _ms units
+    bool SheetRightDrawer() const { return _sheet == Sheet::MenuItems; }
+    // the bottom bar (portrait: two rows of seven) or the right column (landscape: seven rows of two): the tool palette
+    static constexpr int kPhoneButtons = 14; // the twelve tools, Plant, Spray
+    int PhoneBottomH() const { return _side ? 0 : 72 * _bs; }
+    int PhoneSideW() const { return _side ? 74 * _bs : 0; }
+    enum class Sheet { None, Plant, Spray, MenuItems, Messages };
+    Sheet _sheet = Sheet::None;
+    int _sheetMenu = 0;
+    // the lists scroll (no pages, user 2026-11-11): the scroll in list units, and a finger's drag on a list
+    int _sheetScroll = 0, _sheetDownY = 0, _sheetDownScroll = 0;
+    bool _sheetDown = false, _sheetDragged = false;
+    bool SheetDrawer() const { return _sheet == Sheet::Plant || _sheet == Sheet::Spray; }
+    struct SheetItem { std::string label, command; int icon = -1; bool enabled = true, checked = false; };
+    std::vector<SheetItem> SheetItems();
+    std::string SheetTitle() const;
+    // the layer over the farm: 0 none, 1 an event box, 2 a list sheet, 3 the top window, 4 the Examine card. It is
+    // drawn f window pixels per interface unit, in a space of sw x sh units, its box inside that space
+    struct PhoneLayer { int kind = 0; float f = 1; int sw = 0, sh = 0; Rect box; };
+    PhoneLayer PhoneLayerNow();
+    struct SheetGeometry { int cols = 1, rows = 1, cellW = 176, rowH = 20, w = 0, h = 0; }; // h: the whole list's
+    SheetGeometry SheetLayout(int items);
+    Rect SheetCell(const SheetGeometry& g, const Rect& box, int i) const; // the i-th item, scrolled
+    void DrawPhoneBars();
+    void DrawPhoneLayer();
+    void DrawSheet(const Rect& box);
+    void DrawSheetIcon(int icon, int x, int y);
+    bool PhoneEvent(const SDL_Event& e, bool& used);
+    bool PhoneBarClick(int x, int y);
+    void SheetClick(int x, int y, const Rect& box);
+    void SheetCommand(const std::string& cmd);
+    Rect PhoneButton(int k) const; // the tool palette's buttons, in bar pixels
     bool _resumeNormal = false; // a Save / Load dialog paused the game; closing it resumes at Normal speed
     struct MenuItem { std::string label; std::string command; };
     struct Menu { std::string title; int x; std::vector<MenuItem> items; int boxX, boxW, boxH; };
@@ -136,7 +218,8 @@ private:
     int RadioIndex(const std::string& song) const; // 0 .. RadioCount() - 1, or -1
     bool _radioManual = false, _radioLoops = true;
     int _radioTrack = 0, _radioPressed = -1;
-    std::map<std::string, int> _moodTurn; // AUTO: which of a game song and its engine songs of the same mood plays
+    std::map<std::string, int> _moodTurn;  // AUTO: which of a game song and its engine songs of the same mood plays
+    std::map<std::string, int> _moodPlays; // AUTO: how many times in a row the game song has played to its end
     Uint32 _radioPressedAt = 0;
     void DrawWindow(Window& w);
     // EDIT palette
@@ -182,8 +265,13 @@ private:
     void DrawHazards();
     void DrawPlane();
     void DrawFlightPanel();
+    // the flight panel and its buttons, in panel units (interface units, or the phone's bar-sized units: FlightScale)
     Rect FlightPanel() const;
-    Rect FlightButton(int k) const;
+    Rect FlightButton(int k) const; // 0 SPRAY, 1 LAND; on a touch screen also 2 turn left, 3 climb, 4 descend, 5 turn right
+    int FlightScale() const { return _phone ? _fs : 1; }
+    bool FlightArrows() const { return _touchMode || _phone; } // a touch screen has no keys to steer with
+    int FlightButtons() const { return FlightArrows() ? 6 : 2; }
+    void FlightRepeat();
     void DrawPuffs();
     void UpdateCursor();
     void AutoScroll();
@@ -203,7 +291,10 @@ private:
     void YearEvaluation();
     Rect EventBox() const { return { (_w - 256) / 2, (_h - 192) / 2 + 6, 256, 192 }; } // (192, 150) on 640x480
     // OK centred; YES / NO at a quarter and three quarters of the width (button faces 48x24)
-    Rect VoteBox() const { return { (_w - 640) / 2 + 96, (_h - 480) / 2 + 96, 368, 224 }; } // Town Choice
+    Rect VoteBox() const // Town Choice: where the original puts it, centred on the phone (whose layer fits it to the screen)
+    {
+        return _phone ? Rect{ (_w - 368) / 2, (_h - 224) / 2, 368, 224 } : Rect{ (_w - 640) / 2 + 96, (_h - 480) / 2 + 96, 368, 224 };
+    }
     Rect EventButton(bool question, int k) const
     {
         const Rect b = EventBox();
@@ -221,7 +312,40 @@ private:
     bool UiCommand(const std::string& cmd); // commands the interface handles itself ("saved:NAME")
     bool _quitAfterSave = false;
     bool PaletteClick(int x, int y);
-    void UseTool(int px, int py, bool first);
+    void UseTool(int px, int py, bool first, int cellX = -1, int cellY = -1); // a cell given: used instead of (px, py)'s
+    // Planting on a touch screen (user 2026-11-11: "add placement confirmation for crops"): a tap with the PLANT tool
+    // only marks the place (the new field's 8 x 8 cells, or the field tapped, outlined; red where it cannot go); a
+    // panel over the farm's bottom asks PLANT / CANCEL. A tap elsewhere moves the mark. The mouse plants at once.
+    bool TouchUi() const { return _touchMode || _phone; }
+    bool _plantPending = false;
+    int _plantX = 0, _plantY = 0;
+    bool _plantDrag = false;
+    int _plantDragDX = 0, _plantDragDY = 0;
+    bool _buildActive = false;         // a line tool's arrows (BuildPanel) going on from (_buildX, _buildY)
+    int _buildX = 0, _buildY = 0;
+    int _panelHeld = -1;               // the held arrow (2..5) of the plant or build panel
+    uint32_t _panelNext = 0;
+    bool LineTool() const;
+    std::vector<std::pair<int, int>> _buildTrail; // the cells built since the tap, for UNDO
+    void BuildUndo();
+    Rect TouchPanel(int h) const;      // panel units, as the flight panel (FlightScale)
+    bool _panelTop = false;            // the plant / build panel at the map's top (the mark is low on the screen)
+    Rect PlantPanel() const;
+    Rect PlantButton(int k) const;     // 0 PLANT, 1 CANCEL, 2..5 arrows left, up, down, right
+    Rect BuildPanel() const;
+    Rect BuildButton(int k) const;     // 0 DONE, 2..5 arrows
+    bool PlantMarkCells(int& x, int& y, int& w, int& h) const;
+    bool PlantMark(SDL_Rect& r, std::string& why); // the marked cells on the screen; false with the reason when not possible
+    bool OnPlantMark(int px, int py) const;        // window pixels
+    bool OnTouchPanel(int px, int py) const;       // window pixels
+    void DrawMarkFrame(const SDL_Rect& r, bool ok);
+    void DrawPanelBox(const Rect& p);
+    void DrawPanelButton(const Rect& b, const std::string& label, bool enabled);
+    void DrawPanelArrow(const Rect& b, int dir, bool held);
+    void ArrowStep(int dir);
+    void PanelRepeat();
+    void DrawPlantConfirm();
+    bool PlantConfirmClick(int x, int y); // interface units
     Tool _tool = Tool::Examine;
     Uint32 _autoNext = 0;  // the next AutoScroll step
     // the pointer left the window through an edge (-1 none; 0 left, 1 right, 2 top, 3 bottom bits): the original's
@@ -240,6 +364,7 @@ private:
     void OpenFieldSchedule(int field);
     bool MapPress(int cx, int cy); // the original's press-time cell handler: true when it took the click
     bool _exHold = false, _exShown = false;
+    bool _exPinned = false; // touch: a tapped object's card stays up until the next press (a tap cannot hold it)
     int _exQuad = -1, _exField = 0;
     ExamineCard _exCard;
     int _lastCellX = -1, _lastCellY = -1;
@@ -265,6 +390,8 @@ private:
     std::vector<Menu> _menus;
     int _openMenu = -1, _hoverItem = -1;
     int _flightPressed = -1;
+    int _flightHeld = -1;      // a steering button held down (repeats), -1 none
+    Uint32 _flightNext = 0;
     Uint32 _flightPressedAt = 0;
     Uint32 _menuOpenedAt = 0;
     std::vector<std::unique_ptr<Window>> _windows; // back to front
@@ -275,6 +402,7 @@ private:
     // the engine's message history: the status row's down button opens a list of earlier messages, newest first
     std::deque<std::pair<std::string, std::string>> _history; // date, text
     bool _historyOpen = false;
+    bool _touchMode = false;
     int _historyTop = 0;
     static constexpr int kHistoryRows = 16;
     Rect HistoryButton() const { return { MapLeft(), kStatusY, 16, kStatusH }; }

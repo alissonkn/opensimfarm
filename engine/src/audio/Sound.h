@@ -47,6 +47,7 @@ public:
     void SetMusicEnabled(bool on);
     bool MusicEnabled() const { return _musicOn; }
     const std::string& CurrentSong() const { return _songName; }
+    double SongSeconds(const std::string& name); // a song's length (0 when it cannot be read)
 
     void SetModern(bool on);
     bool Modern() const { return _modern; }
@@ -65,6 +66,7 @@ private:
     static void Callback(void* self, Uint8* stream, int len);
     struct Voice { const std::vector<float>* pcm; size_t pos; float gl, gr; };
     const std::vector<float>* Effect(const std::string& name);
+    std::map<std::string, Song>::iterator LoadSong(const std::string& name); // parsed once, kept
     void Place(int cellX, int cellY, float& gl, float& gr) const;
 
     const Megadata* _mega = nullptr;

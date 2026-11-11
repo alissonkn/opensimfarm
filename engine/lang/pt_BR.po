@@ -431,6 +431,7 @@ msgid "The job is scheduled."
 msgstr "O serviço foi agendado."
 
 #: src/game/Editing.cpp
+#: src/ui/GameUi.cpp
 msgid "The field is in use."
 msgstr "A lavoura está em uso."
 
@@ -1223,6 +1224,7 @@ msgid "AutoGoto"
 msgstr "Autodeslocar"
 
 #: src/ui/GameUi.cpp
+#: src/ui/PhoneUi.cpp
 msgid "Messages"
 msgstr "Mensagens"
 
@@ -1257,22 +1259,27 @@ msgid "Speed"
 msgstr "Velocidade"
 
 #: src/ui/GameUi.cpp
+#: src/ui/PhoneUi.cpp
 msgid "Ultra"
 msgstr "Ultra"
 
 #: src/ui/GameUi.cpp
+#: src/ui/PhoneUi.cpp
 msgid "Fast"
 msgstr "Rápida"
 
 #: src/ui/GameUi.cpp
+#: src/ui/PhoneUi.cpp
 msgid "Normal"
 msgstr "Normal"
 
 #: src/ui/GameUi.cpp
+#: src/ui/PhoneUi.cpp
 msgid "Slow"
 msgstr "Lenta"
 
 #: src/ui/GameUi.cpp
+#: src/ui/PhoneUi.cpp
 msgid "Pause"
 msgstr "Pausa"
 
@@ -1441,15 +1448,18 @@ msgid "{0} mph"
 msgstr "{0} mph"
 
 #: src/ui/GameUi.cpp
+#: src/ui/PhoneUi.cpp
 msgid "Week {0} of {1} {2}"
 msgstr "Semana {0} de {1} {2}"
 
 #: src/ui/GameUi.cpp
+#: src/ui/PhoneUi.cpp
 #: src/ui/Windows.cpp
 msgid "W{0} {1} {2}"
 msgstr "S{0} {1} {2}"
 
 #: src/ui/GameUi.cpp
+#: src/ui/PhoneUi.cpp
 msgid "No messages yet."
 msgstr "Nenhuma mensagem ainda."
 
@@ -1460,6 +1470,10 @@ msgstr "Voando  altura {0}"
 #: src/ui/GameUi.cpp
 msgid "SPRAYING"
 msgstr "PULVERIZANDO"
+
+#: src/ui/GameUi.cpp
+msgid "Steer with the arrow buttons"
+msgstr "Pilote com os botões de seta"
 
 #: src/ui/GameUi.cpp
 msgid "Arrows fly, F sprays, Enter lands"
@@ -1542,10 +1556,12 @@ msgid "Trough"
 msgstr "Bebedouro"
 
 #: src/ui/GameUi.cpp
+#: src/ui/PhoneUi.cpp
 msgid "Plant Field"
 msgstr "Plantar lavoura"
 
 #: src/ui/GameUi.cpp
+#: src/ui/PhoneUi.cpp
 msgid "Spray Field"
 msgstr "Pulverizar lavoura"
 
@@ -1584,6 +1600,29 @@ msgstr "COMBUSTÍVEL"
 #: src/ui/GameUi.cpp
 msgid "DAMAGE"
 msgstr "DANOS"
+
+#: src/ui/GameUi.cpp
+#: src/ui/MapEditor.cpp
+msgid "UNDO"
+msgstr "DESFAZER"
+
+#: src/ui/GameUi.cpp
+#: src/ui/MapEditor.cpp
+msgid "DONE"
+msgstr "PRONTO"
+
+#: src/ui/GameUi.cpp
+msgid "Plant {0} here?  Seed: {1}"
+msgstr "Plantar {0} aqui?  Semente: {1}"
+
+#: src/ui/GameUi.cpp
+msgid "PLANT"
+msgstr "PLANTAR"
+
+#: src/ui/GameUi.cpp
+#: src/ui/MapEditor.cpp
+msgid "CANCEL"
+msgstr "CANCELAR"
 
 #: src/ui/GameUi.cpp
 msgid "Edge scrolling on: the map moves when the pointer is at a side."
@@ -1656,18 +1695,6 @@ msgstr "PINCEL"
 #: src/ui/MapEditor.cpp
 msgid "Wheel: zoom. Right drag: move the map."
 msgstr "Roda: zoom. Arrastar com o botão direito: mover o mapa."
-
-#: src/ui/MapEditor.cpp
-msgid "UNDO"
-msgstr "DESFAZER"
-
-#: src/ui/MapEditor.cpp
-msgid "DONE"
-msgstr "PRONTO"
-
-#: src/ui/MapEditor.cpp
-msgid "CANCEL"
-msgstr "CANCELAR"
 
 #: src/ui/PictureText.cpp
 msgid "PRICE"
@@ -2133,6 +2160,14 @@ msgstr "GERAR MUNDO"
 msgid "PLAY!"
 msgstr "JOGAR!"
 
+#: src/ui/StartScreen.cpp
+msgid "Tap a yellow box for a ready-made farm, or a place on land for a new one."
+msgstr "Toque num quadrado amarelo para uma fazenda pronta, ou num ponto em terra para uma nova."
+
+#: src/ui/StartScreen.cpp
+msgid "BACK"
+msgstr "VOLTAR"
+
 #: src/ui/Windows.cpp
 msgid "BALANCE SHEET"
 msgstr "BALANÇO"
@@ -2356,6 +2391,14 @@ msgstr "SALVAR JOGO"
 #: src/ui/Windows.cpp
 msgid "LOAD GAME"
 msgstr "CARREGAR JOGO"
+
+#: src/ui/Windows.cpp
+msgid "Save the farm as (up to 8 letters and digits):"
+msgstr "Salvar a fazenda como (até 8 letras e números):"
+
+#: src/ui/Windows.cpp
+msgid "Load the save named:"
+msgstr "Carregar o jogo salvo chamado:"
 
 #: src/ui/Windows.cpp
 msgid "Save failed"
@@ -3427,3 +3470,14 @@ msgstr "Sobre a cultura"
 
 msgid "card:25:0"
 msgstr "Sobre a cultura"
+
+# No longer used by the game (kept for reference)
+
+#~ msgid "Tools"
+#~ msgstr "Ferramentas"
+
+#~ msgid "Menu"
+#~ msgstr "Menu"
+
+#~ msgid "More"
+#~ msgstr "Mais"

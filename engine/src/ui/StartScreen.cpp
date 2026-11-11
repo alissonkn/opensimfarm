@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cmath>
 #include <filesystem>
 
 namespace osf {
@@ -120,7 +121,16 @@ std::string StartScreen::HandleEvent(const SDL_Event& e)
         else
             SDL_GetMouseState(&px, &py);
         int x = -1, y = -1;
-        ToPicture(px, py, x, y);
+        if (_phone)
+        {
+            // the editor magnified to the phone's screen (DrawPhone's _editF and offset)
+            x = static_cast<int>(std::floor((px - _editX) / _editF));
+            y = static_cast<int>(std::floor((py - _editY) / _editF));
+            if (x < 0 || y < 0 || x >= 640 || y >= 480)
+                x = y = -1;
+        }
+        else
+            ToPicture(px, py, x, y);
         const std::string r = _editor.HandleEvent(e, x, y);
         if (r == "done")
         {
@@ -144,6 +154,8 @@ std::string StartScreen::HandleEvent(const SDL_Event& e)
     }
     if (e.type != SDL_MOUSEBUTTONDOWN || e.button.button != SDL_BUTTON_LEFT)
         return {};
+    if (_phone)
+        return PhoneEvent(e.button.x, e.button.y);
     int x, y;
     if (!ToPicture(e.button.x, e.button.y, x, y))
         return {};
@@ -157,6 +169,11 @@ std::string StartScreen::HandleEvent(const SDL_Event& e)
     }
     if (_design)
         return DesignEvent(x, y);
+    return PictureClick(x, y);
+}
+
+std::string StartScreen::PictureClick(int x, int y)
+{
     // the farm USE THIS REGION starts: a place on the map gets a world generated with its climate and the design
     // screen's river and lake choices (both off unless turned on there), a farm box its prebuilt farm
     const auto use = [&]() -> std::string {
@@ -431,11 +448,43 @@ void StartScreen::Draw(int w, int h)
         _scale = std::max(1, std::min(w / 640, h / 480));
         _ox = (w - 640 * _scale) / 2;
         _oy = (h - 480 * _scale) / 2;
+        SDL_Rect dst{ _ox, _oy, 640 * _scale, 480 * _scale };
+        if (_phone)
+        {
+            // the pictures as wide as the phone allows (any size, not whole multiples)
+            const float f = std::min(w / 640.0f, h / 480.0f);
+            dst = { static_cast<int>((w - 640 * f) / 2), static_cast<int>((h - 480 * f) / 2), static_cast<int>(640 * f), static_cast<int>(480 * f) };
+        }
         SDL_Renderer* r = _g.Renderer();
         SDL_SetRenderDrawColor(r, 0, 0, 0, 255);
         SDL_RenderClear(r);
-        _g.DrawFullScreen(_intro == 0 ? "prsnt480.int" : "sftitle.int", _intro == 0 ? "prsnt480.pal" : "sftitle.pal",
-                          SDL_Rect{ _ox, _oy, 640 * _scale, 480 * _scale });
+        _g.DrawFullScreen(_intro == 0 ? "prsnt480.int" : "sftitle.int", _intro == 0 ? "prsnt480.pal" : "sftitle.pal", dst);
+        return;
+    }
+    if (_editing && _phone)
+    {
+        // the map editor keeps its 640 x 480 layout, magnified to fill the phone (best turned sideways)
+        SDL_Renderer* r = _g.Renderer();
+        SDL_SetRenderDrawColor(r, 0, 0, 0, 255);
+        SDL_RenderClear(r);
+        _editF = std::min(w / 640.0f, h / 480.0f);
+        _editX = static_cast<int>((w - 640 * _editF) / 2);
+        _editY = static_cast<int>((h - 480 * _editF) / 2);
+        SDL_RenderSetScale(r, _editF, _editF);
+        const SDL_Rect vp{ static_cast<int>(_editX / _editF), static_cast<int>(_editY / _editF), 640, 480 };
+        SDL_RenderSetViewport(r, &vp);
+        const int saved = _g.Scale();
+        _g.SetScale(1);
+        _editor.Draw();
+        _g.SetScale(saved);
+        SDL_RenderSetViewport(r, nullptr);
+        SDL_RenderSetScale(r, 1.0f, 1.0f);
+        return;
+    }
+    if (_phone)
+    {
+        PhoneLayout(w, h);
+        DrawPhone();
         return;
     }
     if (_editing)
@@ -652,6 +701,282 @@ void StartScreen::DrawTranslatedDesign()
         { 403, 292, 44, 10, N_("PLAY!"), 426, 294, false },
     };
     DrawCovers(_g, _scale, kCovers, sizeof(kCovers) / sizeof(kCovers[0]));
+}
+
+// ---------------------------------------------------------------- the phone layout (an engine addition)
+// User 2026-11-11: "redesign the start screens for phones" (the phone version's bars and menus may differ from the
+// original's, the mechanics stay). The region and design screens are rebuilt from their parts: the map (or the
+// preview) as large as the screen allows, the climate bars, and big buttons. Each button stands for one of the
+// picture's buttons and its tap goes through the same code as a click there.
+namespace {
+enum PhoneButtonId
+{
+    kPUse, kPDesign, kPLoad, kPQuit, kPLang, kPRainD, kPRainU, kPTempD, kPTempU, kPWindD, kPWindU,
+    kPRiver, kPLake, kPGenerate, kPPlay, kPMapSize, kPEdit, kPBack
+};
+const Button* PictureButton(int id)
+{
+    static const Button* const k[] = { &kUseRegion, &kDesign, &kLoad, &kQuit, nullptr, &kRainDown, &kRainUp, &kTempDown,
+                                       &kTempUp, &kWindDown, &kWindUp, &kRiver, &kLake, &kGenerate, &kPlay,
+                                       &kMapSizeButton, &kEditButton, nullptr };
+    return id >= 0 && id < static_cast<int>(sizeof(k) / sizeof(k[0])) ? k[id] : nullptr;
+}
+bool InRect(const SDL_Rect& r, int x, int y) { return x >= r.x && y >= r.y && x < r.x + r.w && y < r.y + r.h; }
+// the picture's own English words, or the translation the picture's covers use
+std::string Words(const char* english, const char* key)
+{
+    if (CurrentLanguage() == "en")
+        return english;
+    std::string t = Tr(key);
+    std::replace(t.begin(), t.end(), '\n', ' ');
+    return t;
+}
+const char* const kClimateNames[3] = { N_("RAINFALL"), N_("TEMPERATURE"), N_("WIND SPEED") };
+} // namespace
+
+void StartScreen::PhoneLayout(int w, int h)
+{
+    _u = std::max(1, static_cast<int>(std::lround(std::min(w, h) / 200.0)));
+    _uw = w / _u;
+    _uh = h / _u;
+    _wide = w > h;
+}
+
+void StartScreen::DrawPhoneButton(const SDL_Rect& r, const std::string& label, bool pressed, bool enabled)
+{
+    _g.Frame(r.x - 1, r.y - 1, r.w + 2, r.h + 2, kBlack);
+    _g.Fill(r.x, r.y, r.w, r.h, pressed ? kGrey : kLightGrey);
+    _g.Bevel(r.x, r.y, r.w, r.h, !pressed);
+    _g.TextFit(r.x + 3, r.y + (r.h - 8) / 2, r.w - 6, label, enabled ? kBlack : kGrey, 1);
+}
+
+void StartScreen::DrawPhoneClimate(int x, int y, int w, int k, int value, int colour, bool arrows)
+{
+    int lw = 0;
+    for (const char* n : kClimateNames)
+        lw = std::max(lw, Gfx::SmallTextWidth(Tr(n)));
+    lw += 6;
+    const int h = arrows ? 14 : 8;
+    _g.SmallText(x, y + (h - 6) / 2, Tr(kClimateNames[k]), kBlack);
+    int bx = x + lw, bw = w - lw;
+    if (arrows)
+    {
+        // lower and higher on either side of the bar, as the design picture's arrow buttons
+        const SDL_Rect down{ bx, y, 16, h }, up{ x + w - 16, y, 16, h };
+        DrawPhoneButton(down, "-", false);
+        DrawPhoneButton(up, "+", false);
+        _hits.push_back({ kPRainD + 2 * k, down });
+        _hits.push_back({ kPRainU + 2 * k, up });
+        bx += 20;
+        bw -= 40;
+    }
+    const int by = y + (h - 8) / 2;
+    _g.Frame(bx, by, bw, 8, kBlack);
+    _g.Fill(bx + 1, by + 1, bw - 2, 6, arrows ? kBlack : kWhite);
+    if (value > 0)
+        _g.Fill(bx + 1, by + 1, (bw - 2) * std::min(3, value) / 3, 6, colour);
+}
+
+void StartScreen::DrawPhone()
+{
+    SDL_Renderer* rd = _g.Renderer();
+    SDL_SetRenderDrawColor(rd, 0, 0, 0, 255);
+    SDL_RenderClear(rd);
+    const int saved = _g.Scale();
+    _g.SetScale(_u);
+    _hits.clear();
+    // the map (or preview) square and the panel beside it (landscape) or under it (portrait)
+    int side, mx, my;
+    SDL_Rect panel;
+    if (_wide)
+    {
+        side = std::min(_uh - 8, _uw * 45 / 100);
+        mx = 4, my = (_uh - side) / 2;
+        panel = { side + 12, 4, _uw - side - 16, _uh - 8 };
+    }
+    else
+    {
+        side = std::min(_uw - 8, _uh * 45 / 100);
+        mx = (_uw - side) / 2, my = 4;
+        panel = { 4, side + 12, _uw - 8, _uh - side - 16 };
+    }
+    _mapPx = { mx * _u, my * _u, side * _u, side * _u };
+    _g.Frame(panel.x - 1, panel.y - 1, panel.w + 2, panel.h + 2, kBlack);
+    _g.Fill(panel.x, panel.y, panel.w, panel.h, kLightGrey);
+    _g.Bevel(panel.x, panel.y, panel.w, panel.h, true);
+    _g.Frame(mx - 1, my - 1, side + 2, side + 2, kLightGrey);
+
+    const int x0 = panel.x + 6, pw = panel.w - 12, bottom = panel.y + panel.h - 6;
+    int y = panel.y + 6;
+    const std::string title = _design ? Words("DESIGN YOUR TERRAIN", "MAKE YOUR LAND") : Words("SELECT A REGION", "CHOOSE\nA REGION");
+    _g.TextFit(x0 + 1, y + 1, pw, title, kNavy, 1);
+    _g.TextFit(x0, y, pw, title, kBlue, 1);
+    y += 14;
+
+    // the buttons fill what is left in rows of one or two
+    const auto rows = [&](const std::vector<std::vector<std::pair<int, std::string>>>& list, int top) {
+        const int n = static_cast<int>(list.size()), gap = 5;
+        const int bh = std::clamp((bottom - top - (n - 1) * gap) / std::max(1, n), 14, 30);
+        int ry = std::max(top, bottom - n * bh - (n - 1) * gap);
+        for (const auto& row : list)
+        {
+            int rx = x0;
+            int total = 0;
+            for (const auto& b : row)
+                total += b.first == kPLang ? 2 : 1;
+            const int cw = pw - (static_cast<int>(row.size()) - 1) * gap;
+            for (const auto& b : row)
+            {
+                const int bw = cw * (b.first == kPLang ? 2 : 1) / total;
+                const SDL_Rect r{ rx, ry, bw, bh };
+                const bool pressed = (b.first == kPRiver && _opt.river) || (b.first == kPLake && _opt.lake);
+                const bool enabled = (b.first != kPEdit && b.first != kPPlay) || _haveWorld;
+                DrawPhoneButton(r, b.second, pressed, enabled);
+                _hits.push_back({ b.first, r });
+                rx += bw + gap;
+            }
+            ry += bh + gap;
+        }
+    };
+
+    if (!_design)
+    {
+        // the region map: the picture's map part, scaled to the square
+        const float k = _mapPx.w / 290.0f;
+        SDL_RenderSetClipRect(rd, &_mapPx);
+        _g.DrawFullScreen("scenario.int", "scenario.pal",
+                          SDL_Rect{ _mapPx.x - static_cast<int>(248 * k), _mapPx.y - static_cast<int>(39 * k), static_cast<int>(640 * k), static_cast<int>(480 * k) });
+        _g.SetScale(1);
+        const int t = std::max(2, static_cast<int>(std::lround(k)));
+        const auto box = [&](int bx, int by, int colour) {
+            const int px = _mapPx.x + static_cast<int>((bx - 248) * k), py = _mapPx.y + static_cast<int>((by - 39) * k), ps = static_cast<int>(17 * k);
+            for (int i = 0; i < t; ++i)
+                _g.Frame(px + i, py + i, ps - 2 * i, ps - 2 * i, colour);
+        };
+        for (int f = 0; f < 8; ++f)
+            box(248 + 16 * kFarmGx[f], 40 + 16 * kFarmGy[f], _selected == f && !_regionPicked ? kDarkGrey : kYellow);
+        if (_regionPicked)
+            box(248 + 16 * _cellX, 40 + 16 * _cellY, kGreen);
+        _g.SetScale(_u);
+        SDL_RenderSetClipRect(rd, nullptr);
+
+        for (int c = 0; c < 3; ++c, y += 11)
+            DrawPhoneClimate(x0, y, pw, c, _classes[static_cast<size_t>(c)], kBlue, false);
+        y += 2;
+        std::string current = "English";
+        for (const LanguageInfo& l : AvailableLanguages())
+            if (l.code == CurrentLanguage())
+                current = l.name;
+        std::vector<std::vector<std::pair<int, std::string>>> list = {
+            { { kPUse, Words("USE THIS REGION", "PLAY THIS REGION") } },
+            { { kPDesign, Words("DESIGN YOUR OWN", "MAKE YOUR OWN") } },
+            { { kPLoad, Words("LOAD A SAVED GAME", "OPEN A SAVED GAME") } },
+            { { kPLang, std::string(Tr("Language")) + ": " + current }, { kPQuit, Tr("QUIT") } },
+        };
+        // (only the language's name when "Language: name" would be squeezed: the button is two thirds of the panel)
+        if (Gfx::TextWidth(list[3][0].second) > (pw - 5) * 2 / 3 - 6)
+            list[3][0].second = current;
+        // the hint above the buttons when there is room for it
+        const std::string hint = Tr("Tap a yellow box for a ready-made farm, or a place on land for a new one.");
+        std::vector<std::string> lines;
+        std::string line, word;
+        for (size_t i = 0; i <= hint.size(); ++i)
+        {
+            if (i < hint.size() && hint[i] != ' ')
+            {
+                word += hint[i];
+                continue;
+            }
+            const std::string tryLine = line.empty() ? word : line + " " + word;
+            if (!line.empty() && Gfx::SmallTextWidth(tryLine) > pw)
+            {
+                lines.push_back(line);
+                line = word;
+            }
+            else
+                line = tryLine;
+            word.clear();
+        }
+        if (!line.empty())
+            lines.push_back(line);
+        const int hintH = static_cast<int>(lines.size()) * 9 + 4;
+        if (bottom - y - hintH >= 4 * 20 + 15)
+        {
+            for (const std::string& l : lines)
+            {
+                _g.SmallText(x0, y, l, kBlack);
+                y += 9;
+            }
+            y += 4;
+        }
+        rows(list, y);
+    }
+    else
+    {
+        if (_haveWorld)
+        {
+            _g.DrawPixels(_preview, _previewSide, _previewSide, mx, my, side, side);
+            const auto mark = [&](int px, int py, const char* c) { _g.Text(mx + px * side / _previewSide, my + py * side / _previewSide, c, kBlack); };
+            mark(16 * static_cast<int>(_world.scalars["homestead_x"]), 16 * static_cast<int>(_world.scalars["homestead_y"]), "T");
+            mark(2 * static_cast<int>(_world.scalars["view_x"]), 2 * static_cast<int>(_world.scalars["view_y"]), "H");
+        }
+        const int colour[3] = { kRed, kYellow, kGreen }, value[3] = { _opt.rain, _opt.temperature, _opt.wind };
+        for (int c = 0; c < 3; ++c, y += 17)
+            DrawPhoneClimate(x0, y, pw, c, value[c], colour[c], true);
+        const std::vector<std::vector<std::pair<int, std::string>>> list = {
+            { { kPRiver, Tr("RIVER") }, { kPLake, Tr("LAKE") } },
+            { { kPMapSize, _designMapSize == kLargeMapSize ? Tr("MAP 144 x 144") : Tr("MAP 96 x 96") }, { kPEdit, Tr("EDIT MAP") } },
+            { { kPGenerate, Words("GENERATE WORLD", "NEW RANDOM WORLD") } },
+            { { kPBack, Tr("BACK") }, { kPPlay, Tr("PLAY!") } },
+        };
+        rows(list, y + 2);
+    }
+    if (!_note.empty())
+        _g.SmallText(x0, bottom - 6, _note.substr(0, static_cast<size_t>(pw / 5)), kRed);
+    _g.SetScale(saved);
+}
+
+std::string StartScreen::NextLanguage()
+{
+    const auto langs = AvailableLanguages();
+    if (langs.empty())
+        return {};
+    size_t i = 0;
+    while (i < langs.size() && langs[i].code != CurrentLanguage())
+        ++i;
+    const std::string& code = langs[(i + 1) % langs.size()].code;
+    if (code == CurrentLanguage())
+        return {};
+    SetLanguage(code);
+    return "language:" + code;
+}
+
+std::string StartScreen::PhoneEvent(int px, int py)
+{
+    if (!_design && InRect(_mapPx, px, py))
+    {
+        // a tap on the map: the place of the picture's map it shows
+        const float k = _mapPx.w / 290.0f;
+        return PictureClick(248 + static_cast<int>((px - _mapPx.x) / k), 39 + static_cast<int>((py - _mapPx.y) / k));
+    }
+    const int x = px / _u, y = py / _u;
+    for (const auto& [id, r] : _hits)
+    {
+        if (!InRect(r, x, y))
+            continue;
+        if (id == kPLang)
+            return NextLanguage();
+        if (id == kPBack)
+        {
+            _design = false;
+            return {};
+        }
+        const Button* b = PictureButton(id);
+        if (!b)
+            return {};
+        return _design ? DesignEvent(b->x + 1, b->y + 1) : PictureClick(b->x + 1, b->y + 1);
+    }
+    return {};
 }
 
 } // namespace osf

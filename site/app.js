@@ -1,35 +1,21 @@
-// OpenSimFarm site: install tabs, and the releases list read from GitHub when the page loads (so a new release
-// shows up here without changing the page).
+// OpenSimFarm site: the latest release read from GitHub when the page loads (so a new release shows up here without
+// changing the page), and a large view of the screenshots.
 (function () {
   "use strict";
   var REPO = "alissonkn/opensimfarm";
   var RELEASES = "https://github.com/" + REPO + "/releases";
 
-  // ---- install tabs
-  var tabs = document.querySelectorAll(".tab");
-  tabs.forEach(function (t) {
-    t.addEventListener("click", function () { showTab(t.dataset.tab); });
-  });
-  function showTab(name) {
-    tabs.forEach(function (t) {
-      var on = t.dataset.tab === name;
-      t.classList.toggle("active", on);
-      t.setAttribute("aria-selected", on ? "true" : "false");
-    });
-    document.querySelectorAll(".panel").forEach(function (p) { p.classList.toggle("active", p.id === "tab-" + name); });
-  }
-
   // ---- screenshots: click opens a large view (Esc, a click or the x closes it)
   var lb = document.getElementById("lightbox");
   if (lb) {
     var lbImg = lb.querySelector("img"), lbCap = lb.querySelector(".lb-cap");
-    document.querySelectorAll(".shot a").forEach(function (a) {
+    document.querySelectorAll(".shot a, a.phone").forEach(function (a) {
       a.addEventListener("click", function (ev) {
         ev.preventDefault();
-        var img = a.querySelector("img"), cap = a.parentNode.querySelector("figcaption");
+        var img = a.querySelector("img"), cap = a.parentNode.tagName === "FIGURE" ? a.parentNode.querySelector("figcaption") : null;
         lbImg.src = a.href;
         lbImg.alt = img ? img.alt : "";
-        lbCap.textContent = cap ? cap.textContent : "";
+        lbCap.textContent = cap ? cap.textContent : (img ? img.alt : "");
         lb.hidden = false;
       });
     });
@@ -55,15 +41,15 @@
 
   // ---- what each file is
   var KINDS = [
-    { kind: "setup", test: /windows.*setup\.exe$/i, os: "🪟", label: "Windows installer", tab: "win" },
-    { kind: "zip", test: /windows.*\.zip$/i, os: "📦", label: "Windows zip (no install)", tab: "zip" },
-    { kind: "deb", test: /\.deb$/i, os: "🐧", label: "Debian / Ubuntu (.deb)", tab: "deb" },
-    { kind: "rpm", test: /\.rpm$/i, os: "🎩", label: "Fedora / openSUSE (.rpm)", tab: "rpm" },
-    { kind: "sums", test: /sha256/i, os: "🔒", label: "Checksums (SHA-256)", tab: null }
+    { kind: "setup", test: /windows.*setup\.exe$/i, os: "🪟", label: "Windows installer" },
+    { kind: "zip", test: /windows.*\.zip$/i, os: "📦", label: "Windows zip (no install)" },
+    { kind: "deb", test: /\.deb$/i, os: "🐧", label: "Debian / Ubuntu (.deb)" },
+    { kind: "rpm", test: /\.rpm$/i, os: "🎩", label: "Fedora / openSUSE (.rpm)" },
+    { kind: "sums", test: /sha256/i, os: "🔒", label: "Checksums (SHA-256)" }
   ];
   function kindOf(name) {
     for (var i = 0; i < KINDS.length; i++) if (KINDS[i].test.test(name)) return KINDS[i];
-    return { kind: "other", os: "📄", label: "Other file", tab: null };
+    return { kind: "other", os: "📄", label: "Other file" };
   }
   function size(n) {
     return n > 1048576 ? (n / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(n / 1024)) + " KB";
@@ -85,21 +71,15 @@
     return null;
   }
 
-  // ---- releases
+  // ---- the latest release only (older ones are on GitHub)
   var list = document.getElementById("release-list");
-  fetch("https://api.github.com/repos/" + REPO + "/releases?per_page=30", {
+  fetch("https://api.github.com/repos/" + REPO + "/releases/latest", {
     headers: { Accept: "application/vnd.github.html+json" } // notes come back as HTML made by GitHub
   })
     .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
-    .then(function (rels) {
-      rels = rels.filter(function (r) { return !r.draft; });
+    .then(function (latest) {
       list.textContent = "";
-      if (!rels.length) {
-        list.appendChild(el("p", "loading", "No releases yet. Check back soon!"));
-        return;
-      }
-      var latest = rels.find(function (r) { return !r.prerelease; }) || rels[0];
-      rels.forEach(function (r) { list.appendChild(renderRelease(r, r === latest)); });
+      list.appendChild(renderRelease(latest));
       setCallToAction(latest);
       fillFileNames(latest);
     })
@@ -113,13 +93,12 @@
       list.appendChild(p);
     });
 
-  function renderRelease(r, isLatest) {
-    var box = el("article", "release" + (isLatest ? "" : " older"));
+  function renderRelease(r) {
+    var box = el("article", "release");
     box.id = "release-" + r.tag_name;
     var head = el("div", "release-head");
     head.appendChild(el("h3", null, r.name || r.tag_name));
-    if (isLatest) head.appendChild(el("span", "badge", "Latest"));
-    if (r.prerelease) head.appendChild(el("span", "badge pre", "Pre-release"));
+    head.appendChild(el("span", "badge", "Latest"));
     var date = r.published_at ? new Date(r.published_at) : null;
     if (date) head.appendChild(el("span", "release-date",
       date.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })));
@@ -153,8 +132,7 @@
 
     if (r.body_html) {
       var notes = el("details", "notes");
-      if (isLatest) notes.open = true;
-      notes.appendChild(el("summary", null, "Release notes and install instructions"));
+      notes.appendChild(el("summary", null, "What's new in this version"));
       var md = el("div", "md");
       md.innerHTML = r.body_html; // HTML rendered and cleaned by GitHub from the release's own notes
       notes.appendChild(md);
@@ -184,14 +162,12 @@
       main.textContent = "⬇ Download for " + k.label.replace(/ \(.*\)$/, "") + " · v" + version;
       note.textContent = "";
       note.append(size(pick.size) + " · ");
-      var other = el("a", null, "other systems and versions");
-      other.href = "#releases";
+      var other = el("a", null, "other systems");
+      other.href = "#download";
       note.append(other, " · Free and open source (GPL-3.0). Needs your own copy of SimFarm.");
-      if (k.tab) showTab(k.tab);
     } else {
-      main.href = "#release-" + rel.tag_name;
+      main.href = "#download";
       main.textContent = "⬇ Download v" + version;
-      if (want === "linux") showTab("deb");
     }
   }
 

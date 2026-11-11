@@ -213,7 +213,7 @@ public:
     bool Consume(int x, int y, int type, int amount);
     void AmbientAnimation();
     void PaintMarkers(Field& f, const int (&slots)[3]);
-    void AnimateStalls();
+    void AnimateStalls(bool show);
     void ContestWeek();      // the weekly countdown of the rodeo / fair and its result
     void Conception();       // monthly
     void ContestOffers();    // the offers at the month change into July / October
@@ -268,6 +268,8 @@ private:
     Speed _speed = Speed::Normal;
     bool _scaledClock = false;
     int64_t _rawTicks = 0;
+    int64_t _stallStamp = 0; // raw tick of the event ground animation's last pass
+    int64_t _stallShown = 0; // raw tick of its last state put on the map (the original's view redraw)
     double _rawFrac = 0;
     bool _inAdvance = false;
     double _ticks = 0;

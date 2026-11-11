@@ -31,6 +31,23 @@ Does OpenSimFarm uses AI? *YES* It's 2026, of course it does.
   words printed in its pictures are shown in the chosen language too. More languages can be added without
   programming (see [Languages](#languages))
 * Zoom (mouse wheel or the + / − buttons) and moving around with the arrow keys or WASD, at any window size
+* A phone layout in the browser version on touch screens (portrait or landscape): the farm fills the screen with a
+  top bar (date for the weather and funds), the menu bar's titles under it (each drops its items down), the
+  toolbar's eight buttons and Farm Expert, the message line and the speed (tap either), and the tool palette at the bottom (the
+  twelve tools, plant and spray, a second tap lets go of the tool; turned sideways, the toolbar is a column at the
+  left and the tools one at the right); crops and sprays open in a drawer at the left, windows and
+  messages in the middle, magnified; long lists scroll with a finger; a tap beside one closes it. On the farm one
+  finger drags the map, two fingers pinch to zoom smoothly (further out and not as far in as the mouse wheel), a
+  tap is a click and a press held still is a right click.
+  The crop duster's flight panel gets arrow buttons to steer and climb (hold them to keep turning or climbing).
+  Planting by touch asks first: a tap marks where the field would go (red, with the reason, where it cannot); drag
+  the mark or move it with the arrows, then PLANT or CANCEL. With roads, fences, ditches, trees and the bulldozer a
+  press held still and then moved builds along the finger's way; after a tap or such a drag, arrows go on building
+  from the marked cell (hold one to keep going), UNDO bulldozes the last cell built, and DONE puts them away.
+  The start screens are laid out for the phone too: the region map (or your designed land) as large as the screen
+  allows, with the climate bars and big buttons beside or under it, and BACK on the design screen. While the game
+  runs in the browser the screen stays on (where the browser allows it).
+  Add `?layout=desktop` (or `?layout=phone`) to the address to choose the layout yourself
 * A radio at the right of the menu bar: skip back and forth through the songs, pause and resume the music, or leave
   the choice to the game (AUTO)
 * Seven new songs of its own, composed for OpenSimFarm and built into the program (free like the rest of it, see
@@ -55,10 +72,6 @@ None of them contains anything of the original game. To build them yourself, see
 
 Or play in the browser, with nothing to install: https://alissonkn.github.io/opensimfarm/play/ . You choose your
 SimFarm folder on the page; its files are read on your computer and never uploaded.
-
-> [!WARNING]
-> **The browser version is a beta.** It is less tested than the download, may have bugs, and may not be as up to
-> date as the desktop version, which stays the main one.
 
 ## Build
 The source is in `engine/`. The Linux steps were tested on Fedora 44 and Ubuntu 24.04; the installers for both
@@ -126,7 +139,7 @@ cmake --build build-win
    ```
    (add `--security-opt label=disable` on SELinux systems; for the rpm use the `fedora` image and `dnf install -y`).
 
-### The browser version (online play, beta)
+### The browser version (online play)
 The same engine compiled to WebAssembly with Emscripten. The page is `site/play/` (`index.html`, `play.js`,
 `play.css`); the build adds `opensimfarm.js` and `opensimfarm.wasm` there (not tracked).
 
@@ -189,6 +202,7 @@ export SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy
 ./build/opensimfarm --audiotest     # Modern Sound: every song and effect rendered (about 10 s)
 ./build/opensimfarm --graphicstest  # Modern Render: smoothing of every tile, and the glides
 ./build/opensimfarm --langtest      # every built-in language: its letters, its {0} {1} ..., and that its words fit
+./build/opensimfarm --touchtest     # the touch gestures (tap, long press, drag, pinch) on scripted fingers
 ./build/opensimfarm --simulate 400  # 400 game days, with a report
 ```
 Each prints `ok` lines (or `round-trip OK` for `--selftest`) and exits with 0 when everything passed. A folder can be
@@ -203,13 +217,17 @@ python3 engine/tools/webtest.py [--game /path/to/SimFarm] [--out SCREENSHOT_DIR]
 ```
 It serves `site/` on a free local port, starts Firefox headless with a new, throw-away profile and drives it through
 Marionette, Firefox's built-in remote control. A script cannot use the folder dialog, so it drops your SimFarm folder
-onto the page the way a browser does for a dragged folder. It checks the page and the beta notice; that an unusable
+onto the page the way a browser does for a dragged folder. It checks the page (no beta labels); that an unusable
 folder is refused with a reason; that the game starts, runs, plays sound, and reacts to keys; the Hide bar button;
 resizing; uploading a save; that the files and saves are remembered after a reload; and Forget. It prints one
 PASS/FAIL line per check, saves screenshots and exits with 0 when everything passed (about 30 s). Nothing is written
 to your SimFarm folder or your own Firefox profile. `--keep` leaves Firefox and the server running until Enter.
 
 Chrome, Edge and Safari are not covered by it; try those by hand (step 3 above).
+
+`engine/tools/webtouchtest.py` (same options) plays the page with touches instead of the mouse: taps through the
+intro and onto a farm, then on the map a one-finger drag, a pinch in and out, a long press and a tap with Examine,
+and a tap on a toolbar button, comparing screenshots after each (about 30 s).
 
 ### The desktop game on a hidden screen
 To click through the real window and take screenshots without a screen, `engine/tools/play.sh` runs the game on

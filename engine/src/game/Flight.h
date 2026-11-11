@@ -32,6 +32,7 @@ public:
     // flying: the game clock stops while the plane is in the air
     bool Start(int m);
     bool Flying() const { return _plane != 0; }
+    bool KeysWaiting() const { return !_keys.empty(); } // keys not read by a pass yet
     int PlaneIndex() const { return _plane; }
     void Key(int key);                                  // 'L' 'R' turn, 'S' spray toggle, '+' '-' spray on/off, 'U' 'D' altitude, 'E' end
     void Tick();                                        // one timer tick

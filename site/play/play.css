@@ -5,6 +5,9 @@
 html, body { margin: 0; height: 100%; }
 body { font-family: var(--font); color: var(--ink); background: linear-gradient(180deg, var(--sky), var(--sky2) 60%, #9fd9ff);
   display: flex; flex-direction: column; min-height: 100vh; }
+/* a phone's browser counts 100vh with its address bar hidden, so the page ran under the bar and its toolbar and
+   the game's bottom buttons were cut off: the visible height where the browser knows it */
+@supports (height: 100dvh) { body { min-height: 100dvh; } body.playing { height: 100dvh; } }
 code { background: #f1ede4; padding: .1em .35em; border-radius: 5px; font-size: .92em; }
 .bar { display: flex; align-items: center; justify-content: space-between; padding: .5rem 1rem; color: #fff; flex: none; }
 .brand { display: flex; align-items: center; gap: .5rem; color: #fff; font-weight: 800; text-decoration: none; }
@@ -39,7 +42,11 @@ h1 { margin: .4rem 0 .6rem; font-size: 2rem; }
 .small { font-size: .88rem; color: var(--soft); }
 
 .game { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; background: #181818; overflow: hidden; }
-#canvas { display: block; outline: none; width: 100%; height: 100%; }
+#canvas { display: block; outline: none; width: 100%; height: 100%;
+  /* touch screens: the game reads the fingers itself (pan, pinch, tap, long press); the browser must not scroll or
+     zoom the page, select text or open its long-press menu over the canvas */
+  touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.game { overscroll-behavior: none; }
 .loading { position: absolute; color: #fff; font-weight: 700; }
 
 .modal { position: fixed; inset: 0; background: rgba(10, 20, 35, .7); display: grid; place-items: center; z-index: 10; padding: 1rem; }
@@ -51,20 +58,17 @@ h1 { margin: .4rem 0 .6rem; font-size: 2rem; }
 .save-list a { font-weight: 700; color: var(--sky); }
 .save-list .empty { color: var(--soft); justify-content: center; }
 
-.beta-tag { display: inline-block; font-size: .62em; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; line-height: 1;
-  padding: .25em .55em; border-radius: 999px; background: #ff7a1a; color: #fff; vertical-align: middle; }
-.beta-warn { text-align: left; background: #fff4e8; border: 2px solid #ff7a1a; border-radius: 14px; padding: .8rem 1rem; margin: .4rem 0 1rem;
-  line-height: 1.5; font-size: .95rem; }
-.beta-warn a { color: var(--barn-dark); font-weight: 700; }
 
-/* while playing: a slimmer bar, which can be hidden (body.nobar); the BETA tab brings it back */
+/* while playing: a slimmer bar, which can be hidden (body.nobar); the tab at the edge brings it back */
 body.playing .bar { padding: .15rem .8rem; font-size: .9rem; }
 body.playing .bar .brand img { width: 22px; height: 22px; }
 body.playing .tbtn { padding: .15rem .7rem; }
 body.playing.nobar .bar { display: none; }
 .showbar { display: none; position: absolute; top: 0; right: 0; z-index: 5; font: inherit; font-size: .7rem; font-weight: 800;
-  letter-spacing: .05em; color: #fff; background: #ff7a1a; border: none; border-radius: 0 0 0 8px; padding: .15rem .5rem;
+  letter-spacing: .05em; color: #fff; background: var(--barn-dark); border: none; border-radius: 0 0 0 8px; padding: .15rem .5rem;
   cursor: pointer; opacity: .55; }
 .showbar:hover, .showbar:focus-visible { opacity: 1; }
 body.playing.nobar .showbar { display: block; }
+/* in the game's phone layout the tab would cover the funds: a small tab at the left edge, half way down */
+body.phone .showbar { top: 45%; right: auto; left: 0; border-radius: 0 8px 8px 0; writing-mode: vertical-rl; padding: .5rem .2rem; }
 .game:fullscreen .showbar { display: none; }

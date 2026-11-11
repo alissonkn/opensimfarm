@@ -6,6 +6,7 @@
 #include "game/Simulation.h"
 #include "ui/Gfx.h"
 
+#include <functional>
 #include <memory>
 #include <vector>
 #include <string>
@@ -30,6 +31,9 @@ struct UiContext
     std::string currentSave;       // the file the game was loaded from or last saved as (File > Save)
     std::string message, sound;
     SoundPlayer* audio = nullptr;  // volumes and Modern Sound (the SOUND window)
+    // the phone layout's way to type a text (the browser's own text prompt, which brings up the phone's keyboard):
+    // the title and the current text in, the new text out; false when cancelled or not available
+    std::function<bool(const std::string&, std::string&)> askText;
 };
 
 struct Rect

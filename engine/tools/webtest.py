@@ -266,8 +266,8 @@ def main():
         # 1. the page itself
         m.go(base)
         check(m.js("return !document.getElementById('setup').hidden"), "the setup card is shown")
-        check(m.js("return !!document.querySelector('.beta-warn') && /beta/i.test(document.title)"),
-              "the beta warning and title are there")
+        check(m.js("return !document.querySelector('.beta-warn') && !/beta/i.test(document.body.innerText + document.title)"),
+              "the page has no beta labels")
         check(wait(m, "return !!(window.Module && Module.FS)", 30), "the engine loads (opensimfarm.js + .wasm)")
         shot(m, "01-setup")
 
@@ -312,7 +312,7 @@ def main():
         m.js("document.getElementById('showbar').click(); return 1")
         time.sleep(1)
         r = m.js("return [document.querySelector('.bar').offsetHeight, localStorage.getItem('opensimfarm.hideBar')]")
-        check(r[0] > 0 and r[1] is None, "the BETA tab brings the bar back", f"{r}")
+        check(r[0] > 0 and r[1] is None, "the MENU tab brings the bar back", f"{r}")
 
         # 6. window size: the canvas follows
         m.cmd("WebDriver:SetWindowRect", {"width": 1000, "height": 720})

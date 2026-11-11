@@ -30,6 +30,10 @@ public:
     GameState& World() { return _world; }
     void Reset() { _design = false; _editing = false; }
     void SkipIntro() { _intro = 2; }
+    // the phone layout (an engine addition, user 2026-11-11: "redesign the start screens for phones"): the region and
+    // design screens rebuilt from their parts in big buttons for a narrow screen, portrait or landscape; Draw then gets
+    // window pixels at one interface unit each
+    void SetPhone(bool p) { _phone = p; }
 
 private:
     void LoadClimateMap();
@@ -48,6 +52,14 @@ private:
     void MakePreview();      // the design screen's picture of the land (_land)
     void FinishEdited();     // the world from the edited land: the town and the farm put in their places
     void DrawEditButton();
+    // the phone layout (StartPhone section of StartScreen.cpp)
+    void PhoneLayout(int w, int h);
+    void DrawPhone();
+    void DrawPhoneButton(const SDL_Rect& r, const std::string& label, bool pressed, bool enabled = true);
+    void DrawPhoneClimate(int x, int y, int w, int k, int value, int colour, bool arrows);
+    std::string PhoneEvent(int px, int py); // window pixels
+    std::string PictureClick(int x, int y); // a click at a place of the 640 x 480 picture (the region screen)
+    std::string NextLanguage();
 
     Gfx& _g;
     std::string _gameDir;
@@ -79,6 +91,14 @@ private:
     int _previewSide = 192;
     bool _languageOpen = false;  // the language list is open
     std::string _changedLanguage; // set by a choice in the list, handed to main.cpp as "language:<code>"
+    bool _phone = false;
+    int _u = 1;                 // window pixels per interface unit in the phone layout
+    int _uw = 0, _uh = 0;       // the screen in units
+    bool _wide = false;         // landscape
+    SDL_Rect _mapPx{};          // the region map (or the design preview) in window pixels
+    std::vector<std::pair<int, SDL_Rect>> _hits; // the phone buttons (PhoneButton ids) in units
+    float _editF = 1.0f;        // the map editor's magnification on a phone, and its offset in window pixels
+    int _editX = 0, _editY = 0;
 };
 
 } // namespace osf

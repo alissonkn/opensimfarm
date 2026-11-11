@@ -128,9 +128,12 @@ SoundPlayer::~SoundPlayer()
 std::vector<float> ModernEffect(const std::string& name, const std::vector<int16_t>& pcm, int srcRate, int dstRate)
 {
     std::vector<float> y = EnhanceEffect(pcm, srcRate, dstRate);
-    if (name == "uhoh.voc") // the refusal sound is heard often: well under the others (user: too loud)
+    // the refusal sound is heard often: well under the others (user: too loud); the birds' song, brightened, is
+    // shrill at the others' loudness (user 2026-11-11: "bird sound is too loud")
+    const float gain = name == "uhoh.voc" ? 0.4f : name == "bird1.voc" || name == "bird2.voc" ? 0.45f : 1.0f;
+    if (gain != 1.0f)
         for (float& v : y)
-            v *= 0.4f;
+            v *= gain;
     return y;
 }
 
@@ -186,22 +189,30 @@ void SoundPlayer::Play(const std::string& name, int cellX, int cellY)
         _voices.push_back({ pcm, 0, gl, gr });
 }
 
-void SoundPlayer::PlayMusic(const std::string& name, bool loop)
+std::map<std::string, Song>::iterator SoundPlayer::LoadSong(const std::string& name)
 {
-    if (std::getenv("OSF_TRACE_SOUND") && name != _songName)
-        std::fprintf(stderr, "music %.2f %s\n", SDL_GetTicks() / 1000.0, name.c_str());
-    if (!_dev || !_mega || (name == _songName && !MusicEnded()))
-        return; // the same song goes on; one played to its end starts again
     auto it = _songs.find(name);
     if (it == _songs.end())
     {
         Song song;
         if (name.size() > 4 && name.compare(name.size() - 4, 4, ".mid") == 0)
             LoadBuiltinSong(name, song); // the engine's own songs
-        else
+        else if (_mega)
             ParseXmi(_mega->Read(name), song);
         it = _songs.emplace(name, std::move(song)).first;
     }
+    return it;
+}
+
+double SoundPlayer::SongSeconds(const std::string& name) { return LoadSong(name)->second.length / 120.0; }
+
+void SoundPlayer::PlayMusic(const std::string& name, bool loop)
+{
+    if (std::getenv("OSF_TRACE_SOUND") && name != _songName)
+        std::fprintf(stderr, "music %.2f %s\n", SDL_GetTicks() / 1000.0, name.c_str());
+    if (!_dev || !_mega || (name == _songName && !MusicEnded()))
+        return; // the same song goes on; one played to its end starts again
+    auto it = LoadSong(name);
     std::lock_guard<std::mutex> g(_lock);
     _songName = name;
     _songLoop = loop;
@@ -412,7 +423,7 @@ int SoundPlayer::SelfTest(const Megadata& mega)
                 if ((e.status & 0xF0) == 0xC0) prog[e.status & 15] = e.a;
                 if ((e.status & 0xF0) == 0x90 && e.b) notes[(e.status & 15) * 1000 + ((e.status & 15) == 9 ? 0 : prog[e.status & 15])]++;
             }
-            std::printf("%-14s", song.c_str());
+            std::printf("%-14s %4.0f s", song.c_str(), s.length / 120.0);
             for (auto [k, c] : notes)
                 std::printf(" ch%d:%s%d x%d", k / 1000, k / 1000 == 9 ? "drums" : "p", k % 1000, c);
             std::printf("\n");

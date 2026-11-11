@@ -22,9 +22,11 @@
 
 namespace osf {
 
-static const char* const kMonthShort[12] = { N_("Jan"), N_("Feb"), N_("Mar"), N_("Apr"), N_("May"), N_("Jun"), N_("Jul"), N_("Aug"), N_("Sep"), N_("Oct"), N_("Nov"), N_("Dec") };
+extern const char* const kMonthShort[12];
+const char* const kMonthShort[12] = { N_("Jan"), N_("Feb"), N_("Mar"), N_("Apr"), N_("May"), N_("Jun"), N_("Jul"), N_("Aug"), N_("Sep"), N_("Oct"), N_("Nov"), N_("Dec") };
 static constexpr int kItemH = 12;
-static const char* const kSprayNames[4] = { N_("Fertilize"), N_("Pesticide"), N_("Herbicide"), N_("Fungicide") };
+extern const char* const kSprayNames[4];
+const char* const kSprayNames[4] = { N_("Fertilize"), N_("Pesticide"), N_("Herbicide"), N_("Fungicide") };
 static constexpr int kToolbarRightPart = 240; // the date / funds part of the toolbar picture (x 400..639)
 
 void GameUi::BuildMenus()
@@ -85,6 +87,75 @@ void GameUi::SetScreenSize(int pw, int ph)
 {
     if (_menus.empty())
         BuildMenus();
+    if (_phone)
+    {
+        // the phone layout: interface units are window pixels; the bars take their scale from the short side
+        _w = _pw = std::max(1, pw);
+        _h = _ph = std::max(1, ph);
+        _fs = std::max(1, static_cast<int>(std::lround(std::min(pw, ph) / 200.0)));
+        _side = pw > ph;
+        // the menu titles and the toolbar's nine buttons: a little smaller than the bars' buttons, all across the width
+        _ts = std::max(1, std::min((_fs * 3 + 2) / 5, pw / (9 * 34 + 2)));
+        // the menu titles: each as wide as its letters drawn close (or monospaced when there is room), a row's spare
+        // room shared out between its titles; at most 4/5 of the bars' scale, at least the icon bar's. In two rows
+        // when one would keep them smaller than that (user 2026-11-11: "file options menu do it a bit bigger")
+        {
+            // not Windows (the toolbar holds its windows) nor Help (user 2026-11-11: "windows menu in top is not
+            // necessary, neither help")
+            std::vector<int> shown;
+            for (int m = 0; m < static_cast<int>(_menus.size()); ++m)
+                if (m != kMenuWindows && m != kMenuHelp)
+                    shown.push_back(m);
+            const int n = static_cast<int>(shown.size());
+            std::vector<int> ink(static_cast<size_t>(n));
+            for (int m = 0; m < n; ++m)
+            {
+                int w = -1;
+                for (const char ch : _menus[static_cast<size_t>(shown[static_cast<size_t>(m)])].title)
+                    w += Gfx::InkWidth(static_cast<unsigned char>(ch)) + 1;
+                ink[static_cast<size_t>(m)] = std::max(0, w) + 12;
+            }
+            const auto widest = [&](int rows) {
+                int most = 0;
+                for (int r = 0, first = 0; r < rows; ++r)
+                {
+                    const int last = (n * (r + 1) + rows - 1) / rows;
+                    int sum = 0;
+                    for (int m = first; m < last; ++m)
+                        sum += ink[static_cast<size_t>(m)];
+                    most = std::max(most, sum);
+                    first = last;
+                }
+                return std::max(1, most);
+            };
+            const float big = _fs * 0.8f;
+            _menuRows = pw / static_cast<float>(widest(1)) >= big ? 1 : 2;
+            _ms = std::max(static_cast<float>(_ts), std::min(big, pw / static_cast<float>(widest(_menuRows))));
+            const int units = static_cast<int>(pw / _ms);
+            _menuBox.assign(_menus.size(), Rect{ 0, 0, 0, 0 });
+            for (int r = 0, first = 0; r < _menuRows; ++r)
+            {
+                const int last = (n * (r + 1) + _menuRows - 1) / _menuRows;
+                int sum = 0;
+                for (int m = first; m < last; ++m)
+                    sum += ink[static_cast<size_t>(m)];
+                const int extra = std::max(0, units - sum) / std::max(1, last - first);
+                for (int m = first, x = 0; m < last; ++m)
+                {
+                    const int w = m == last - 1 ? units - x : ink[static_cast<size_t>(m)] + extra; // (the last to the edge)
+                    _menuBox[static_cast<size_t>(shown[static_cast<size_t>(m)])] = { x, r * kMenuRowH, w, kMenuRowH };
+                    x += w;
+                }
+                first = last;
+            }
+        }
+        if (_side) // the toolbar's column at the left: its nine buttons down the height under the top
+            _ts = std::max(1, std::min(_ts, (ph - PhoneTopH()) / (9 * 33 + 1)));
+        // the tool palette: two rows of seven across the width (portrait), or seven rows of two down the right side
+        // under the top bar (landscape)
+        _bs = std::max(1, std::min(_fs, _side ? (ph - PhoneTopH()) / (7 * 34 + 4) : pw / (7 * 34 + 4)));
+        return;
+    }
     _w = std::max(640, pw / _g.Scale());
     _h = std::max(200, ph / _g.Scale());
     for (auto& w : _windows)
@@ -380,16 +451,39 @@ std::string GameUi::RadioSong(const std::string& gameSong)
 {
     if (!_radioManual)
     {
-        // the game's choice; an engine song of the same mood takes turns with it, a whole song each
-        std::vector<std::string> turn = { gameSong };
+        // the game's choice; an engine song of the same mood takes turns with it, balanced by playing time: the game
+        // song repeats until it has played about as long as the engine song (FARM LIFE 62 s three times, then MORNING
+        // CHORES 150 s once), so the engine's longer songs do not crowd out the game's own
+        std::vector<std::string> own;
         for (const BuiltinSongInfo& b : BuiltinSongs())
             if (b.mood == gameSong)
-                turn.push_back(b.file);
-        _radioLoops = turn.size() == 1;
-        int& k = _moodTurn[gameSong];
-        if (_ctx.audio && _ctx.audio->MusicEnded() && _ctx.audio->CurrentSong() == turn[static_cast<size_t>(k) % turn.size()])
-            k = (k + 1) % static_cast<int>(turn.size());
-        return turn[static_cast<size_t>(k) % turn.size()];
+                own.push_back(b.file);
+        _radioLoops = own.empty();
+        if (own.empty())
+            return gameSong;
+        int& k = _moodTurn[gameSong];   // 0 = the game song, else engine song k - 1
+        int& plays = _moodPlays[gameSong];
+        if (_ctx.audio && _ctx.audio->MusicEnded())
+        {
+            const std::string playing = _ctx.audio->CurrentSong();
+            if (k == 0 && playing == gameSong)
+            {
+                // the engine song that comes next: they take turns in their list
+                const int nextOwn = _moodTurn[gameSong + "#own"];
+                const std::string& song = own[static_cast<size_t>(nextOwn) % own.size()];
+                const double gameLen = std::max(1.0, _ctx.audio->SongSeconds(gameSong));
+                const double ownLen = _ctx.audio->SongSeconds(song);
+                if (++plays * gameLen >= ownLen)
+                {
+                    plays = 0;
+                    k = 1 + nextOwn % static_cast<int>(own.size());
+                    _moodTurn[gameSong + "#own"] = (nextOwn + 1) % static_cast<int>(own.size());
+                }
+            }
+            else if (k > 0 && playing == own[static_cast<size_t>(k - 1) % own.size()])
+                k = 0;
+        }
+        return k == 0 ? gameSong : own[static_cast<size_t>(k - 1) % own.size()];
     }
     _radioLoops = false;
     if (_ctx.audio && _ctx.audio->MusicEnded())
@@ -608,16 +702,17 @@ void GameUi::DrawHistory()
     }
 }
 
-void GameUi::DrawStatus()
+// the status row's text: the flight, a recent message, the pause notice or the chosen tool's help
+std::string GameUi::StatusText()
 {
-    if (!_ctx.state || !_ctx.sim)
-        return;
     std::string text;
+    if (!_ctx.state || !_ctx.sim)
+        return text;
     if (_ctx.sim->Plane().Flying())
     {
         const Flight& f = _ctx.sim->Plane();
         text = TrF("Flying  height {0}", f.Altitude()) + (f.Spraying() ? std::string("  ") + Tr("SPRAYING") : std::string()) + "   " +
-               Tr("Arrows fly, F sprays, Enter lands");
+               (FlightArrows() ? Tr("Steer with the arrow buttons") : Tr("Arrows fly, F sprays, Enter lands"));
     }
     else if (!_message.empty() && SDL_GetTicks() - _messageTime < 6000)
         text = _message;
@@ -635,6 +730,14 @@ void GameUi::DrawStatus()
                : info.cost ? TrF("{0}  Cost: {1}", Tr(info.name), info.cost)
                            : TrF("{0}: not available yet", Tr(info.name));
     }
+    return text;
+}
+
+void GameUi::DrawStatus()
+{
+    if (!_ctx.state || !_ctx.sim)
+        return;
+    const std::string text = StatusText();
     const int tx = MapLeft() + 20; // right of the status row's arrow button
     // the game speed at the right end of the status row, in the small text (an engine addition, user finding Q23)
     static const char* const kSpeedName[5] = { N_("Speed: Ultra"), N_("Speed: Fast"), N_("Speed: Normal"), N_("Speed: Slow"), N_("Paused") };
@@ -781,11 +884,14 @@ void GameUi::ArrowRepeat()
 // The original's palette picture (editeasy.lzs, 48 x 208): six rows of two 24-pixel tool icons, then the PLANT,
 // SPRAY and ? buttons. The engine shows one item per line over the full height of the column, and the
 // >> / << button at the foot shows or hides the tool names beside the icons.
-static const Tool kPaletteGrid[6][2] = { { Tool::Move, Tool::Examine }, { Tool::PavedRoad, Tool::DirtRoad }, { Tool::Fence, Tool::Gate },
+extern const Tool kPaletteGrid[6][2];
+const Tool kPaletteGrid[6][2] = { { Tool::Move, Tool::Examine }, { Tool::PavedRoad, Tool::DirtRoad }, { Tool::Fence, Tool::Gate },
                                          { Tool::Ditch, Tool::Valve }, { Tool::Hay, Tool::Trough }, { Tool::Trees, Tool::Bulldoze } };
-static const char* const kToolNames[12] = { N_("Move"), N_("Examine"), N_("Paved Road"), N_("Dirt Road"), N_("Fence"), N_("Gate"),
+extern const char* const kToolNames[12];
+const char* const kToolNames[12] = { N_("Move"), N_("Examine"), N_("Paved Road"), N_("Dirt Road"), N_("Fence"), N_("Gate"),
                                             N_("Ditch"), N_("Valve"), N_("Feed"), N_("Trough"), N_("Trees"), N_("Bulldoze") };
-static const char* const kButtonNames[2] = { N_("Plant"), N_("Spray") };
+extern const char* const kButtonNames[2];
+const char* const kButtonNames[2] = { N_("Plant"), N_("Spray") };
 // the palette in groups (separated by a line): move/examine, roads, fences, water, livestock, trees/bulldoze, crops
 static bool GroupStart(int i) { return i > 0 && i % 2 == 0; }
 static constexpr int kToggleH = 16;
@@ -1071,12 +1177,12 @@ bool GameUi::PaletteClick(int x, int y)
     return true;
 }
 
-void GameUi::UseTool(int px, int py, bool first)
+void GameUi::UseTool(int px, int py, bool first, int cellX, int cellY)
 {
     if (!_ctx.view || !_ctx.state || !_ctx.sim || _tool == Tool::None)
         return;
-    int cx, cy;
-    if (!_ctx.view->CellAt(px, py, cx, cy))
+    int cx = cellX, cy = cellY;
+    if (cellX < 0 && !_ctx.view->CellAt(px, py, cx, cy))
         return;
     if (first && _tool != Tool::Bulldoze && MapPress(cx, cy)) // the original skips the check for Bulldoze
     {
@@ -1184,7 +1290,12 @@ void GameUi::UseTool(int px, int py, bool first)
     {
         if (first || x != _lastCellX || y != _lastCellY)
         {
+            // (a touch screen's build keeps the cells it changed, for its UNDO)
+            const MapCell before = _ctx.state->world.At(x, y);
             const EditResult r = ApplyTool(*_ctx.state, *_ctx.sim, _tool, x, y, _toolParam);
+            const MapCell& after = _ctx.state->world.At(x, y);
+            if (TouchUi() && LineTool() && (before.base != after.base || before.overlay != after.overlay))
+                _buildTrail.push_back({ x, y });
             if (!r.message.empty())
                 message = r.message;
             if (!r.sound.empty())
@@ -1260,6 +1371,8 @@ void GameUi::DrawCursor()
 {
     if (!_ctx.view || _tool == Tool::None || _tool == Tool::Move || _tool == Tool::Examine)
         return;
+    if (TouchUi() && (_tool == Tool::Plant || _buildActive))
+        return; // a finger has no hover: the plant or build mark (DrawPlantConfirm) shows the place instead
     int mx, my;
     MouseState(&mx, &my);
     const int s = _g.Scale();
@@ -1296,7 +1409,10 @@ void GameUi::DrawTitleBar(int x, int y, int w, const std::string& title, bool ac
     _g.DrawTile(closeBox ? 0 : active ? 75 : 76, x, y); // without a close box: the plain left end
     // centred in whole characters, rounding to the right: x + ceil((w / 8 - length) / 2) * 8
     const std::string shown = Tr(title);
-    _g.Text(x + (w / 8 - static_cast<int>(shown.size()) + 1) / 2 * 8, y + 4, shown, kWhite);
+    if (Gfx::TextWidth(shown) > w - 36)
+        _g.TextFit(x + 18, y + 4, w - 36, shown, kWhite, 1); // (a phone's narrow list: closer letters, clear of the ends)
+    else
+        _g.Text(x + (w / 8 - static_cast<int>(shown.size()) + 1) / 2 * 8, y + 4, shown, kWhite);
 }
 
 void GameUi::DrawWindow(Window& w)
@@ -1668,6 +1784,19 @@ void GameUi::UpdateCursor()
     }
 }
 
+bool GameUi::TouchOnMap(int x, int y)
+{
+    const int s = _g.Scale();
+    if (_ctx.sim && _ctx.sim->Plane().Flying())
+        return false; // in the air the view follows the plane; the fingers are for the flight panel's buttons
+    if (OnTouchPanel(x, y))
+        return false; // the plant mark and the panels' buttons take presses, drags and holds themselves
+    if (_phone)
+        return _ctx.view && PhoneLayerNow().kind == 0 && OverMap(x / s, y / s);
+    return _ctx.view && _events.empty() && _openMenu < 0 && !_popup && !_historyOpen && !_drag && OverMap(x / s, y / s) &&
+           !WindowAt(x / s, y / s);
+}
+
 void GameUi::AutoScroll()
 {
     // AutoScroll option: the farm view moves 2 cells at a time while the pointer is within 4 pixels of
@@ -1676,7 +1805,7 @@ void GameUi::AutoScroll()
     // an edge keeps it there; a window lets it leave, so a pointer that left the focused window through an edge
     // counts as held on that edge until it comes back. The original steps once per pass of its main loop, so its
     // pace follows the machine; the engine takes a step every 50 ms (40 cells a second) whatever the frame rate
-    if (!_ctx.state || !_ctx.view || !_ctx.state->scalars["opt_autoscroll"] || _openMenu >= 0 || _drag || !_events.empty())
+    if (!_ctx.state || !_ctx.view || !_ctx.state->scalars["opt_autoscroll"] || _openMenu >= 0 || _drag || !_events.empty() || _touchMode || _phone)
     {
         _autoNext = 0;
         return;
@@ -1746,7 +1875,19 @@ void GameUi::DrawPlane()
     if (!_ctx.sim || !_ctx.view || !_ctx.sim->Plane().Flying())
         return;
     Flight& f = _ctx.sim->Plane();
-    _ctx.view->CenterOn(f.ViewX(), f.ViewY()); // the view follows the plane (off-centre at the map edges)
+    // the view follows the plane's scroll window (off-centre at the map edges). A view smaller than that window (a
+    // phone) follows the plane itself instead, centred between the plane in the air and its shadow, so both stay in
+    // sight (the plane flies anywhere inside the window, and is drawn up to 12 cells above its shadow)
+    float vx, vy, vw, vh;
+    _ctx.view->VisibleCells(vx, vy, vw, vh);
+    if (vw < 34 || vh < 23)
+    {
+        // (in the part of the map above the flight panel)
+        const float panelCells = (FlightPanel().h + 12) * FlightScale() * _g.Scale() / (16.0f * _ctx.view->Zoom());
+        _ctx.view->CenterOn(f.X(), f.Y() - f.Altitude() / 16.0f + panelCells / 2);
+    }
+    else
+        _ctx.view->CenterOn(f.ViewX(), f.ViewY());
     const SDL_Rect cell = _ctx.view->CellRect(static_cast<int>(f.X()) - 1, static_cast<int>(f.Y()) - 1, 2, 2);
     const int frame = f.Heading() & 7; // frame n faces heading n (0 north, clockwise), as the original draws it (F42)
     const float px = cell.w / 32.0f;
@@ -1761,6 +1902,7 @@ void GameUi::DrawPlane()
         SDL_RenderFillRect(_g.Renderer(), &cloud);
         SDL_SetRenderDrawBlendMode(_g.Renderer(), SDL_BLENDMODE_NONE);
     }
+    FlightRepeat();
     DrawFlightPanel();
 }
 
@@ -1769,22 +1911,48 @@ void GameUi::DrawPlane()
 Rect GameUi::FlightPanel() const
 {
     const Rect m = MapRect();
-    return { m.x + 6, m.y + m.h - 74, 210, 68 };
+    const int fs = FlightScale(), h = FlightArrows() ? 102 : 68;
+    return { m.x / fs + 6, (m.y + m.h) / fs - h - 6, std::min(210, m.w / fs - 12), h };
 }
 
 Rect GameUi::FlightButton(int k) const
 {
     const Rect p = FlightPanel();
-    return { p.x + 4 + 104 * k, p.y + 34, 98, 30 };
+    if (k < 2)
+    {
+        const int w = (p.w - 12) / 2;
+        return { p.x + 4 + (w + 4) * k, p.y + 34, w, 30 };
+    }
+    // the steering row under them (touch screens): turn left, climb, descend, turn right
+    const int w = (p.w - 8 - 12) / 4;
+    return { p.x + 4 + (w + 4) * (k - 2), p.y + 68, w, 30 };
 }
 
-// only SPRAY and LAND (user: the turns and the height stay on the keys)
+// SPRAY and LAND (user: the turns and the height stay on the keys), and on a touch screen the steering buttons
+// (user 2026-11-11: "add crop duster steering buttons for touch"), which repeat while held as a held key does
 static const char* const kFlightButtons[2] = { N_("SPRAY"), N_("LAND") };
-static const int kFlightKeys[2] = { 'S', 'E' };
+static const int kFlightKeys[6] = { 'S', 'E', 'L', 'U', 'D', 'R' };
+
+void GameUi::FlightRepeat()
+{
+    if (_flightHeld < 2 || !_ctx.sim || !_ctx.sim->Plane().Flying())
+    {
+        _flightHeld = -1;
+        return;
+    }
+    const Uint32 now = SDL_GetTicks();
+    if (static_cast<Sint32>(now - _flightNext) < 0 || _ctx.sim->Plane().KeysWaiting())
+        return; // (no new step before the plane has taken the last one: it stops when the finger lifts)
+    _ctx.sim->Plane().Key(kFlightKeys[_flightHeld]);
+    const bool turn = _flightHeld == 2 || _flightHeld == 5;
+    _flightNext = now + (turn ? 250 : 80); // a turn is an eighth of a circle; a height step is 1 of 100
+}
 
 void GameUi::DrawFlightPanel()
 {
     const Flight& f = _ctx.sim->Plane();
+    const int oldScale = _g.Scale();
+    _g.SetScale(oldScale * FlightScale());
     const Rect p = FlightPanel();
     _g.Frame(p.x - 1, p.y - 1, p.w + 2, p.h + 2, kBlack);
     _g.Fill(p.x, p.y, p.w, p.h, kLightGrey);
@@ -1796,7 +1964,7 @@ void GameUi::DrawFlightPanel()
     {
         const int y = p.y + 5 + 9 * i;
         _g.SmallText(p.x + 6, y, Tr(kGauge[i]), kBlack);
-        const int bx = p.x + 50, bw = 128;
+        const int bx = p.x + 50, bw = std::min(128, p.w - 50 - 32);
         _g.Frame(bx, y - 1, bw + 2, 7, kBlack);
         _g.Fill(bx + 1, y, bw, 5, kWhite);
         const int v = std::clamp(values[i], 0, 255);
@@ -1815,6 +1983,25 @@ void GameUi::DrawFlightPanel()
         const std::string t = Tr(kFlightButtons[k]);
         _g.SmallText(b.x + (b.w - Gfx::SmallTextWidth(t)) / 2, b.y + 13, t, kBlack);
     }
+    for (int k = 2; k < FlightButtons(); ++k)
+    {
+        // a steering button: a black arrow, pressed while held
+        const Rect b = FlightButton(k);
+        const bool down = _flightHeld == k;
+        _g.Frame(b.x - 1, b.y - 1, b.w + 2, b.h + 2, kBlack);
+        _g.Fill(b.x, b.y, b.w, b.h, down ? kGrey : kLightGrey);
+        _g.Bevel(b.x, b.y, b.w, b.h, !down);
+        const int cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+        for (int i = 0; i < 8; ++i)
+            switch (k)
+            {
+            case 2: _g.Fill(cx - 4 + i, cy - i, 1, 2 * i + 1, kBlack); break;  // turn left
+            case 5: _g.Fill(cx + 4 - i, cy - i, 1, 2 * i + 1, kBlack); break;  // turn right
+            case 3: _g.Fill(cx - i, cy - 4 + i, 2 * i + 1, 1, kBlack); break;  // climb
+            default: _g.Fill(cx - i, cy + 4 - i, 2 * i + 1, 1, kBlack); break; // descend
+            }
+    }
+    _g.SetScale(oldScale);
 }
 
 void GameUi::DrawZoomButtons()
@@ -1873,6 +2060,13 @@ void GameUi::Draw()
         }
     _windows.erase(std::remove_if(_windows.begin(), _windows.end(), [](const auto& w) { return w->closed; }), _windows.end());
     DrawCursor();
+    DrawPlantConfirm();
+    if (_phone)
+    {
+        DrawPhoneBars();
+        DrawPhoneLayer();
+        return;
+    }
     DrawEditFrame();
     DrawZoomButtons();
     DrawStatus();
@@ -1882,7 +2076,7 @@ void GameUi::Draw()
     DrawHistory();
     DrawToolbar();
     DrawMenus();
-    if (_exHold && _exShown)
+    if ((_exHold || _exPinned) && _exShown)
         DrawExamineCard(_g, _ctx.mega, _exCard, (_exQuad & 1) ? _w / 2 : 32, (_exQuad & 2) ? _h / 2 : 32);
     DrawEventBox();
 }
@@ -1908,12 +2102,384 @@ void GameUi::OpenFieldSchedule(int field)
     Click();
 }
 
+// ---------------------------------------------------------------- planting and building on a touch screen
+// Two panels at the bottom left of the farm, in the flight panel's units (FlightScale):
+// * PLANT (user 2026-11-11: "add placement confirmation for crops", then "I should be able to move the position ...
+//   before commiting"): a tap marks the field; the mark can be dragged, or moved a cell at a time with the arrows,
+//   and PLANT or CANCEL ends it;
+// * the line tools (user 2026-11-11: "fence, roads, ditchs ... could have like arrows"): after a tap with a road,
+//   fence, ditch, trees or bulldozer, the arrows go on building from the marked cell, one cell a press (held: on and
+//   on), as a mouse drag would; DONE puts the panel away.
+// Only the way the cells are chosen differs: each cell goes through the tool as the mouse's click or drag there.
+static const int kArrowDX[4] = { -1, 0, 0, 1 }, kArrowDY[4] = { 0, -1, 1, 0 }; // left, up, down, right
+
+bool GameUi::LineTool() const
+{
+    return _tool == Tool::PavedRoad || _tool == Tool::DirtRoad || _tool == Tool::Fence || _tool == Tool::Ditch ||
+           _tool == Tool::Trees || _tool == Tool::Bulldoze;
+}
+
+Rect GameUi::TouchPanel(int h) const
+{
+    const Rect m = MapRect();
+    const int fs = FlightScale();
+    const int w = std::min(210, m.w / fs - 12); // (a phone in portrait is only about 216 units wide)
+    return { m.x / fs + 6, _panelTop ? m.y / fs + 6 : (m.y + m.h) / fs - h - 6, w, h };
+}
+
+Rect GameUi::PlantPanel() const { return TouchPanel(88); }
+
+Rect GameUi::PlantButton(int k) const
+{
+    const Rect p = PlantPanel();
+    if (k >= 2)
+        return { p.x + 4 + 29 * (k - 2), p.y + 30, 26, 24 }; // the arrows, small, at the left
+    const int w = (p.w - 12) / 2;
+    return { p.x + 4 + (w + 4) * k, p.y + 58, w, 26 };
+}
+
+Rect GameUi::BuildPanel() const { return TouchPanel(32); }
+
+Rect GameUi::BuildButton(int k) const
+{
+    // four arrows, then UNDO and DONE (the bulldozer has nothing to take back: DONE takes both places)
+    const Rect p = BuildPanel();
+    const int a = 22, gap = 3, rest = p.w - 8 - 4 * (a + gap);
+    const bool undo = _tool != Tool::Bulldoze;
+    if (k >= 2)
+        return { p.x + 4 + (a + gap) * (k - 2), p.y + 4, a, 24 };
+    const int x0 = p.x + 4 + 4 * (a + gap);
+    if (k == 1)
+        return undo ? Rect{ x0, p.y + 4, (rest - gap) / 2, 24 } : Rect{ 0, 0, 0, 0 };
+    return undo ? Rect{ x0 + (rest - gap) / 2 + gap, p.y + 4, rest - (rest - gap) / 2 - gap, 24 } : Rect{ x0, p.y + 4, rest, 24 };
+}
+
+void GameUi::BuildUndo()
+{
+    // the last cell built from this start goes again, through the bulldozer as the player would do it (its cost and
+    // rules); the mark steps back to the cell before it
+    if (_buildTrail.empty() || !_ctx.state || !_ctx.sim)
+    {
+        if (onSound)
+            onSound("uhoh.voc");
+        return;
+    }
+    const auto [x, y] = _buildTrail.back();
+    _buildTrail.pop_back();
+    const EditResult r = ApplyTool(*_ctx.state, *_ctx.sim, Tool::Bulldoze, x, y, 0);
+    if (!r.message.empty())
+        ShowMessage(r.message);
+    if (!r.sound.empty() && onSound)
+        onSound(r.sound);
+    if (!_buildTrail.empty())
+    {
+        _buildX = _buildTrail.back().first;
+        _buildY = _buildTrail.back().second;
+    }
+    else
+    {
+        _buildX = x;
+        _buildY = y;
+    }
+}
+
+bool GameUi::ToolDragWanted()
+{
+    // a held press moves the building tools and the plant mark (the farm's other presses pan and long-press)
+    if (!TouchUi() || !_ctx.view || (_ctx.sim && _ctx.sim->Plane().Flying()))
+        return false;
+    if (_phone && PhoneLayerNow().kind != 0)
+        return false;
+    return LineTool() || _tool == Tool::Plant;
+}
+
+bool GameUi::PlantMarkCells(int& x, int& y, int& w, int& h) const
+{
+    // the existing field at the mark, else the new 8 x 8 field there; true for an existing field
+    if (const int fi = _ctx.sim->FieldIndexAt(_plantX, _plantY))
+    {
+        Field f = _ctx.state->FieldAt(fi);
+        x = f.X(), y = f.Y(), w = f.W(), h = f.H();
+        return true;
+    }
+    x = _plantX, y = _plantY, w = h = 8;
+    return false;
+}
+
+bool GameUi::PlantMark(SDL_Rect& r, std::string& why)
+{
+    why.clear();
+    int x, y, w, h;
+    if (PlantMarkCells(x, y, w, h))
+    {
+        r = _ctx.view->CellRect(x, y, w, h);
+        if (_ctx.state->FieldAt(_ctx.sim->FieldIndexAt(x, y)).State() != 0)
+            why = Tr("The field is in use.");
+        return why.empty();
+    }
+    r = _ctx.view->CellRect(x, y, w, h);
+    return FieldPositionOk(*_ctx.state, *_ctx.sim, x, y, why);
+}
+
+bool GameUi::OnPlantMark(int px, int py) const
+{
+    int cx, cy, x, y, w, h;
+    if (!_plantPending || !_ctx.view || !_ctx.sim || !_ctx.view->CellAt(px, py, cx, cy))
+        return false;
+    PlantMarkCells(x, y, w, h);
+    return cx >= x && cy >= y && cx < x + w && cy < y + h;
+}
+
+bool GameUi::OnTouchPanel(int px, int py) const
+{
+    // window pixels: on the plant mark or on one of the panels (their presses must reach the game as presses, not as
+    // the farm's pan and tap)
+    const int fs = FlightScale(), s = _g.Scale();
+    const int x = px / s / fs, y = py / s / fs;
+    return (_plantPending && (PlantPanel().Contains(x, y) || OnPlantMark(px, py))) || (_buildActive && BuildPanel().Contains(x, y));
+}
+
+void GameUi::DrawMarkFrame(const SDL_Rect& r, bool ok)
+{
+    // a white frame (red where it cannot go) with a black line inside, as the pointer's
+    SDL_Renderer* rd = _g.Renderer();
+    const SDL_Rect clip = MapPixels();
+    SDL_RenderSetClipRect(rd, &clip);
+    const int t = std::max(2, FlightScale() * _g.Scale()); // (thicker on a phone's small pixels)
+    for (int i = 0; i < t + t / 2; ++i)
+    {
+        const SDL_Rect o{ r.x + i, r.y + i, r.w - 2 * i, r.h - 2 * i };
+        const bool dark = i >= t;
+        SDL_SetRenderDrawColor(rd, dark ? 0 : 255, dark ? 0 : ok ? 255 : 64, dark ? 0 : ok ? 255 : 64, 255);
+        SDL_RenderDrawRect(rd, &o);
+    }
+    SDL_RenderSetClipRect(rd, nullptr);
+}
+
+void GameUi::DrawPanelBox(const Rect& p)
+{
+    _g.Frame(p.x - 1, p.y - 1, p.w + 2, p.h + 2, kBlack);
+    _g.Fill(p.x, p.y, p.w, p.h, kLightGrey);
+    _g.Bevel(p.x, p.y, p.w, p.h, true);
+}
+
+void GameUi::DrawPanelButton(const Rect& b, const std::string& label, bool enabled)
+{
+    _g.Frame(b.x - 1, b.y - 1, b.w + 2, b.h + 2, kBlack);
+    _g.Fill(b.x, b.y, b.w, b.h, kLightGrey);
+    _g.Bevel(b.x, b.y, b.w, b.h, true);
+    _g.SmallText(b.x + (b.w - Gfx::SmallTextWidth(label)) / 2, b.y + (b.h - 6) / 2, label, enabled ? kBlack : kGrey);
+}
+
+void GameUi::DrawPanelArrow(const Rect& b, int dir, bool held)
+{
+    _g.Frame(b.x - 1, b.y - 1, b.w + 2, b.h + 2, kBlack);
+    _g.Fill(b.x, b.y, b.w, b.h, held ? kGrey : kLightGrey);
+    _g.Bevel(b.x, b.y, b.w, b.h, !held);
+    const int cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+    for (int i = 0; i < 6; ++i)
+        switch (dir)
+        {
+        case 0: _g.Fill(cx - 3 + i, cy - i, 1, 2 * i + 1, kBlack); break;  // left
+        case 3: _g.Fill(cx + 2 - i, cy - i, 1, 2 * i + 1, kBlack); break;  // right
+        case 1: _g.Fill(cx - i, cy - 3 + i, 2 * i + 1, 1, kBlack); break;  // up
+        default: _g.Fill(cx - i, cy + 2 - i, 2 * i + 1, 1, kBlack); break; // down
+        }
+}
+
+// the panel text in up to two lines, broken between words
+static void PanelText(Gfx& g, const Rect& p, std::string rest, int colour, int lines)
+{
+    for (int ln = 0; ln < lines && !rest.empty(); ++ln)
+    {
+        std::string line = rest;
+        if (ln + 1 < lines && Gfx::SmallTextWidth(line) > p.w - 12)
+        {
+            size_t cut = line.size();
+            while ((cut = line.rfind(' ', cut - 1)) != std::string::npos && cut > 0 && Gfx::SmallTextWidth(line.substr(0, cut)) > p.w - 12)
+                ;
+            if (cut != std::string::npos && cut > 0)
+                line.resize(cut);
+        }
+        while (line.size() > 1 && Gfx::SmallTextWidth(line) > p.w - 12)
+            line.pop_back();
+        rest = rest.substr(std::min(rest.size(), line.size()));
+        while (!rest.empty() && rest[0] == ' ')
+            rest.erase(0, 1);
+        g.SmallText(p.x + 6, p.y + 6 + 11 * ln, line, colour);
+    }
+}
+
+void GameUi::ArrowStep(int dir)
+{
+    if (dir < 0 || dir > 3 || !_ctx.view || !_ctx.state)
+        return;
+    const int n = _ctx.view->MapSize();
+    if (_plantPending)
+    {
+        int x, y, w, h;
+        PlantMarkCells(x, y, w, h);
+        // from an existing field the mark steps off its edge; a new field's mark moves a cell
+        int nx = _plantX + kArrowDX[dir], ny = _plantY + kArrowDY[dir];
+        if (x != _plantX || y != _plantY || w != 8 || h != 8)
+        {
+            nx = dir == 0 ? x - 1 : dir == 3 ? x + 1 : x;
+            ny = dir == 1 ? y - 1 : dir == 2 ? y + 1 : y;
+        }
+        _plantX = std::clamp(nx, 0, n - 1);
+        _plantY = std::clamp(ny, 0, n - 1);
+        return;
+    }
+    if (_buildActive)
+    {
+        const int nx = _buildX + kArrowDX[dir], ny = _buildY + kArrowDY[dir];
+        if (nx < 0 || ny < 0 || nx >= n || ny >= n)
+            return;
+        _lastCellX = _buildX;
+        _lastCellY = _buildY;
+        UseTool(0, 0, false, nx, ny); // as a drag from the marked cell to the next one
+        _buildX = nx;
+        _buildY = ny;
+    }
+}
+
+void GameUi::PanelRepeat()
+{
+    // a held arrow: on after 0.4 s, then every 0.15 s
+    if (_panelHeld < 0)
+        return;
+    const uint32_t now = SDL_GetTicks();
+    if (static_cast<int32_t>(now - _panelNext) < 0)
+        return;
+    ArrowStep(_panelHeld - 2);
+    _panelNext = now + 150;
+}
+
+void GameUi::DrawPlantConfirm()
+{
+    if (_plantPending && (_tool != Tool::Plant || !TouchUi() || !_ctx.view || !_ctx.sim || !_ctx.state))
+        _plantPending = _plantDrag = false;
+    if (_buildActive && (!LineTool() || !TouchUi() || !_ctx.view || !_ctx.sim || !_ctx.state || _plantPending))
+        _buildActive = false;
+    if (!_plantPending && !_buildActive)
+    {
+        _panelHeld = -1;
+        return;
+    }
+    PanelRepeat();
+    const int oldScale = _g.Scale();
+    SDL_Rect r;
+    std::string why;
+    const bool ok = _buildActive || PlantMark(r, why);
+    if (_buildActive)
+        r = _ctx.view->CellRect(_buildX, _buildY, 1, 1);
+    {
+        // the panel goes to the map's top while the mark is in the lower third of the view, back to the bottom
+        // when it is in the upper third (user 2026-11-11: "when im in the bottom of the map the arrows should be in
+        // the top of the screen")
+        const SDL_Rect mp = MapPixels();
+        const int cy = r.y + r.h / 2;
+        if (cy > mp.y + mp.h * 2 / 3)
+            _panelTop = true;
+        else if (cy < mp.y + mp.h / 3)
+            _panelTop = false;
+    }
+    if (_buildActive)
+    {
+        DrawMarkFrame(r, true);
+        _g.SetScale(oldScale * FlightScale());
+        const Rect p = BuildPanel();
+        DrawPanelBox(p);
+        for (int k = 2; k < 6; ++k)
+            DrawPanelArrow(BuildButton(k), k - 2, _panelHeld == k);
+        if (BuildButton(1).w > 0)
+            DrawPanelButton(BuildButton(1), Tr("UNDO"), !_buildTrail.empty());
+        DrawPanelButton(BuildButton(0), Tr("DONE"), true);
+        _g.SetScale(oldScale);
+        return;
+    }
+    DrawMarkFrame(r, ok);
+    // the panel: the crop and its seed price (or why not), the arrows, PLANT and CANCEL
+    _g.SetScale(oldScale * FlightScale());
+    const Rect p = PlantPanel();
+    DrawPanelBox(p);
+    const int crop = _toolParam & 15;
+    PanelText(_g, p, ok ? TrF("Plant {0} here?  Seed: {1}", CropName(*_ctx.state, crop), std::max(5, _ctx.state->MarketPrice(crop) >> 2)) : why,
+              ok ? kBlack : kRed, 2);
+    for (int k = 2; k < 6; ++k)
+        DrawPanelArrow(PlantButton(k), k - 2, _panelHeld == k);
+    DrawPanelButton(PlantButton(0), Tr("PLANT"), ok);
+    DrawPanelButton(PlantButton(1), Tr("CANCEL"), true);
+    _g.SetScale(oldScale);
+}
+
+bool GameUi::PlantConfirmClick(int x, int y)
+{
+    // interface units; true when the press was the panels'
+    const int fs = FlightScale();
+    const int px = x / fs, py = y / fs;
+    const auto arrows = [&](auto button) {
+        for (int k = 2; k < 6; ++k)
+            if (button(k).Contains(px, py))
+            {
+                ArrowStep(k - 2);
+                _panelHeld = k;
+                _panelNext = SDL_GetTicks() + 400;
+                return true;
+            }
+        return false;
+    };
+    if (_buildActive && !_plantPending)
+    {
+        if (!BuildPanel().Contains(px, py))
+            return false;
+        if (arrows([this](int k) { return BuildButton(k); }))
+            return true;
+        if (BuildButton(0).Contains(px, py))
+        {
+            _buildActive = false;
+            Click();
+        }
+        else if (BuildButton(1).Contains(px, py))
+            BuildUndo();
+        return true;
+    }
+    if (!_plantPending || !PlantPanel().Contains(px, py))
+        return false;
+    if (arrows([this](int k) { return PlantButton(k); }))
+        return true;
+    if (PlantButton(0).Contains(px, py))
+    {
+        SDL_Rect r;
+        std::string why;
+        if (PlantMark(r, why))
+        {
+            _plantPending = false;
+            UseTool(0, 0, true, _plantX, _plantY); // as the mouse's click there
+        }
+    }
+    else if (PlantButton(1).Contains(px, py))
+    {
+        _plantPending = false;
+        Click();
+    }
+    return true; // a tap on the panel itself does nothing else
+}
+
 // ---------------------------------------------------------------- input
 bool GameUi::HandleEvent(const SDL_Event& e)
 {
+    bool used = false;
+    if (_phone && PhoneEvent(e, used))
+        return used;
+    return HandleEventCore(e);
+}
+
+bool GameUi::HandleEventCore(const SDL_Event& e)
+{
     const int s = _g.Scale();
     // the radio works at any time, also over an event box or in the air
-    if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_LEFT && e.button.y / s < kMenuH &&
+    if (!_phone && e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_LEFT && e.button.y / s < kMenuH &&
         RadioClick(e.button.x / s, e.button.y / s))
     {
         _openMenu = -1;
@@ -1968,16 +2534,30 @@ bool GameUi::HandleEvent(const SDL_Event& e)
             if (k != SDLK_SPACE && !(k >= SDLK_0 && k <= SDLK_4))
                 return true;
         }
+        if (e.type == SDL_MOUSEBUTTONUP && e.button.button == SDL_BUTTON_LEFT && _flightHeld >= 0)
+        {
+            _flightHeld = -1;
+            return true;
+        }
         if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_LEFT)
         {
-            const int x = e.button.x / s, y = e.button.y / s;
-            for (int k = 0; k < 2; ++k)
+            const int x = e.button.x / s / FlightScale(), y = e.button.y / s / FlightScale();
+            for (int k = 0; k < FlightButtons(); ++k)
                 if (FlightButton(k).Contains(x, y))
                 {
-                    Click();
                     _ctx.sim->Plane().Key(kFlightKeys[k]);
-                    _flightPressed = k;
-                    _flightPressedAt = SDL_GetTicks();
+                    if (k < 2)
+                    {
+                        Click();
+                        _flightPressed = k;
+                        _flightPressedAt = SDL_GetTicks();
+                    }
+                    else
+                    {
+                        // held: the same step again after a moment, then at a steady pace
+                        _flightHeld = k;
+                        _flightNext = SDL_GetTicks() + 400;
+                    }
                     return true;
                 }
         }
@@ -2056,6 +2636,11 @@ bool GameUi::HandleEvent(const SDL_Event& e)
     {
     case SDL_MOUSEBUTTONDOWN:
     {
+        if (_exPinned) // any press puts a pinned Examine card away
+        {
+            _exPinned = false;
+            _exShown = false;
+        }
         if (e.button.button == SDL_BUTTON_RIGHT && !_popup && _openMenu < 0 && OverMap(e.button.x / s, e.button.y / s) &&
             !WindowAt(e.button.x / s, e.button.y / s))
         {
@@ -2089,14 +2674,14 @@ bool GameUi::HandleEvent(const SDL_Event& e)
             _menuOpenedAt = SDL_GetTicks();
             return true;
         }
-        if (const int m = MenuAt(x, y); m >= 0)
+        if (const int m = _phone ? -1 : MenuAt(x, y); m >= 0)
         {
             _openMenu = m;
             _hoverItem = -1;
             _menuOpenedAt = SDL_GetTicks();
             return true;
         }
-        if (_historyOpen || HistoryButton().Contains(x, y))
+        if (!_phone && (_historyOpen || HistoryButton().Contains(x, y)))
         {
             // the message list: the button opens / closes it; any other click closes it (a click inside is used up)
             const bool inside = HistoryButton().Contains(x, y) || HistoryBox().Contains(x, y);
@@ -2119,7 +2704,7 @@ bool GameUi::HandleEvent(const SDL_Event& e)
             {
                 if (w->closeBox && lx >= 2 && lx < 13 && ly >= -12 && ly < -3)
                     w->closed = true;
-                else
+                else if (!_phone) // the phone's windows stay in the middle of the screen
                 {
                     _drag = w;
                     _dragDX = x - w->x;
@@ -2139,6 +2724,8 @@ bool GameUi::HandleEvent(const SDL_Event& e)
                     _tool = Tool::Place;
                     _toolParam = _ctx.placeRecord;
                     _ctx.placeRecord = -1;
+                    if (_phone)
+                        w->closed = true; // the phone's window covers the farm: it goes so the thing can be placed
                 }
                 if (!_ctx.message.empty())
                     ShowMessage(_ctx.message);
@@ -2157,12 +2744,12 @@ bool GameUi::HandleEvent(const SDL_Event& e)
             }
             return true;
         }
-        if (PaletteClick(x, y))
+        if (!_phone && PaletteClick(x, y))
         {
             Click();
             return true;
         }
-        if (ZoomButton(2).Contains(x, y) && _ctx.state)
+        if (!_phone && ZoomButton(2).Contains(x, y) && _ctx.state)
         {
             auto& v = _ctx.state->scalars["opt_autoscroll"];
             v = v ? 0 : 1;
@@ -2170,7 +2757,7 @@ bool GameUi::HandleEvent(const SDL_Event& e)
             Click();
             return true;
         }
-        for (int k = 0; k < 2; ++k)
+        for (int k = 0; k < 2 && !_phone; ++k)
             if (ZoomButton(k).Contains(x, y) && _ctx.view)
             {
                 const SDL_Rect m = MapPixels();
@@ -2178,12 +2765,62 @@ bool GameUi::HandleEvent(const SDL_Event& e)
                 Click();
                 return true;
             }
-        if (FrameClick(x, y))
+        if (!_phone && FrameClick(x, y))
             return true;
+        if ((_plantPending || _buildActive) && PlantConfirmClick(x, y))
+            return true;
+        if (OverMap(x, y) && OnPlantMark(e.button.x, e.button.y))
+        {
+            // a finger on the plant mark drags it
+            int cx, cy;
+            _ctx.view->CellAt(e.button.x, e.button.y, cx, cy);
+            int mx, my, mw, mh;
+            PlantMarkCells(mx, my, mw, mh);
+            _plantDrag = true;
+            _plantDragDX = cx - mx;
+            _plantDragDY = cy - my;
+            _plantX = mx;
+            _plantY = my;
+            return true;
+        }
+        if (OverMap(x, y) && _tool == Tool::Plant && TouchUi() && _ctx.view)
+        {
+            // a touch screen's PLANT: mark the place and ask (see PlantPanel)
+            int cx, cy;
+            if (_ctx.view->CellAt(e.button.x, e.button.y, cx, cy))
+            {
+                if (const int fi = _ctx.sim ? _ctx.sim->FieldIndexAt(cx, cy) : 0)
+                {
+                    cx = _ctx.state->FieldAt(fi).X();
+                    cy = _ctx.state->FieldAt(fi).Y();
+                }
+                // the mark goes with the finger while it stays down (a held press, or the mouse's drag)
+                int px, py;
+                _ctx.view->CellAt(e.button.x, e.button.y, px, py);
+                _plantDrag = true;
+                _plantDragDX = px - cx;
+                _plantDragDY = py - cy;
+                _plantPending = true;
+                _plantX = cx;
+                _plantY = cy;
+                Click();
+            }
+            return true;
+        }
         if (OverMap(x, y) && _tool != Tool::None)
         {
             _painting = true;
+            if (TouchUi() && LineTool())
+                _buildTrail.clear(); // a new start: UNDO takes back from here on
             UseTool(e.button.x, e.button.y, true);
+            int cx, cy;
+            if (TouchUi() && LineTool() && _ctx.view && _ctx.view->CellAt(e.button.x, e.button.y, cx, cy))
+            {
+                // a touch screen's line tool: the arrows go on from here (BuildPanel)
+                _buildActive = true;
+                _buildX = cx;
+                _buildY = cy;
+            }
             return true;
         }
         if (OverMap(x, y) && _ctx.view && _ctx.state && _ctx.sim)
@@ -2194,7 +2831,7 @@ bool GameUi::HandleEvent(const SDL_Event& e)
                 MapPress(cx, cy);
             return true;
         }
-        if (y >= kToolbarY && y < kToolbarY + kToolbarH)
+        if (!_phone && y >= kToolbarY && y < kToolbarY + kToolbarH)
         {
             // the Funds box opens the engine's money log
             if (x >= _w - kToolbarRightPart + 16 && y >= kToolbarY + 16)
@@ -2244,6 +2881,12 @@ bool GameUi::HandleEvent(const SDL_Event& e)
         }
         if (e.button.button != SDL_BUTTON_LEFT)
             return false;
+        if (_panelHeld >= 0 || _plantDrag)
+        {
+            _panelHeld = -1; // a panel arrow or the plant mark let go
+            _plantDrag = false;
+            return true;
+        }
         if (_drag)
         {
             _drag = nullptr;
@@ -2254,7 +2897,10 @@ bool GameUi::HandleEvent(const SDL_Event& e)
             _painting = false;
             if (_exHold)
             {
-                _exHold = _exShown = false;
+                // a touch screen's tap is over at once, so its card stays up until the next press
+                _exPinned = (_touchMode || _phone) && _exShown && !_exField;
+                _exHold = false;
+                _exShown = _exPinned;
                 if (_exField)
                     OpenFieldSchedule(_exField);
                 _exField = 0;
@@ -2284,9 +2930,25 @@ bool GameUi::HandleEvent(const SDL_Event& e)
                 cx = cy = -1;
             _ctx.sim->Herds().SetPointer(cx, cy);
         }
+        if (_plantDrag && _ctx.view)
+        {
+            int cx, cy;
+            if (_ctx.view->CellAt(e.motion.x, e.motion.y, cx, cy))
+            {
+                const int n = _ctx.view->MapSize();
+                _plantX = std::clamp(cx - _plantDragDX, 0, n - 1);
+                _plantY = std::clamp(cy - _plantDragDY, 0, n - 1);
+            }
+            return true;
+        }
         if (_painting)
         {
             UseTool(e.motion.x, e.motion.y, false);
+            if (_buildActive)
+            {
+                _buildX = _lastCellX; // the arrows go on from where the finger is
+                _buildY = _lastCellY;
+            }
             return true;
         }
         if (_drag)

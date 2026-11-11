@@ -51,12 +51,13 @@
         });
         return;
       }
-      save(function () { $("game").hidden = true; $("tools").hidden = true; document.body.classList.remove("playing"); $("ended").hidden = false; });
+      save(function () { $("game").hidden = true; $("tools").hidden = true; document.body.classList.remove("playing"); letSleep(); $("ended").hidden = false; });
     },
     onAbort: function (what) {
       $("game").hidden = true;
       $("tools").hidden = true;
       document.body.classList.remove("playing");
+      letSleep();
       $("setup").hidden = false;
       status("The game stopped because of an error (" + what + "). Your saved games are kept; reload the page to play again.", true);
     }
@@ -158,6 +159,19 @@
   if (window.matchMedia && matchMedia("(pointer: coarse)").matches && !matchMedia("(any-pointer: fine)").matches)
     status("The game is played with a mouse, so it works best on a computer.");
 
+  // keep the screen on while the game runs (a phone would dim and lock it while you watch the farm): the browser's
+  // screen wake lock, taken again when the page comes back into view (the browser lets go of it when hidden) and on
+  // a tap if a browser wants one first; let go when the game ends
+  var wakeLock = null;
+  function keepAwake() {
+    if (wakeLock || !navigator.wakeLock || document.hidden || !document.body.classList.contains("playing")) return;
+    navigator.wakeLock.request("screen").then(function (l) {
+      wakeLock = l;
+      l.addEventListener("release", function () { wakeLock = null; });
+    }).catch(function () {});
+  }
+  function letSleep() { if (wakeLock) { wakeLock.release().catch(function () {}); wakeLock = null; } }
+
   function start(gameDir) {
     // remembered files and saves: ask the browser not to clear them when it runs short of space
     if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {});
@@ -175,7 +189,9 @@
     status("");
     // settings and saves go to the browser's storage now and then, and when the page is left
     setInterval(save, 5000);
-    document.addEventListener("visibilitychange", function () { if (document.hidden) save(); });
+    document.addEventListener("visibilitychange", function () { if (document.hidden) save(); else keepAwake(); });
+    document.addEventListener("pointerdown", keepAwake);
+    keepAwake();
     window.addEventListener("pagehide", function () { save(); });
     setTimeout(function () {
       $("loading").hidden = true;
@@ -263,6 +279,17 @@
     document.body.classList.toggle("nobar", hide);
     try { if (hide) localStorage.setItem(BAR_KEY, "1"); else localStorage.removeItem(BAR_KEY); } catch (e) {}
     $("canvas").focus();
+    window.dispatchEvent(new Event("resize")); // the game takes its new size (it listens to the window's resize)
+  }
+  // the game's place can also change without a window resize (a phone's address bar coming and going): tell the game
+  if (window.ResizeObserver) {
+    var lastW = 0, lastH = 0;
+    new ResizeObserver(function (en) {
+      var r = en[0].contentRect;
+      if (Math.round(r.width) === lastW && Math.round(r.height) === lastH) return;
+      lastW = Math.round(r.width); lastH = Math.round(r.height);
+      window.dispatchEvent(new Event("resize"));
+    }).observe($("game"));
   }
   try { if (localStorage.getItem(BAR_KEY)) document.body.classList.add("nobar"); } catch (e) {}
   $("btn-hidebar").addEventListener("click", function () { setBarHidden(true); });

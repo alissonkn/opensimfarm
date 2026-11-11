@@ -59,6 +59,7 @@ public:
     void Bevel(int x, int y, int w, int h, bool raised);   // light 15 / shadow 13 edges
     void Line(int x0, int y0, int x1, int y1, int colour);
     void DrawPicture(const std::string& name, int x, int y);                        // a .bmp from the archive
+    bool PictureSize(const std::string& name, int& w, int& h);                      // its size in interface units
     void DrawPicturePart(const std::string& name, int sx, int sy, int w, int h, int x, int y);
     void DrawBank(const std::string& bank, int index, int x, int y);                // a .btl record
     void DrawButton(int face, int x, int y);                                         // a 48x24 face of buttons.til

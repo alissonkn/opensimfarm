@@ -335,6 +335,13 @@ void Gfx::DrawPixels(const std::vector<uint32_t>& argb, int w, int h, int x, int
     SDL_RenderCopy(_r, _pixels, nullptr, &dst);
 }
 
+bool Gfx::PictureSize(const std::string& name, int& w, int& h)
+{
+    w = h = 0;
+    SDL_Texture* t = PictureTexture(name);
+    return t && SDL_QueryTexture(t, nullptr, nullptr, &w, &h) == 0;
+}
+
 SDL_Texture* Gfx::PictureTexture(const std::string& key)
 {
     auto it = _pictures.find(key);

@@ -14,6 +14,7 @@
 #include "ui/MapView.h"
 
 #include <algorithm>
+#include <cctype>
 #include "assets/Graphics.h"
 #include <optional>
 #include <set>
@@ -1494,6 +1495,20 @@ public:
             Select(_top + (y - 56) / 8);
         else if (Rect{ 144, 24, 48, 24 }.Contains(x, y))
             Commit(ctx);
+        else if (Rect{ 16, 16, 120, 24 }.Contains(x, y) && ctx.askText)
+        {
+            // the name field on a phone: the browser asks for the name (letters, digits, '_' and '-', at most 8)
+            std::string typed = _name;
+            if (ctx.askText(Tr(_save ? N_("Save the farm as (up to 8 letters and digits):") : N_("Load the save named:")), typed))
+            {
+                std::string name;
+                for (char c : typed)
+                    if (name.size() < 8 && (std::isalnum(static_cast<unsigned char>(c)) || c == '_' || c == '-' || c == ' '))
+                        name += c == ' ' ? '_' : static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+                _name = name;
+                _cursor = static_cast<int>(_name.size());
+            }
+        }
     }
 
     bool KeyDown(SDL_Keycode k, UiContext& ctx) override

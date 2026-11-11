@@ -124,6 +124,7 @@ struct GameState
     bool Load(const std::string& gameDir, const std::string& path, std::string& error, bool resetPrices = true);
     bool Save(const std::string& path, std::string& error) const;
     void StoreScalarsToTail();
+    void FixEventGroundTable(); // the event-ground table as (x, y) pairs (repairs saves of engine versions up to 0.5.2)
 };
 
 } // namespace osf

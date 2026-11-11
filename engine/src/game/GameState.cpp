@@ -2,6 +2,7 @@
 // Licensed under the GNU General Public License version 3 (see LICENSE.txt).
 #include "game/GameState.h"
 
+#include <algorithm>
 #include <fstream>
 #include <iterator>
 #include <utility>
@@ -151,7 +152,38 @@ bool GameState::Load(const std::string& gameDir, const std::string& path, std::s
             SetCatalogPrice(66 + i, crops[i].SeedPrice());
         }
     }
+    FixEventGroundTable();
     return true;
+}
+
+void GameState::FixEventGroundTable()
+{
+    // the event-ground table holds one (x, y) pair per ground (the top-left cell of its plot), as the original writes
+    // it. Engine versions up to 0.5.2 wrote the x values first and the y values 8 bytes later, so the original
+    // animated the rodeo and fair at a wrong place on such a save (F53). A table that only reads right that old way
+    // is put back into pairs; the original's own files are left as they are.
+    const int n = static_cast<int>(std::clamp<int64_t>(scalars["event_grounds"], 0, 8));
+    if (n == 0 || eventGrounds.size() < 16)
+        return;
+    auto ground = [&](int x, int y) {
+        const int c = x / 8, r = y / 8;
+        return x % 8 == 0 && y % 8 == 0 && c < world.Plots() && r < world.Plots() && PlotOwner(c, r) == 2 && (PlotType(c, r) & 15) == 4;
+    };
+    bool pairs = true, split = true;
+    for (int k = 0; k < n; ++k)
+    {
+        pairs = pairs && ground(eventGrounds[static_cast<size_t>(2 * k)], eventGrounds[static_cast<size_t>(2 * k + 1)]);
+        split = split && ground(eventGrounds[static_cast<size_t>(k)], eventGrounds[static_cast<size_t>(8 + k)]);
+    }
+    if (pairs || !split)
+        return;
+    std::vector<uint8_t> t(16, 0);
+    for (int k = 0; k < n; ++k)
+    {
+        t[static_cast<size_t>(2 * k)] = eventGrounds[static_cast<size_t>(k)];
+        t[static_cast<size_t>(2 * k + 1)] = eventGrounds[static_cast<size_t>(8 + k)];
+    }
+    std::copy(t.begin(), t.end(), eventGrounds.begin());
 }
 
 void GameState::StoreScalarsToTail()

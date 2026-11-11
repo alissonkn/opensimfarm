@@ -407,6 +407,7 @@ msgid "The job is scheduled."
 msgstr ""
 
 #: src/game/Editing.cpp
+#: src/ui/GameUi.cpp
 msgid "The field is in use."
 msgstr ""
 
@@ -1199,6 +1200,7 @@ msgid "AutoGoto"
 msgstr ""
 
 #: src/ui/GameUi.cpp
+#: src/ui/PhoneUi.cpp
 msgid "Messages"
 msgstr ""
 
@@ -1233,22 +1235,27 @@ msgid "Speed"
 msgstr ""
 
 #: src/ui/GameUi.cpp
+#: src/ui/PhoneUi.cpp
 msgid "Ultra"
 msgstr ""
 
 #: src/ui/GameUi.cpp
+#: src/ui/PhoneUi.cpp
 msgid "Fast"
 msgstr ""
 
 #: src/ui/GameUi.cpp
+#: src/ui/PhoneUi.cpp
 msgid "Normal"
 msgstr ""
 
 #: src/ui/GameUi.cpp
+#: src/ui/PhoneUi.cpp
 msgid "Slow"
 msgstr ""
 
 #: src/ui/GameUi.cpp
+#: src/ui/PhoneUi.cpp
 msgid "Pause"
 msgstr ""
 
@@ -1417,15 +1424,18 @@ msgid "{0} mph"
 msgstr ""
 
 #: src/ui/GameUi.cpp
+#: src/ui/PhoneUi.cpp
 msgid "Week {0} of {1} {2}"
 msgstr ""
 
 #: src/ui/GameUi.cpp
+#: src/ui/PhoneUi.cpp
 #: src/ui/Windows.cpp
 msgid "W{0} {1} {2}"
 msgstr ""
 
 #: src/ui/GameUi.cpp
+#: src/ui/PhoneUi.cpp
 msgid "No messages yet."
 msgstr ""
 
@@ -1435,6 +1445,10 @@ msgstr ""
 
 #: src/ui/GameUi.cpp
 msgid "SPRAYING"
+msgstr ""
+
+#: src/ui/GameUi.cpp
+msgid "Steer with the arrow buttons"
 msgstr ""
 
 #: src/ui/GameUi.cpp
@@ -1518,10 +1532,12 @@ msgid "Trough"
 msgstr ""
 
 #: src/ui/GameUi.cpp
+#: src/ui/PhoneUi.cpp
 msgid "Plant Field"
 msgstr ""
 
 #: src/ui/GameUi.cpp
+#: src/ui/PhoneUi.cpp
 msgid "Spray Field"
 msgstr ""
 
@@ -1559,6 +1575,29 @@ msgstr ""
 
 #: src/ui/GameUi.cpp
 msgid "DAMAGE"
+msgstr ""
+
+#: src/ui/GameUi.cpp
+#: src/ui/MapEditor.cpp
+msgid "UNDO"
+msgstr ""
+
+#: src/ui/GameUi.cpp
+#: src/ui/MapEditor.cpp
+msgid "DONE"
+msgstr ""
+
+#: src/ui/GameUi.cpp
+msgid "Plant {0} here?  Seed: {1}"
+msgstr ""
+
+#: src/ui/GameUi.cpp
+msgid "PLANT"
+msgstr ""
+
+#: src/ui/GameUi.cpp
+#: src/ui/MapEditor.cpp
+msgid "CANCEL"
 msgstr ""
 
 #: src/ui/GameUi.cpp
@@ -1631,18 +1670,6 @@ msgstr ""
 
 #: src/ui/MapEditor.cpp
 msgid "Wheel: zoom. Right drag: move the map."
-msgstr ""
-
-#: src/ui/MapEditor.cpp
-msgid "UNDO"
-msgstr ""
-
-#: src/ui/MapEditor.cpp
-msgid "DONE"
-msgstr ""
-
-#: src/ui/MapEditor.cpp
-msgid "CANCEL"
 msgstr ""
 
 #: src/ui/PictureText.cpp
@@ -2096,6 +2123,14 @@ msgstr ""
 msgid "PLAY!"
 msgstr ""
 
+#: src/ui/StartScreen.cpp
+msgid "Tap a yellow box for a ready-made farm, or a place on land for a new one."
+msgstr ""
+
+#: src/ui/StartScreen.cpp
+msgid "BACK"
+msgstr ""
+
 #: src/ui/Windows.cpp
 msgid "BALANCE SHEET"
 msgstr ""
@@ -2318,6 +2353,14 @@ msgstr ""
 
 #: src/ui/Windows.cpp
 msgid "LOAD GAME"
+msgstr ""
+
+#: src/ui/Windows.cpp
+msgid "Save the farm as (up to 8 letters and digits):"
+msgstr ""
+
+#: src/ui/Windows.cpp
+msgid "Load the save named:"
 msgstr ""
 
 #: src/ui/Windows.cpp

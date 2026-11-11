@@ -53,7 +53,10 @@ constexpr int kGestation[4] = { 48, 40, 44, 24 };
 
 Simulation::Simulation(GameState& state) : _s(state), _machines(std::make_unique<Machines>(state, *this)), _animals(std::make_unique<Animals>(state, *this)), _traffic(std::make_unique<Traffic>(state, *this)), _irrigation(std::make_unique<Irrigation>(state, *this)), _disasters(std::make_unique<Disasters>(state, *this)), _flight(std::make_unique<Flight>(state, *this))
 {
-    const auto seed = static_cast<uint16_t>(std::chrono::steady_clock::now().time_since_epoch().count() & 0x3FFF);
+    // the clock seeds the generators, as in the original; OSF_SEED=N fixes it for test runs
+    const char* fixed = std::getenv("OSF_SEED");
+    const auto seed = static_cast<uint16_t>(fixed ? std::atoi(fixed) & 0x3FFF
+                                                  : std::chrono::steady_clock::now().time_since_epoch().count() & 0x3FFF);
     _rng.SetState(seed ? seed : 1);
     _g2 = static_cast<uint16_t>(seed * 40503u + 1u);
     if (_g2 == 0)
@@ -234,8 +237,19 @@ void Simulation::TimerTick()
     }
     if (++_ambient % 32 == 0)
         AmbientAnimation();
-    if (_ambient % 8 == 0)
-        AnimateStalls();
+    // the rodeo and fair ground (F53, user 2026-11-11: "rodeo animation much faster than original"): the original
+    // runs its pass on the raw timer, 8 raw ticks after the last one, but writes only the map words; the screen shows
+    // them when its ambient pass redraws the whole farm view, every 32 raw ticks. Measured on the running original
+    // (AIRPORTD, the rodeo ground in view): a new rider every 32 raw ticks (0.64 s) at Normal and at Ultra. Here the
+    // pass keeps the original's timing and generator draws, and its result goes onto the map every 32 raw ticks.
+    if (_rawTicks - _stallStamp >= 8)
+    {
+        _stallStamp = _rawTicks;
+        const bool show = _rawTicks - _stallShown >= 32;
+        if (show)
+            _stallShown = _rawTicks;
+        AnimateStalls(show);
+    }
     if (++_dayTicks > (_scaledClock ? 256 : _s.speedDelay)) // "more than the delay": 257 ticks at Normal (measured 257-258 live)
     {
         _dayTicks = 0;
@@ -1882,11 +1896,11 @@ void Simulation::AmbientAnimation()
     }
 }
 
-// the event grounds' animation every 8 ticks: the ground is a 7 x 5 block of tiles 483-517 one cell
+// the event grounds' animation every 8 raw timer ticks: the ground is a 7 x 5 block of tiles 483-517 one cell
 // inside its plot. Rodeo: a 2 x 2 spot in the arena's middle is cleared and one random piece 937-944 drawn on one of
 // its cells (the cell is chosen again every 4th pass). Fair: each ground either swaps two of its pictures or shows
 // the fixed pieces 526-529 on six cells. Both draw on G2, as the original does.
-void Simulation::AnimateStalls()
+void Simulation::AnimateStalls(bool show)
 {
     const int kind = EventKind();
     if (kind == 0)
@@ -1916,6 +1930,14 @@ void Simulation::AnimateStalls()
             };
             if (kind == 1)
             {
+                if ((++_eventPass & 3) == 0)
+                {
+                    spotX = G2Step() & 1; // G2
+                    spotY = G2Step() & 1;
+                }
+                const int piece = 937 + (G2Step() & 7);
+                if (!show)
+                    continue; // the original's pass, not on screen yet
                 for (int dx = 2; dx < 4; ++dx)
                     for (int dy = 3; dy < 5; ++dy)
                     {
@@ -1925,16 +1947,13 @@ void Simulation::AnimateStalls()
                         if (std::find(_stalls.begin(), _stalls.end(), p) == _stalls.end())
                             _stalls.push_back(p);
                     }
-                if ((++_eventPass & 3) == 0)
-                {
-                    spotX = G2Step() & 1; // G2
-                    spotY = G2Step() & 1;
-                }
                 MapCell& c = _s.world.At(x0 + 2 + spotX, y0 + 3 + spotY);
-                c.overlay = static_cast<uint16_t>((c.overlay & 0xF800) | (937 + (G2Step() & 7)));
+                c.overlay = static_cast<uint16_t>((c.overlay & 0xF800) | piece);
                 c.base |= 0x800;
             }
-            else if ((G2Step() & 1) == 0) // G2
+            else if (const bool own = (G2Step() & 1) == 0; !show) // G2
+                continue;
+            else if (own)
             {
                 setBase(3, 2, 483 + 9);
                 setBase(2, 1, 483 + 1);
@@ -2424,8 +2443,9 @@ bool Simulation::PlaceTownPlot(int c, int r, int type)
             return false;
         if (_s.eventGrounds.size() >= 16 && grounds < 8)
         {
-            _s.eventGrounds[static_cast<size_t>(grounds)] = static_cast<uint8_t>(c * 8);
-            _s.eventGrounds[static_cast<size_t>(8 + grounds)] = static_cast<uint8_t>(r * 8);
+            // one (x, y) pair per ground, as the original's saves hold it (SCEN1: 08 28 for its ground on plot 1,5)
+            _s.eventGrounds[static_cast<size_t>(2 * grounds)] = static_cast<uint8_t>(c * 8);
+            _s.eventGrounds[static_cast<size_t>(2 * grounds + 1)] = static_cast<uint8_t>(r * 8);
         }
         _s.scalars["event_grounds"] = grounds + 1;
     }
@@ -2443,8 +2463,12 @@ bool Simulation::PlaceTownPlot(int c, int r, int type)
 bool Simulation::TownChangeLevel(int c, int r, int delta)
 {
     const int b = _s.PlotType(c, r);
-    if ((b & 15) == 5)
-        return true; // an airport never changes (the town still pays for it)
+    // the original compares the whole plot byte with 5 (cmp byte [bx+si-6B64h],5): only an airport at level 0 is left
+    // alone. A voted airport starts at 0xA5, so its first growth week takes it to 0xB5 and the redraw paves its roads
+    // (user's new game 2026-11-11); its hangar bits 0x20 / 0x40 sit in the level nibble, so 0xE5 is level 14, over the
+    // cap of 13, and stays as it is
+    if (b == 5)
+        return true;
     const int level = b >> 4;
     if (delta > 0)
     {

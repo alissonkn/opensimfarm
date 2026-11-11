@@ -3,28 +3,25 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Play OpenSimFarm in your browser (beta)</title>
-<meta name="description" content="Beta: play OpenSimFarm in your browser with the files of your own copy of SimFarm. Nothing is uploaded: the game runs on your computer.">
+<title>Play OpenSimFarm in your browser</title>
+<meta name="description" content="Play OpenSimFarm in your browser with the files of your own copy of SimFarm. Nothing is uploaded: the game runs on your computer.">
 <link rel="icon" type="image/png" href="../assets/favicon.png">
 <link rel="stylesheet" href="play.css">
 </head>
 <body>
 <header class="bar">
-  <a class="brand" href="../"><img src="../assets/favicon.png" alt="" width="28" height="28"> OpenSimFarm <span class="beta-tag" title="The browser version is a beta: it may have bugs and may lag behind the desktop download">beta</span></a>
+  <a class="brand" href="../"><img src="../assets/favicon.png" alt="" width="28" height="28"> OpenSimFarm</a>
   <div class="tools" id="tools" hidden>
     <button class="tbtn" id="btn-full" title="Full screen">⛶ Full screen</button>
     <button class="tbtn" id="btn-saves" title="Your saved games">💾 Saves</button>
-    <button class="tbtn" id="btn-hidebar" title="Hide this bar for more room (bring it back with the BETA tab in the corner)">▲ Hide bar</button>
+    <button class="tbtn" id="btn-hidebar" title="Hide this bar for more room (bring it back with the tab at the edge)">▲ Hide bar</button>
   </div>
 </header>
 
 <main id="setup" class="setup">
   <div class="card">
     <img class="logo" src="../assets/icon.png" alt="" width="120" height="120">
-    <h1>Play in your browser <span class="beta-tag">beta</span></h1>
-    <div class="beta-warn" role="note">
-      <strong>⚠ Beta feature.</strong> The browser version is new and less tested than the download. It may have bugs, and it <strong>may not be as up to date as the desktop version</strong>: fixes and features can arrive there first. For the best and most up-to-date game, <a href="../#install">download the desktop version</a>. Keep copies of saves you care about (<em>Saves</em> → download).
-    </div>
+    <h1>Play in your browser</h1>
     <p class="intro">OpenSimFarm plays with the files of <strong>your own copy of SimFarm</strong>. Choose its folder (the one with <code>MEGADATA.IDX</code> and <code>MEGADATA.EEA</code>). The files are read here, in your browser: <strong>nothing is uploaded</strong>.</p>
 
     <div id="stored" class="stored" hidden>
@@ -40,12 +37,12 @@
     </div>
     <label class="remember"><input type="checkbox" id="remember" checked> Remember the game files in this browser, so I don't have to choose them again (they stay on this computer)</label>
     <p id="status" class="status" role="status" aria-live="polite"></p>
-    <p class="small">Works in desktop Chrome, Edge, Firefox and Safari, with a mouse. Settings and saved games are kept in this browser; use <em>Saves</em> to download or upload them. Want the main, most up-to-date version? <a href="../#install">Download the desktop version</a>.</p>
+    <p class="small">Works in Chrome, Edge, Firefox and Safari, on a computer or a phone. Settings and saved games are kept in this browser; use <em>Saves</em> to download or upload them. Prefer an app? <a href="../#download">Download it for Windows or Linux</a>.</p>
   </div>
 </main>
 
 <div id="game" class="game" hidden>
-  <button id="showbar" class="showbar" title="Show the bar (full screen, saves). The browser version is a beta.">BETA ▾</button>
+  <button id="showbar" class="showbar" title="Show the bar (full screen, saves)">MENU ▾</button>
   <canvas id="canvas" tabindex="-1" oncontextmenu="event.preventDefault()"></canvas>
   <div id="loading" class="loading">Starting OpenSimFarm…</div>
 </div>
@@ -53,7 +50,7 @@
 <div id="ended" class="ended" hidden>
   <div class="card">
     <h2>The game was closed</h2>
-    <p class="small">Thanks for trying the beta. Found a problem? <a href="https://github.com/alissonkn/opensimfarm/issues">Report it on GitHub</a>.</p>
+    <p class="small">Found a problem? <a href="https://github.com/alissonkn/opensimfarm/issues">Report it on GitHub</a>.</p>
     <p>Your settings and saved games are kept in this browser.</p>
     <button class="btn primary" onclick="location.reload()">▶ Play again</button>
     <p><a href="../">Back to the OpenSimFarm page</a></p>
