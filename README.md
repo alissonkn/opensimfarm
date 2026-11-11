@@ -12,6 +12,8 @@ changing them.
 The engine contains no code from the original program. It was written from scratch, from a description of how the
 game behaves and how its files are laid out.
 
+Does OpenSimFarm uses AI? *YES* It's 2026, of course it does.
+
 ## Features
 * Plays with SimFarm for DOS or SimFarm for Windows. With the Windows edition you see its pictures in the Windows
   colours and hear its own sounds and music; the game is the same
