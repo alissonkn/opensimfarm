@@ -9,7 +9,7 @@
 # None of them holds anything of the original game: the game finds the player's own SimFarm folder (installer page,
 # or its own search and folder dialog at the first start).
 #
-# Needs (full instructions: README.md "Building the installers"):
+# Needs (full instructions: engine/BUILDING.md "Building the installers"):
 #   all      cmake, python3 with Pillow, Zig from pip (python3 -m pip install --user ziglang)
 #   Windows  SDL2 MinGW files ($SDL2_MINGW: the x86_64-w64-mingw32 folder of the official SDL2-devel-2.x-mingw.tar.gz),
 #            NSIS 3 (makensis on the PATH, or $NSIS_ROOT holding usr/bin/makensis and usr/share/nsis), 7z for the zip
