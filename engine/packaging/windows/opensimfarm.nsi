@@ -7,9 +7,12 @@
 ; (%APPDATA%\OpenSimFarm\gamepath.txt). Nothing of the original game is changed (a setup disc's
 ; packed files are unpacked by the game into its own folder).
 ;
-; makensis -DVERSION=x.y.z -DSTAGE=<folder with opensimfarm.exe SDL2.dll README.md LICENSE.txt, and opensimfarm.ico for
+; makensis -DVERSION=x.y.z -DSTAGE=<folder with opensimfarm.exe README.md LICENSE.txt, and opensimfarm.ico for
 ;          the installer's own icon (built into the installer; the installed shortcuts use the icon inside the exe)>
 ;          -DOUTFILE=<installer.exe> opensimfarm.nsi
+;
+; The installer uses no plugins (they are unpacked as DLLs at run time, which Windows' Smart App Control may block):
+; no welcome or finish page, the folder search runs with ExecWait.
 
 Unicode true
 SetCompressor /SOLID lzma
@@ -43,8 +46,7 @@ Var Searched
 !define MUI_UNICON "${STAGE}\opensimfarm.ico"
 !define MUI_ABORTWARNING
 
-!define MUI_WELCOMEPAGE_TEXT "This installs ${APP} ${VERSION}, an open re-implementation of SimFarm.$\r$\n$\r$\n${APP} contains none of the original game's files: it plays with the files of your own copy of SimFarm, which only need to be somewhere on this computer. The next pages help you find them.$\r$\n$\r$\nClick Next to continue."
-!insertmacro MUI_PAGE_WELCOME
+!define MUI_LICENSEPAGE_TEXT_TOP "${APP} ${VERSION} is an open re-implementation of SimFarm. It contains none of the original game's files: it plays with your own copy of SimFarm."
 !insertmacro MUI_PAGE_LICENSE "${STAGE}\LICENSE.txt"
 !insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_DIRECTORY
@@ -61,9 +63,6 @@ Var Searched
 !insertmacro MUI_PAGE_DIRECTORY
 
 !insertmacro MUI_PAGE_INSTFILES
-!define MUI_FINISHPAGE_RUN "$INSTDIR\opensimfarm.exe"
-!define MUI_FINISHPAGE_RUN_TEXT "Start ${APP} now"
-!insertmacro MUI_PAGE_FINISH
 
 !insertmacro MUI_UNPAGE_CONFIRM
 !insertmacro MUI_UNPAGE_INSTFILES
@@ -119,11 +118,16 @@ Function GamePagePre
   InitPluginsDir
   SetOutPath "$PLUGINSDIR\find"
   File "${STAGE}\opensimfarm.exe"
-  File "${STAGE}\SDL2.dll"
-  nsExec::ExecToStack '"$PLUGINSDIR\find\opensimfarm.exe" --findgame'
-  Pop $2
-  Pop $0
+  ExecWait '"$PLUGINSDIR\find\opensimfarm.exe" --findgameto "$PLUGINSDIR\found.txt"' $2
   SetOutPath "$TEMP"
+  ClearErrors
+  FileOpen $3 "$PLUGINSDIR\found.txt" r
+  ${IfNot} ${Errors}
+    FileRead $3 $0
+    FileClose $3
+  ${Else}
+    StrCpy $2 1
+  ${EndIf}
   ${If} $2 == 0
     Call TrimLineEnd
     Call IsGameFolder
@@ -175,7 +179,7 @@ Section "${APP}" SecMain
   SectionIn RO
   SetOutPath "$INSTDIR"
   File "${STAGE}\opensimfarm.exe"
-  File "${STAGE}\SDL2.dll"
+  Delete "$INSTDIR\SDL2.dll" ; versions before 0.6.2 had SDL2 beside the program
   File "${STAGE}\README.md"
   File "${STAGE}\LICENSE.txt"
   ; remember the SimFarm folder where the game looks for it
@@ -207,9 +211,17 @@ Section "Desktop shortcut" SecDesktop
 SectionEnd
 
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecMain} "The game, its SDL2 library, the README and the licence."
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecMain} "The game, the README and the licence."
   !insertmacro MUI_DESCRIPTION_TEXT ${SecDesktop} "A shortcut on the desktop."
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
+
+; the finish page needs a plugin: ask instead
+Function .onInstSuccess
+  IfSilent done
+  MessageBox MB_YESNO|MB_ICONQUESTION "${APP} is installed. Start it now?" IDNO done
+  Exec '"$INSTDIR\opensimfarm.exe"'
+done:
+FunctionEnd
 
 ; the player's saves and settings (%APPDATA%\OpenSimFarm) are kept
 Section "Uninstall"

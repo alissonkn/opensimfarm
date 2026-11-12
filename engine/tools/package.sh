@@ -40,7 +40,7 @@ need cmake "install CMake"
 python3 -c "import PIL" 2>/dev/null || { echo "package.sh: Pillow is missing (python3 -m pip install --user pillow)" >&2; exit 1; }
 python3 -m ziglang version >/dev/null 2>&1 || { echo "package.sh: Zig is missing (python3 -m pip install --user ziglang)" >&2; exit 1; }
 if has windows; then
-    [ -f "$SDL2_MINGW/bin/SDL2.dll" ] || { echo "package.sh: no SDL2 MinGW files in $SDL2_MINGW (set SDL2_MINGW)" >&2; exit 1; }
+    [ -f "$SDL2_MINGW/lib/libSDL2.a" ] || { echo "package.sh: no SDL2 MinGW files in $SDL2_MINGW (set SDL2_MINGW)" >&2; exit 1; }
     if [ -x "$NSIS_ROOT/usr/bin/makensis" ]; then
         MAKENSIS=("env" "NSISDIR=$NSIS_ROOT/usr/share/nsis" "$NSIS_ROOT/usr/bin/makensis")
     elif command -v makensis >/dev/null 2>&1; then
@@ -66,19 +66,20 @@ if has windows; then
         cmake -S "$ENGINE" -B "$BUILD_WIN" -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="$TOOLCHAINS/windows.cmake" \
             -DSDL2_ROOT="$SDL2_MINGW" >/dev/null
     fi
+    # SDL2 built into the program: no SDL2.dll
+    cmake "$BUILD_WIN" -DOSF_SDL2_STATIC=ON >/dev/null
     cmake --build "$BUILD_WIN" -j8 >/dev/null
     S=$WORK/win
     rm -rf "$S" && mkdir -p "$S"
     cp "$BUILD_WIN/opensimfarm.exe" "$S/"
-    cp "$SDL2_MINGW/bin/SDL2.dll" "$S/"
     cp "$ROOT/README.md" "$S/README.md"
     cp "$ENGINE/LICENSE.txt" "$S/LICENSE.txt"
     cp "$ENGINE/packaging/windows/opensimfarm.ico" "$S/"
+    NSI=("${MAKENSIS[@]}" -V2 -DVERSION="$VERSION" -DSTAGE="$S")
     OUT=$DIST/OpenSimFarm-$VERSION-windows-x64-setup.exe
-    "${MAKENSIS[@]}" -V2 -DVERSION="$VERSION" -DSTAGE="$S" -DOUTFILE="$OUT" \
-        "$ENGINE/packaging/windows/opensimfarm.nsi"
+    "${NSI[@]}" -DOUTFILE="$OUT" "$ENGINE/packaging/windows/opensimfarm.nsi"
     rm -f "$DIST/OpenSimFarm-$VERSION-windows-x64.zip"
-    (cd "$S" && 7z a -tzip -bso0 -bsp0 "$DIST/OpenSimFarm-$VERSION-windows-x64.zip" opensimfarm.exe SDL2.dll README.md LICENSE.txt)
+    (cd "$S" && 7z a -tzip -bso0 -bsp0 "$DIST/OpenSimFarm-$VERSION-windows-x64.zip" opensimfarm.exe README.md LICENSE.txt)
     ls -la "$OUT" "$DIST/OpenSimFarm-$VERSION-windows-x64.zip"
 fi
 

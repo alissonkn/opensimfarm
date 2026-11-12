@@ -121,7 +121,7 @@ cmake --build build-win
    sudo apt install cmake g++ make rpm binutils p7zip-full nsis libsdl2-dev python3-pil python3-pip
    python3 -m pip install --user --break-system-packages ziglang     # Ubuntu 22.04: without --break-system-packages
    ```
-2. SDL2 for Windows, once (its `SDL2.dll` goes into the installer):
+2. SDL2 for Windows, once (it is built into `opensimfarm.exe`):
    ```
    mkdir -p ~/tools/sdl2-mingw && cd ~/tools/sdl2-mingw
    curl -LO https://github.com/libsdl-org/SDL/releases/download/release-2.30.9/SDL2-devel-2.30.9-mingw.tar.gz

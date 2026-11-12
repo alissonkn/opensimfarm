@@ -2315,6 +2315,14 @@ int main(int argc, char** argv)
         if (!dir) { Fatal("game folder unknown", false); return 1; }
         return SelfTest(*dir);
     }
+    if (argc > 2 && std::strcmp(argv[1], "--findgameto") == 0)
+    {
+        // --findgameto FILE: as --findgame without a folder, but the folder found is written to FILE (empty when
+        // none): the Windows installer runs it and reads the file (the program has no console there)
+        const auto dir = SearchGameDirectory();
+        std::ofstream(argv[2]) << (dir ? *dir : std::string()) << "\n";
+        return dir ? 0 : 1;
+    }
     if (argc > 1 && std::strcmp(argv[1], "--findgame") == 0)
     {
         // --findgame [FOLDER]: where the game would find SimFarm: in FOLDER (or up to two levels below it), else
