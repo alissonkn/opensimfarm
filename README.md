@@ -41,17 +41,6 @@ unpacked once). Without a folder, OpenSimFarm searches the usual places and then
 
 Settings and saves live in `~/.config/opensimfarm/` (Linux) or `%APPDATA%\OpenSimFarm\` (Windows).
 
-## Build
-Linux, with a C++17 compiler, CMake 3.16+ and the SDL2 development package:
-```
-cd engine
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j
-./build/opensimfarm /path/to/SimFarm
-```
-Windows builds, the installers, the browser version, the tests and translations are covered in
-[engine/BUILDING.md](engine/BUILDING.md).
-
 ## Licence
 GNU General Public License version 3; see [engine/LICENSE.txt](engine/LICENSE.txt).
 
