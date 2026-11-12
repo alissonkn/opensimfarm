@@ -370,6 +370,7 @@ EditResult ApplyTool(GameState& s, Simulation& sim, Tool tool, int cx, int cy, i
             std::string why;
             if (!sim.StartPlanting(f, param, why))
                 return Refuse(why);
+            sim.RollPressures(f); // as for a new field (below)
             sim.StampPlant(fi, param & 15, s.cal.AbsWeek()); // the crop's plan, with its harvest week
             return { true, "Planting " + s.crops[param & 15].name + ".", "ploptool.voc" };
         }
@@ -415,6 +416,10 @@ EditResult ApplyTool(GameState& s, Simulation& sim, Tool tool, int cx, int cy, i
             f.Set8(0x05, 0);
             return Refuse(why);
         }
+        // once the plant job has started the original rolls the three infestation pressures (its map-click handler,
+        // field placement). Without them a field never gets pests, weeds or disease, and an orchard (whose plan never
+        // plants again) stays clean for good (user 2026-11-12, side by side with the original)
+        sim.RollPressures(f);
         s.fieldCount++;
         // the cells become bare soil (flags kept) and carry the field-cell flag; the sign shows the crop. The original
         // writes no schedule plan for a field made with the PLANT tool.
@@ -433,7 +438,12 @@ EditResult ApplyTool(GameState& s, Simulation& sim, Tool tool, int cx, int cy, i
     if (tool == Tool::Move || tool == Tool::Examine || tool == Tool::None)
         return {};
 
-    if (!Owned(s, cx, cy))
+    // The original's click handler refuses only the town's cells (overlay flag 0x4000) for every tool; land of your own
+    // is asked for by the fence, and by hay and the trough on bare ground (they may go on a road anywhere). Roads,
+    // ditches, valves, gates, trees and the bulldozer work outside the farm too (user 2026-11-12, checked in the code)
+    if (s.world.At(cx, cy).overlay & 0x4000)
+        return Refuse();
+    if ((tool == Tool::Fence || ((tool == Tool::Hay || tool == Tool::Trough) && kGround.Has(id))) && !Owned(s, cx, cy))
         return Refuse(Tr("You do not own this land."));
 
     if (tool == Tool::Bulldoze)
@@ -524,6 +534,9 @@ EditResult ApplyTool(GameState& s, Simulation& sim, Tool tool, int cx, int cy, i
     case Tool::PavedRoad:
     case Tool::DirtRoad: fits = kGround.Has(id); break; // a road goes on ground only (not over the other road kind)
     case Tool::Ditch: fits = kGround.Has(id); break;    // on a road it is a bridge (below)
+    case Tool::Fence:
+    case Tool::Trees: fits = kGround.Has(id); break;    // the original's dispatcher takes bare ground only, no road
+
     default: fits = Buildable(id); break;
     }
     // A road on a ditch (tiles 87-109) or on water (39-69), or a ditch on a road, becomes a road bridge (tile 172,

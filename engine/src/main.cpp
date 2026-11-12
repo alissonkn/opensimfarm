@@ -571,6 +571,7 @@ static int ToolsTest(const std::string& gameDir, const std::string& farm)
         return failures ? 1 : 0; // (the checks above still count)
     }
     expect(true, "found a valid field position at " + std::to_string(fx) + "," + std::to_string(fy));
+    const GameState before = s; // the farm before the field (for the pressure check below)
     const int fieldsBefore = s.fieldCount;
     const EditResult r = ApplyTool(s, sim, Tool::Plant, fx, fy, 0);
     expect(r.ok && s.fieldCount == fieldsBefore + 1, "plant corn creates a field: " + r.message);
@@ -584,6 +585,26 @@ static int ToolsTest(const std::string& gameDir, const std::string& farm)
         expect(harvestMark, "the new field's plan has a harvest week (" + cd.name + ", " + std::to_string(cd.Weeks()) + " weeks)");
     }
     expect(!ApplyTool(s, sim, Tool::Plant, fx + 1, fy + 1, 1).ok, "a second field may not overlap");
+    {
+        // the PLANT tool rolls the three infestation pressures as the original does (user 2026-11-12: orchards never
+        // got pests). With no resistance every roll is min(64, r) with r 1..255, so each pressure is 1..64.
+        int ok = 0;
+        GameState fresh = before; // the same spot, in a copy of the farm before the field
+        Simulation fsim(fresh);
+        for (int k = 38; k <= 40; ++k)
+            fresh.crops[0].p[k] = 0;
+        const bool planted = ApplyTool(fresh, fsim, Tool::Plant, fx, fy, 0).ok;
+        const int ni = planted ? fsim.FieldIndexAt(fx + 3, fy + 3) : 0;
+        std::string got;
+        if (ni > 0)
+            for (int o = 0x3A; o <= 0x3C; ++o)
+            {
+                const int v = fresh.FieldAt(ni).Get8(o);
+                ok += v >= 1 && v <= 64;
+                got += " " + std::to_string(v);
+            }
+        expect(ok == 3, "the PLANT tool rolls the field's pest, weed and disease pressures (no resistance: 1..64):" + got);
+    }
     const int crop = s.FieldAt(fi).Crop();
     std::printf("     crop %s\n", s.crops[crop & 15].name.c_str());
     {
@@ -982,6 +1003,122 @@ static int ToolsTest(const std::string& gameDir, const std::string& farm)
         const int level2 = t.PlotType(c, r) >> 4;
         expect(type == 5 || type == 4 || (level2 == level1 + 1 && level1 <= level0 + 1),
                "town growth: one level a week (" + std::to_string(level0) + " " + std::to_string(level1) + " " + std::to_string(level2) + ")");
+    }
+    {
+        // outside the farm (user 2026-11-12, as in the original's click handler): roads, ditches, valves, trees and the
+        // bulldozer work on land of no one; the fence, and hay or a trough on bare ground, need land of your own; a
+        // trough may go on a road there; the town's cells are refused to every tool; the water pump is bought anywhere
+        GameState t = s;
+        Simulation tsim(t);
+        t.cash = 100000;
+        auto freeGround = [&](int x, int y)
+        {
+            const MapCell& c = t.world.At(x, y);
+            return t.PlotOwner(x / 8, y / 8) == 0 && !(c.overlay & 0x4000) && !c.HasObject() && !tsim.FieldIndexAt(x, y) &&
+                   c.BaseTile() >= 15 && c.BaseTile() <= 30;
+        };
+        int ox = -1, oy = -1;
+        for (int x = 2; x < t.world.size - 8 && ox < 0; ++x)
+            for (int y = 2; y < t.world.size - 2 && ox < 0; ++y)
+            {
+                bool all = true;
+                for (int k = 0; k < 8 && all; ++k)
+                    all = freeGround(x + k, y);
+                if (all)
+                {
+                    ox = x;
+                    oy = y;
+                }
+            }
+        expect(ox >= 0, "a strip of free ground outside the farm");
+        if (ox >= 0)
+        {
+            const bool dirt = ApplyTool(t, tsim, Tool::DirtRoad, ox, oy, 0).ok && t.world.At(ox, oy).BaseTile() >= 161;
+            const bool paved = ApplyTool(t, tsim, Tool::PavedRoad, ox + 1, oy, 0).ok;
+            const bool ditch = ApplyTool(t, tsim, Tool::Ditch, ox + 2, oy, 0).ok;
+            const bool valve = ApplyTool(t, tsim, Tool::Valve, ox + 2, oy, 0).ok;
+            const bool trees = ApplyTool(t, tsim, Tool::Trees, ox + 3, oy, 0).ok;
+            const bool doze = ApplyTool(t, tsim, Tool::Bulldoze, ox + 3, oy, 0).ok && t.world.At(ox + 3, oy).BaseTile() <= 30;
+            const bool fence = ApplyTool(t, tsim, Tool::Fence, ox + 4, oy, 0).ok;
+            const bool trough = ApplyTool(t, tsim, Tool::Trough, ox + 5, oy, 0).ok;
+            const bool hay = ApplyTool(t, tsim, Tool::Hay, ox + 6, oy, 0).ok;
+            const bool troughOnRoad = ApplyTool(t, tsim, Tool::Trough, ox, oy, 0).ok;
+            expect(dirt && paved && ditch && valve && trees && doze && !fence && !trough && !hay && troughOnRoad,
+                   "outside the farm: roads, ditch, valve, trees, bulldozer yes; fence, trough, hay on ground no; trough on a road yes");
+            int pump = -1;
+            for (int rec = 12; rec <= 20; ++rec)
+                if (Rd16(t.catalog, static_cast<size_t>(rec) * 18 + 2) == 0x46)
+                    pump = rec;
+            const int structures = t.structureCount;
+            expect(pump >= 0 && ShopBuy(t, tsim, pump, ox + 7, oy).ok && t.structureCount == structures + 1,
+                   "the water pump is bought and placed outside the farm");
+            expect(!ShopBuy(t, tsim, 12, ox + 5, oy).ok, "a silo is not placed outside the farm");
+            expect(!ApplyTool(t, tsim, Tool::Trees, ox, oy, 0).ok, "trees are not planted on a road");
+        }
+        {
+            // on the farm: a fence goes on bare ground only, not on a road (the original's fence branch)
+            int fx2 = -1, fy2 = -1;
+            for (int x = 1; x < t.world.size - 1 && fx2 < 0; ++x)
+                for (int y = 1; y < t.world.size - 1 && fx2 < 0; ++y)
+                {
+                    const MapCell& c = t.world.At(x, y);
+                    if (t.PlotOwner(x / 8, y / 8) == 1 && !c.HasObject() && !tsim.FieldIndexAt(x, y) && c.BaseTile() >= 15 && c.BaseTile() <= 30)
+                    {
+                        fx2 = x;
+                        fy2 = y;
+                    }
+                }
+            if (fx2 >= 0)
+            {
+                const bool road = ApplyTool(t, tsim, Tool::DirtRoad, fx2, fy2, 0).ok;
+                expect(road && !ApplyTool(t, tsim, Tool::Fence, fx2, fy2, 0).ok, "a fence is not put on a road");
+            }
+        }
+        {
+            // a building is tested for ownership only at the clicked (top-left) cell: a large silo (2 x 2) whose right
+            // column lies outside the farm is placed
+            int bx2 = -1, by2 = -1;
+            for (int c = 0; c + 1 < t.Plots() && bx2 < 0; ++c)
+                for (int r = 0; r < t.Plots() && bx2 < 0; ++r)
+                    if (t.PlotOwner(c, r) == 1 && t.PlotOwner(c + 1, r) == 0)
+                    {
+                        const int x = c * 8 + 7, y = r * 8 + 3;
+                        bool ok = true;
+                        for (int k = 0; k < 4 && ok; ++k)
+                            ok = !tsim.FieldIndexAt(x + (k & 1), y + (k >> 1)) && !(t.world.At(x + (k & 1), y + (k >> 1)).overlay & 0x4000);
+                        if (ok)
+                        {
+                            bx2 = x;
+                            by2 = y;
+                        }
+                    }
+            // (every test farm but one has such a spot)
+            if (bx2 >= 0)
+                for (int k = 0; k < 4; ++k)
+                {
+                    MapCell& m = t.world.At(bx2 + (k & 1), by2 + (k >> 1));
+                    m.base = 16; // bare ground, no object
+                    m.overlay &= 0xF000;
+                }
+            if (bx2 >= 0)
+            {
+                const int structures = t.structureCount;
+                expect(ShopBuy(t, tsim, 13, bx2, by2).ok && t.structureCount == structures + 1,
+                       "a large silo on the farm's edge is placed though its right half lies outside the farm");
+            }
+        }
+        int tx = -1, ty = -1;
+        for (int x = 0; x < t.world.size && tx < 0; ++x)
+            for (int y = 0; y < t.world.size && tx < 0; ++y)
+                if ((t.world.At(x, y).overlay & 0x4000) && !t.world.At(x, y).HasObject() && t.world.At(x, y).BaseTile() >= 15 &&
+                    t.world.At(x, y).BaseTile() <= 30)
+                {
+                    tx = x;
+                    ty = y;
+                }
+        if (tx >= 0)
+            expect(!ApplyTool(t, tsim, Tool::DirtRoad, tx, ty, 0).ok && !ApplyTool(t, tsim, Tool::Bulldoze, tx, ty, 0).ok,
+                   "the town's cells are refused to the road and the bulldozer");
     }
     // a road next to the field
     const int64_t cash = s.cash;

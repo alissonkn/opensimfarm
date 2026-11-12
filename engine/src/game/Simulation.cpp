@@ -1143,7 +1143,9 @@ bool Simulation::StartPlanting(Field& f, int crop, std::string& why)
 
 void Simulation::RollPressures(Field& f)
 {
-    // only the schedule's plant code re-rolls the infestation pressures (a PLANT-tool field keeps 0)
+    // rolled when a crop cycle starts: by the schedule's plant code and by the PLANT tool once its plant job has
+    // started (the original's map-click handler, field placement: weeds, pests, disease in this order, each against
+    // the crop's resistance)
     const CropDef& c = _s.crops[f.Crop() & 15];
     auto roll = [&](int resist) {
         int r = _rng.Next() & 0xFF;

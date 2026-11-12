@@ -185,7 +185,12 @@ EditResult ShopBuy(GameState& s, Simulation& sim, int rec, int x, int y)
     }
     if (x < 0 || y < 0 || x >= s.world.size || y >= s.world.size)
         return { false, "", "uhoh.voc" };
-    if (s.PlotOwner(x / 8, y / 8) != 1)
+    // the original places a bought item only on land of your own, except the water pump (catalogue 0x46), which may go
+    // anywhere its ground allows, as by a river outside the farm (its placement loop and placing routine skip the
+    // ownership test for it; user 2026-11-12). Only the clicked cell, the item's top-left one, is tested: a building's
+    // other cells may lie outside the farm.
+    const bool anywhere = cat == 0x46;
+    if (!anywhere && s.PlotOwner(x / 8, y / 8) != 1)
         return { false, Tr("You do not own this land."), "uhoh.voc" };
     if (rec >= 21 && rec <= 36)
     {
@@ -265,7 +270,7 @@ EditResult ShopBuy(GameState& s, Simulation& sim, int rec, int x, int y)
         const int w = std::max(1, CatalogByte(s, rec, 8)), h = std::max(1, CatalogByte(s, rec, 9));
         for (int cx = x; cx < x + w; ++cx)
             for (int cy = y; cy < y + h; ++cy)
-                if (cx >= s.world.size || cy >= s.world.size || s.PlotOwner(cx / 8, cy / 8) != 1 || s.world.At(cx, cy).HasObject() ||
+                if (cx >= s.world.size || cy >= s.world.size || s.world.At(cx, cy).HasObject() ||
                     !Buildable(s.world.At(cx, cy).BaseTile(), s.scalars["opt_autodoze"] != 0) || sim.FieldIndexAt(cx, cy))
                     return { false, Tr("There is no room here."), "uhoh.voc" };
         AutoDoze(s, sim, x, y, w, h);
