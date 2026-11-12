@@ -199,7 +199,8 @@ def main():
             game = open(os.path.expanduser("~/.config/opensimfarm/gamepath.txt")).read().strip()
         except OSError:
             sys.exit("Give your SimFarm folder with --game DIR.")
-    if not os.path.isfile(os.path.join(game, "MEGADATA.IDX")) and not os.path.isfile(os.path.join(game, "megadata.idx")):
+    names = {n.upper() for n in os.listdir(game)} if os.path.isdir(game) else set()
+    if "MEGADATA.IDX" not in names and "MEGADATA.ID_" not in names:  # the game, or SimFarm for Windows' setup disc
         sys.exit(f"{game} is not a SimFarm folder (no MEGADATA.IDX).")
     for f in ("opensimfarm.js", "opensimfarm.wasm"):
         if not os.path.isfile(os.path.join(SITE, "play", f)):

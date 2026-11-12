@@ -184,6 +184,9 @@ Its Windows side can be opened without root (the drive or a disc image), and the
 udisksctl loop-setup -r --no-partition-scan -f /dev/sr0     # or -f simfarm.iso; prints /dev/loopN
 udisksctl mount -b /dev/loopN                                 # the CD's SIMFARM folder in /run/media/$USER/SIMFARM
 ```
+A SimFarm for Windows CD that holds only a setup program (its files end in `_`: `MEGADATA.EE_`, `CORN.CR_`, ...)
+works too: choose the CD itself. OpenSimFarm unpacks the game's files from it once, into a `SimFarm` folder in its
+settings folder, and plays from there; the CD is not needed afterwards.
 Settings and saved games are kept in `~/.config/opensimfarm/` (Linux) or `%APPDATA%\OpenSimFarm\` (Windows).
 
 ## Tests

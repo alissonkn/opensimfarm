@@ -75,10 +75,13 @@
     });
   }
   function exists(path) { try { FS.stat(path); return true; } catch (e) { return false; } }
+  // the game's folder, or SimFarm for Windows' setup disc (its files packed: MEGADATA.ID_, MEGADATA.EE_; the engine
+  // unpacks them)
   function hasGame(dir) {
     try {
       var names = FS.readdir(dir).map(function (n) { return n.toUpperCase(); });
-      return names.indexOf("MEGADATA.IDX") >= 0 && names.indexOf("MEGADATA.EEA") >= 0;
+      var has = function (n) { return names.indexOf(n) >= 0; };
+      return (has("MEGADATA.IDX") && has("MEGADATA.EEA")) || (has("MEGADATA.ID_") && has("MEGADATA.EE_") && has("SETUP.INF"));
     } catch (e) { return false; }
   }
   function removeTree(path) {
@@ -113,17 +116,21 @@
   var pendingFiles = null;
   function useFiles(list) {
     if (!ready) { pendingFiles = list; status("Loading the game…"); return; }
-    // the game folder is the one holding MEGADATA.IDX (the player may have chosen a folder above it)
-    var base = null;
+    // the game folder is the one holding MEGADATA.IDX (the player may have chosen a folder above it), or the setup
+    // disc's folder with MEGADATA.ID_
+    var base = null, disc = false;
     list.forEach(function (f) {
-      var parts = f.path.split("/");
-      if (parts[parts.length - 1].toUpperCase() === "MEGADATA.IDX") {
+      var parts = f.path.split("/"), name = parts[parts.length - 1].toUpperCase();
+      if (name === "MEGADATA.IDX" || name === "MEGADATA.ID_") {
         var dir = parts.slice(0, -1).join("/");
-        if (base === null || dir.length < base.length) base = dir;
+        if (base === null || dir.length < base.length || (dir.length === base.length && name === "MEGADATA.IDX")) {
+          base = dir;
+          disc = name === "MEGADATA.ID_";
+        }
       }
     });
     if (base === null) {
-      status("That folder has no MEGADATA.IDX. Choose the folder where SimFarm is installed (it holds MEGADATA.IDX and MEGADATA.EEA).", true);
+      status("That folder has no MEGADATA.IDX. Choose the folder where SimFarm is installed (it holds MEGADATA.IDX and MEGADATA.EEA), or the SimFarm for Windows CD.", true);
       return;
     }
     var prefix = base ? base + "/" : "";
@@ -132,6 +139,8 @@
       if (f.path.indexOf(prefix) !== 0 || f.file.size > MAX_FILE) return;
       var rel = f.path.slice(prefix.length);
       if (rel.split("/").length > 3) return; // the game folder and its CROPS and SOUND folders are enough
+      // from the setup disc only its packed files and the setup script (not the extra programs on it)
+      if (disc && (rel.indexOf("/") >= 0 || !/(_|^SETUP\.INF)$/i.test(rel))) return;
       total += f.file.size;
       if (total <= MAX_TOTAL) chosen.push({ rel: rel, file: f.file });
     });

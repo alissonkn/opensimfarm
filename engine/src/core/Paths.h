@@ -15,11 +15,19 @@ std::string ConfigDir();
 // Returns true when `dir` looks like a SimFarm installation (MEGADATA.IDX/.EEA present).
 bool IsGameDirectory(const std::string& dir);
 
+// The folder to play with for `dir`: `dir` itself when it holds the game; for SimFarm for Windows' setup disc the
+// folder the game's files are unpacked into (once; see InstallDisc.h); else nothing.
+std::optional<std::string> PlayableGameDirectory(const std::string& dir);
+
+// Where the files of the setup disc in `disc` are unpacked: a SimFarm folder in our settings folder (in the browser,
+// one beside the chosen files).
+std::string SetupDiscCopy(const std::string& disc);
+
 // Case-insensitive lookup of a file inside a directory (the original uses upper-case DOS names;
 // Linux file systems are case-sensitive). Returns the full path or nothing.
 std::optional<std::string> FindFileNoCase(const std::string& dir, const std::string& name);
 
-// Game directory from (1) the command line, (2) the saved configuration. Saves a valid command-line choice.
+// Game directory from (1) the command line (a setup disc gives the folder it is unpacked into), (2) the saved configuration. Saves a valid command-line choice.
 std::optional<std::string> ResolveGameDirectory(int argc, char** argv);
 
 // The remembered game directory as stored, whether or not it still holds the game (empty: none remembered).

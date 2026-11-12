@@ -19,6 +19,7 @@
 #include "core/Lang.h"
 #include "ui/LangTest.h"
 #include "core/Paths.h"
+#include "core/InstallDisc.h"
 #include "game/AutoPlayer.h"
 #include "game/Editing.h"
 #include "game/Flight.h"
@@ -336,6 +337,41 @@ static int SimulateHeadless(const std::string& gameDir, const std::string& farm,
 }
 
 // Exercises the EDIT tools on a prebuilt farm: a road line, bulldozing it, and a new corn field grown for 20 weeks.
+// the setup disc's packed files: a stream made by hand with fixed-length codes (every table "type 0"): a run of three
+// literals, then a match of 6 at distance 3; then each stored and LZSS form
+static int UnpackTest()
+{
+    std::string bits = std::string(24, '0');                 // six table types, all 0
+    auto put = [&](unsigned v, int n) { for (int i = n - 1; i >= 0; --i) bits += (v >> i) & 1 ? '1' : '0'; };
+    put(0, 4); put(2, 5);                                     // no match: a run of 3 literals
+    for (char c : std::string("ABC")) put(static_cast<unsigned char>(c), 8);
+    put(4, 4); put(0, 6); put(3, 6);                          // after literals: a match of 4 + 2 = 6, offset 3
+    while (bits.size() % 8) bits += '0';
+    std::vector<uint8_t> packed = { 'K', 'W', 'A', 'J', 0x88, 0xF0, 0x27, 0xD1, 3, 0, 14, 0, 0, 0 };
+    for (size_t i = 0; i < bits.size(); i += 8)
+        packed.push_back(static_cast<uint8_t>(std::stoi(bits.substr(i, 8), nullptr, 2)));
+    std::vector<uint8_t> out;
+    int fails = 0;
+    auto check = [&](const char* what, bool ok, const std::string& want) {
+        const std::string got(out.begin(), out.end());
+        std::printf("unpack %s: %s\n", what, ok && got == want ? "OK" : ("FAIL (" + got + ")").c_str());
+        fails += !(ok && got == want);
+    };
+    check("Huffman", UnpackKwaj(packed, out), "ABCABCABC");
+    packed.resize(14);
+    packed[8] = 1;
+    for (char c : std::string("xy"))
+        packed.push_back(static_cast<uint8_t>(c ^ 0xFF));
+    check("stored", UnpackKwaj(packed, out), "xy");
+    packed.resize(14);
+    packed[8] = 2;
+    // LZSS: flags 0b0111 (three literals, then a match from window 4096-16 = the first literal, 3 long)
+    for (int b : { 0x07, int('a'), int('b'), int('c'), 0xF0, 0xF0 })
+        packed.push_back(static_cast<uint8_t>(b));
+    check("LZSS", UnpackKwaj(packed, out), "abcabc");
+    return fails ? 1 : 0;
+}
+
 static int ToolsTest(const std::string& gameDir, const std::string& farm)
 {
     GameState s;
@@ -2282,9 +2318,17 @@ int main(int argc, char** argv)
     if (argc > 1 && std::strcmp(argv[1], "--findgame") == 0)
     {
         // --findgame [FOLDER]: where the game would find SimFarm: in FOLDER (or up to two levels below it), else
-        // by the search of the usual places; prints the folder, changes nothing
+        // by the search of the usual places; prints the folder (for a setup disc, the folder it was unpacked into)
         const auto dir = argc > 2 ? GameDirectoryIn(argv[2]) : SearchGameDirectory();
         std::printf("%s\n", dir ? dir->c_str() : "not found");
+        return dir ? 0 : 1;
+    }
+    if (argc > 3 && std::strcmp(argv[1], "--unpackdisc") == 0)
+    {
+        // --unpackdisc DISC FOLDER: unpacks the game's files from SimFarm for Windows' setup disc into FOLDER
+        std::string error;
+        const auto dir = UnpackSetupDisc(argv[2], argv[3], error);
+        std::printf("%s\n", dir ? dir->c_str() : error.c_str());
         return dir ? 0 : 1;
     }
     if (argc > 4 && std::strcmp(argv[1], "--run") == 0)
@@ -2972,7 +3016,7 @@ int main(int argc, char** argv)
         char* fake[2] = { argv[0], argc > 2 ? argv[2] : nullptr };
         auto dir = ResolveGameDirectory(argc > 2 ? 2 : 1, fake);
         if (!dir) { Fatal("game folder unknown", false); return 1; }
-        int result = 0;
+        int result = UnpackTest();
         for (int i = 0; i < 8; ++i)
             result |= ToolsTest(*dir, "SCEN" + std::to_string(i) + ".SSM");
         return result;
@@ -3118,7 +3162,7 @@ int main(int argc, char** argv)
     if (reconfigure)
     {
         // the folder box at once; a farm or save given without a folder stays the farm (after the chosen folder)
-        if (argc > 1 && !IsGameDirectory(argv[1]))
+        if (argc > 1 && !IsGameDirectory(argv[1]) && !IsSetupDisc(argv[1]))
         {
             args.insert(args.begin() + 1, argv[0]); // the folder's place, filled below
             argc = static_cast<int>(args.size()) - 1;

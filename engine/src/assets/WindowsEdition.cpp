@@ -740,8 +740,14 @@ bool MakeWindowsEntries(const std::string& gameDir, const std::map<std::string, 
             { "rodeo.xmi", "RODEO.MID" },
         };
         for (const auto& [dos, win] : kFiles)
-            if (const auto path = FindFileNoCase(*sound, win))
+        {
+            // the setup program installs EXPLODE2.WAV, FLOOD2.WAV and TORNADO2.WAV without the 2
+            std::string other = win;
+            if (const auto two = other.find("2.WAV"); two != std::string::npos && other != "BIRD2.WAV" && other != "COW2.WAV" && other != "SHEEP2.WAV")
+                other.erase(two, 1);
+            if (auto path = FindFileNoCase(*sound, win); path || (path = FindFileNoCase(*sound, other)))
                 out[dos] = ReadFile(*path);
+        }
     }
 
     if (!missing.empty())

@@ -1,6 +1,7 @@
 // OpenSimFarm - an open re-implementation of SimFarm. Copyright (c) 2026 OpenSimFarm developers.
 // Licensed under the GNU General Public License version 3 (see LICENSE.txt).
 #include "core/Paths.h"
+#include "core/InstallDisc.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -85,19 +86,51 @@ void RememberGameDirectory(const std::string& dir)
     std::ofstream(cfg) << dir << "\n";
 }
 
+std::string SetupDiscCopy(const std::string& disc)
+{
+#ifdef __EMSCRIPTEN__
+    return (fs::path(disc) / "SIMFARM").string(); // the browser's own copy of the chosen files, kept or not with them
+#else
+    (void)disc;
+    return (fs::path(ConfigDir()) / "SimFarm").string();
+#endif
+}
+
+std::optional<std::string> PlayableGameDirectory(const std::string& dir)
+{
+    if (IsGameDirectory(dir))
+        return dir;
+    if (!IsSetupDisc(dir))
+        return std::nullopt;
+    std::string error;
+    const auto copy = UnpackSetupDisc(dir, SetupDiscCopy(dir), error);
+    if (!copy)
+        std::fprintf(stderr, "OpenSimFarm: the SimFarm setup disc in %s could not be unpacked: %s\n", dir.c_str(), error.c_str());
+    else if (!IsGameDirectory(*copy))
+        return std::nullopt;
+    return copy;
+}
+
 std::optional<std::string> ResolveGameDirectory(int argc, char** argv)
 {
     const fs::path cfg = fs::path(ConfigDir()) / "gamepath.txt";
-    if (argc > 1 && IsGameDirectory(argv[1]))
-    {
-        RememberGameDirectory(argv[1]);
-        return std::string(argv[1]);
-    }
+    if (argc > 1)
+        if (const auto dir = PlayableGameDirectory(argv[1]))
+        {
+            RememberGameDirectory(*dir);
+            return dir;
+        }
     std::ifstream in(cfg);
     std::string saved;
-    if (in && std::getline(in, saved) && IsGameDirectory(saved))
-        return saved;
-    return std::nullopt;
+    if (!in || !std::getline(in, saved))
+        return std::nullopt;
+    in.close();
+    while (!saved.empty() && (saved.back() == '\r' || saved.back() == '\n'))
+        saved.pop_back();
+    const auto dir = PlayableGameDirectory(saved);
+    if (dir && *dir != saved)
+        RememberGameDirectory(*dir); // a setup disc remembered: from now on its unpacked copy
+    return dir;
 }
 
 // one folder's entries: does it hold the game files, and which of its subfolders may be searched further
@@ -106,7 +139,7 @@ static bool ScanFolder(const fs::path& dir, std::vector<fs::path>* subfolders)
     static const char* const kSkip[] = { "windows", "$recycle.bin", "system volume information", "recovery", "perflogs",
                                          "programdata", "appdata", "winsxs", "node_modules", "proc", "sys", "dev", "run",
                                          "snap", "lost+found", "__pycache__" };
-    bool idx = false, eea = false;
+    bool idx = false, eea = false, idxPacked = false, eeaPacked = false, inf = false;
     std::error_code ec;
     for (fs::directory_iterator it(dir, fs::directory_options::skip_permission_denied, ec), end; !ec && it != end; it.increment(ec))
     {
@@ -126,8 +159,14 @@ static bool ScanFolder(const fs::path& dir, std::vector<fs::path>* subfolders)
             idx = true;
         else if (name == "megadata.eea")
             eea = true;
+        else if (name == "megadata.id_")
+            idxPacked = true;
+        else if (name == "megadata.ee_")
+            eeaPacked = true;
+        else if (name == "setup.inf")
+            inf = true;
     }
-    return idx && eea;
+    return (idx && eea) || (idxPacked && eeaPacked && inf); // the game, or its setup disc
 }
 
 // breadth first from each root (nearest folders first), at most `depth` levels below it; `budget` counts the
@@ -147,9 +186,10 @@ static std::optional<std::string> SearchFrom(const std::vector<std::pair<fs::pat
             queue.pop_front();
             --budget;
             std::vector<fs::path> subs;
-            if (ScanFolder(dir, level < depth ? &subs : nullptr) &&
-                std::find(skip.begin(), skip.end(), dir.string()) == skip.end())
-                return dir.string();
+            if (ScanFolder(dir, level < depth ? &subs : nullptr))
+                if (const auto game = PlayableGameDirectory(dir.string()))
+                    if (std::find(skip.begin(), skip.end(), *game) == skip.end())
+                        return game;
             for (auto& s : subs)
                 queue.emplace_back(std::move(s), level + 1);
         }

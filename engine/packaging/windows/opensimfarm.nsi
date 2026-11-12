@@ -4,7 +4,8 @@
 ; Windows installer (NSIS 3, built by tools/package.sh). Installs for the current user only (no administrator
 ; rights needed) into %LOCALAPPDATA%\Programs\OpenSimFarm, finds the player's own SimFarm folder (the game's own
 ; search, run from the installer) or lets the player choose it, and remembers it where the game looks
-; (%APPDATA%\OpenSimFarm\gamepath.txt). Nothing of the original game is copied or changed.
+; (%APPDATA%\OpenSimFarm\gamepath.txt). Nothing of the original game is changed (a setup disc's
+; packed files are unpacked by the game into its own folder).
 ;
 ; makensis -DVERSION=x.y.z -DSTAGE=<folder with opensimfarm.exe SDL2.dll README.md LICENSE.txt, and opensimfarm.ico for
 ;          the installer's own icon (built into the installer; the installed shortcuts use the icon inside the exe)>
@@ -51,7 +52,7 @@ Var Searched
 ; the SimFarm folder: a second directory page on $GameDir
 !define MUI_PAGE_HEADER_TEXT "Your SimFarm folder"
 !define MUI_PAGE_HEADER_SUBTEXT "Where your own copy of SimFarm is."
-!define MUI_DIRECTORYPAGE_TEXT_TOP "${APP} reads the game files from your SimFarm folder (the one that holds MEGADATA.IDX and MEGADATA.EEA). It only reads them; nothing is copied or changed.$\r$\n$\r$\nThe folder below was found on this computer. If it is wrong or empty, click Browse and choose the right one. You can also leave it empty: the game then asks when it starts."
+!define MUI_DIRECTORYPAGE_TEXT_TOP "${APP} reads the game files from your SimFarm folder (the one that holds MEGADATA.IDX and MEGADATA.EEA), or the SimFarm for Windows CD. It only reads them; nothing there is changed.$\r$\n$\r$\nThe folder below was found on this computer. If it is wrong or empty, click Browse and choose the right one. You can also leave it empty: the game then asks when it starts."
 !define MUI_DIRECTORYPAGE_TEXT_DESTINATION "SimFarm folder"
 !define MUI_DIRECTORYPAGE_VARIABLE $GameDir
 !define MUI_DIRECTORYPAGE_VERIFYONLEAVE
@@ -81,10 +82,15 @@ Function TrimLineEnd
   ${Loop}
 FunctionEnd
 
-; true when $0 holds the game files
+; true when $0 holds the game files, or is SimFarm for Windows' setup disc (its files packed: MEGADATA.ID_ and
+; MEGADATA.EE_; the game unpacks them into its own folder when it starts)
 Function IsGameFolder
   ${If} ${FileExists} "$0\MEGADATA.IDX"
   ${AndIf} ${FileExists} "$0\MEGADATA.EEA"
+    StrCpy $1 1
+  ${ElseIf} ${FileExists} "$0\MEGADATA.ID_"
+  ${AndIf} ${FileExists} "$0\MEGADATA.EE_"
+  ${AndIf} ${FileExists} "$0\SETUP.INF"
     StrCpy $1 1
   ${Else}
     StrCpy $1 0

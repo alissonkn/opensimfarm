@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(OpenSimFarm VERSION 0.6.0 LANGUAGES CXX)
+project(OpenSimFarm VERSION 0.6.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -50,6 +50,7 @@ add_custom_command(OUTPUT ${OSF_MUSIC_CPP}
 add_executable(opensimfarm
     src/main.cpp
     src/core/Paths.cpp
+    src/core/InstallDisc.cpp
     src/core/Lang.cpp
     ${OSF_LANG_CPP}
     ${OSF_MUSIC_CPP}
