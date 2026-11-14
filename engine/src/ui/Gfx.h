@@ -43,6 +43,20 @@ public:
 
     void SetScale(int s) { _scale = s < 1 ? 1 : s; }
     int Scale() const { return _scale; }
+    // Modern Render for the interface: every picture (windows, buttons, icons, tiles, sprites, full screens, the
+    // font) is kept at `detail` texels per interface pixel, upscaled with the pixel-art scaler (ui/PixelArt.h), except
+    // the font, whose pixels are just repeated; 1 =
+    // the original pixels, as the original draws them. Changing it remakes the pictures
+    void SetDetail(int detail);
+    // the font of all the text (Options > Advanced): 0 the game's own, else a modern one (ui/ModernFont.h)
+    void SetFont(int font);
+    int Font() const { return _fontChoice; }
+    // a line in a given font (the Font window shows each font's name in it)
+    void TextInFont(int font, int x, int y, const std::string& s, int c);
+    int Detail() const { return _detail; }
+    // headless check of Modern Render for the interface (--graphicstest): every kind of picture upscaled at each
+    // detail, keeping its size and colours; 0 when all is well
+    static int SelfTest(const Megadata& mega, const MapGraphics& map);
     SDL_Renderer* Renderer() const { return _r; }
     const Megadata* Mega() const { return _mega; }
     const Palette& Pal() const { return _pal; }
@@ -99,8 +113,18 @@ private:
     static uint8_t s_ink[256][2];
     static uint8_t s_capMark[256];
     void DrawCapitalMark(unsigned char ch, int x, int y);
+    // one letter in the cell at (x, y), in font `font` (ui/ModernFont.h; 0 or one that cannot be made: the game's)
+    void Glyph(unsigned char ch, int x, int y, int font);
+    SDL_Texture* FontAtlas(int font); // a modern font's letters at the resolution in use, made when first needed
+    void TintFont(int c);
     SDL_Texture* PictureTexture(const std::string& key);
-    SDL_Texture* MakeTexture(const Picture& p, int transparent);
+    // a picture's texture at the detail in use, in the palette pal (the play palette when null); cell = the size of
+    // the separately upscaled cells of an atlas (a tile, a glyph; 0: the picture as a whole); without
+    // `upscale` each pixel is just repeated (the font)
+    SDL_Texture* MakeTexture(const Picture& p, int transparent, const Palette* pal = nullptr, int cell = 0, bool upscale = true);
+    void MakeFont();
+    void MakeMasked();
+    SDL_Rect Src(int x, int y, int w, int h) const { return SDL_Rect{ x * _detail, y * _detail, w * _detail, h * _detail }; }
     SDL_Rect R(int x, int y, int w, int h) const { return SDL_Rect{ x * _scale, y * _scale, w * _scale, h * _scale }; }
 
     SDL_Renderer* _r = nullptr;
@@ -109,8 +133,15 @@ private:
     std::array<uint8_t, 16> _ui{}; // interface colour -> palette index (the same for the DOS edition)
     int _playPalette = 0;
     TileSheet _plain;             // the plain tiles of the atlas (kept to remake it with another palette)
+    TileSheet _maskedSheet;       // the masked tiles (kept to remake their atlas at another detail)
+    Font8 _font8;                 // the font with its added letters (kept likewise)
+    int _detail = 1;
     int _scale = 1;
     SDL_Texture* _font = nullptr;   // 16x16 glyph grid, white with alpha
+    int _fontChoice = 1;                     // Options > Advanced (ui/ModernFont.h)
+    int _fontAtlasDetail = 0;                // the pixels per unit the atlases below were made at
+    std::vector<SDL_Texture*> _fontAtlases;  // per font, made when first needed
+    uint8_t _tint[3] = { 0, 0, 0 };
     SDL_Texture* _tiles = nullptr;  // plain tile atlas
     SDL_Texture* _masked = nullptr; // masked tile atlas (kSeeThrough transparent)
     std::map<std::string, SDL_Texture*> _pictures;

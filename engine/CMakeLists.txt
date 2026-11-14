@@ -62,6 +62,15 @@ add_custom_command(OUTPUT ${OSF_MUSIC_CPP}
     COMMAND ${CMAKE_COMMAND} -DOUT=${OSF_MUSIC_CPP} "-DFILES=${OSF_MUSIC_FILES}" -P ${CMAKE_CURRENT_SOURCE_DIR}/tools/EmbedMusic.cmake
     DEPENDS ${OSF_MUSIC_FILES} ${CMAKE_CURRENT_SOURCE_DIR}/tools/EmbedMusic.cmake VERBATIM)
 
+# the fonts on offer in Options > Font (src/third_party/fonts/*/*.ttf, each with its SIL Open Font License beside it)
+# are built into the program
+file(GLOB OSF_FONT_FILES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/third_party/fonts/*/*.ttf)
+list(SORT OSF_FONT_FILES)
+set(OSF_FONT_CPP ${CMAKE_CURRENT_BINARY_DIR}/font_builtin.cpp)
+add_custom_command(OUTPUT ${OSF_FONT_CPP}
+    COMMAND ${CMAKE_COMMAND} -DOUT=${OSF_FONT_CPP} "-DFILES=${OSF_FONT_FILES}" -P ${CMAKE_CURRENT_SOURCE_DIR}/tools/EmbedFont.cmake
+    DEPENDS ${OSF_FONT_FILES} ${CMAKE_CURRENT_SOURCE_DIR}/tools/EmbedFont.cmake VERBATIM)
+
 add_executable(opensimfarm
     src/main.cpp
     src/core/Paths.cpp
@@ -69,6 +78,7 @@ add_executable(opensimfarm
     src/core/Lang.cpp
     ${OSF_LANG_CPP}
     ${OSF_MUSIC_CPP}
+    ${OSF_FONT_CPP}
     src/assets/Megadata.cpp
     src/assets/Graphics.cpp
     src/assets/Picture.cpp
@@ -98,6 +108,7 @@ add_executable(opensimfarm
     src/ui/LangTest.cpp
     src/ui/MapView.cpp
     src/ui/PixelArt.cpp
+    src/ui/ModernFont.cpp
     src/ui/Touch.cpp
     src/ui/PhoneUi.cpp
     src/ui/StartScreen.cpp

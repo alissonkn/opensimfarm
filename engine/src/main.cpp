@@ -2443,7 +2443,9 @@ int main(int argc, char** argv)
         MapGraphics gfx;
         if (!LoadMapGraphics(mega, gfx)) { std::printf("tiles could not be read\n"); return 1; }
         const int pictures = ArchivePictureTest(mega);
-        return MapView::SelfTest(gfx) || pictures ? 1 : 0;
+        const int map = MapView::SelfTest(gfx);
+        const int ui = Gfx::SelfTest(mega, gfx);
+        return map || pictures || ui ? 1 : 0;
     }
     if (argc > 1 && std::strcmp(argv[1], "--selftest") == 0)
     {
@@ -3550,6 +3552,8 @@ int main(int argc, char** argv)
     if (settings.count("music"))
         sound.SetMusicEnabled(settings["music"] != 0);
     sound.SetModern(!settings.count("modernsound") || settings["modernsound"] != 0); // on unless turned off
+    if (settings.count("font"))
+        gfxUi.SetFont(settings["font"]);
     // on unless turned off; "moderngraphics" is the setting's earlier name (the option was renamed Modern Render)
     {
         const char* key = settings.count("modernrender") ? "modernrender" : "moderngraphics";
@@ -3633,6 +3637,8 @@ int main(int argc, char** argv)
         }
         else if (cmd == "load")
             loadFarm("QUICKSAVE.SFM", true);
+        else if (cmd.rfind("font:", 0) == 0)
+            gfxUi.SetFont(std::atoi(cmd.c_str() + 5)); // Options > Advanced: all the text is drawn in it from now on; settings.txt keeps it
         else if (cmd.rfind("language:", 0) == 0)
         {
             // Options > Language: the menus are rebuilt, everything else is translated as it is drawn; settings.txt keeps it
@@ -3882,7 +3888,7 @@ int main(int argc, char** argv)
         std::ostringstream out;
         out << "scale=" << uiScale << "\nsfx=" << sound.Enabled() << "\nmusic=" << sound.MusicEnabled() << "\nmessages=" << ui.MessagesOn()
             << "\ntoolnames=" << ui.ToolNamesOn() << "\nsmartdriving=" << Machines::smartDriving
-            << "\nmodernsound=" << sound.Modern() << "\nmodernrender=" << view.Modern() << "\nmusicvolume=" << sound.MusicVolume() << "\nsfxvolume=" << sound.EffectsVolume() << "\nlanguage=" << CurrentLanguage() << "\n";
+            << "\nmodernsound=" << sound.Modern() << "\nmodernrender=" << view.Modern() << "\nmusicvolume=" << sound.MusicVolume() << "\nsfxvolume=" << sound.EffectsVolume() << "\nlanguage=" << CurrentLanguage() << "\nfont=" << gfxUi.Font() << "\n";
         return out.str();
     };
     auto writeSettings = [&]() {
@@ -3967,10 +3973,9 @@ int main(int argc, char** argv)
             ui.ArrowCursor();
             // the region screen: as large as the window allows (the phone layout: one unit per window pixel, it
             // sizes its own parts)
-            if (phone)
-                beginFrame(1.0f, 1, 1, w, h, offscreen);
-            else
-                beginFrame(64.0f, 640, 480, w, h, offscreen);
+            const int startScale = phone ? beginFrame(1.0f, 1, 1, w, h, offscreen) : beginFrame(64.0f, 640, 480, w, h, offscreen);
+            // Modern Render: the pictures smoothed for the scale they are shown at (Gfx::SetDetail)
+            gfxUi.SetDetail(view.Modern() ? (phone ? 4 : startScale) : 1);
             start.Draw(w, h);
             endFrame(offscreen);
             last = SDL_GetPerformanceCounter();
@@ -4205,7 +4210,11 @@ int main(int argc, char** argv)
         int w, h;
         bool offscreen;
         // (the phone layout: one interface unit per window pixel; it sizes its own bars, lists and windows)
-        gfxUi.SetScale(phone ? beginFrame(1.0f, 1, 1, w, h, offscreen) : beginFrame(static_cast<float>(uiScale), 640, 400, w, h, offscreen));
+        const int frameScale = phone ? beginFrame(1.0f, 1, 1, w, h, offscreen) : beginFrame(static_cast<float>(uiScale), 640, 400, w, h, offscreen);
+        gfxUi.SetScale(frameScale);
+        // Modern Render: the interface's pictures smoothed for the scale they are shown at (the phone layout draws
+        // its parts at several sizes of its own)
+        gfxUi.SetDetail(view.Modern() ? (phone ? std::clamp(ui.PhoneScale(), 1, 4) : frameScale) : 1);
         SDL_SetRenderDrawColor(renderer, 24, 24, 24, 255);
         SDL_RenderClear(renderer);
         ui.SetScreenSize(w, h);

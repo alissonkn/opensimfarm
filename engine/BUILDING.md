@@ -103,7 +103,7 @@ export SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy
 ./build/opensimfarm --toolstest     # fields, machines, roads, the shop, land, disasters, the crop duster, save and reload
 ./build/opensimfarm --newgametest   # generated worlds of 96 and 144: a field, a ditch, a harvest sold, land, save and reload, the town growing on 144
 ./build/opensimfarm --audiotest     # Modern Sound: every song and effect rendered (about 10 s)
-./build/opensimfarm --graphicstest  # Modern Render: smoothing of every tile, and the glides
+./build/opensimfarm --graphicstest  # Modern Render: the pixel-art upscaling of every picture, and the glides
 ./build/opensimfarm --langtest      # every built-in language: its letters, its {0} {1} ..., and that its words fit
 ./build/opensimfarm --touchtest     # the touch gestures (tap, long press, drag, pinch) on scripted fingers
 ./build/opensimfarm --simulate 400  # 400 game days, with a report
@@ -169,3 +169,5 @@ When the program's texts change, `python3 engine/tools/lang_extract.py --update`
 build, `./build/opensimfarm --langtest` checks that every translation uses letters the font has, keeps the `{0}` of
 its text, and fits the place it is drawn in.
 
+## Third-party parts
+Built into the program: the fonts on offer in Options > Advanced, Space Mono, IBM Plex Mono, JetBrains Mono and Press Start 2P (each under the SIL Open Font License 1.1, with its licence beside it in `engine/src/third_party/fonts/<font>/OFL.txt`; the packages include them as FONT-LICENSE.txt), and stb_truetype (public domain / MIT, `engine/src/third_party/stb_truetype.h`), which draws them.

@@ -24,7 +24,7 @@ bool DecodeVoc(const std::vector<uint8_t>& data, std::vector<int16_t>& samples, 
 std::vector<float> ModernEffect(const std::string& name, const std::vector<int16_t>& pcm, int srcRate, int dstRate);
 
 // Sound effects from the player's archive and the music, mixed by SDL. Silent when there is
-// no audio device. Two ways to play them (Options > Modern Sound, settings "modernsound"):
+// no audio device. Two ways to play them (Options > Advanced, settings "modernsound"):
 // * original: the effects straight-line resampled, mono, the simple built-in synthesizer for the songs (as before);
 // * modern (an engine addition): the effects cleaned up and resampled in memory (AudioFx.h), placed left / right and
 //   nearer / farther by where they happen on the map, a small room around everything, the songs played by

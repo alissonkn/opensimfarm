@@ -3,12 +3,17 @@
 #include <algorithm>
 #include "ui/Gfx.h"
 #include "ui/PictureText.h"
+#include "ui/ModernFont.h"
+#include "ui/PixelArt.h"
 
 #include <functional>
 #include "ui/SmallFont.h"
 #include <array>
 #include <cctype>
+#include <chrono>
 #include <cmath>
+#include <cstdio>
+#include <set>
 
 #include "assets/Megadata.h"
 
@@ -39,27 +44,102 @@ uint32_t MouseState(int* x, int* y)
 
 static constexpr int kTileColumns = 32;
 
-SDL_Texture* Gfx::MakeTexture(const Picture& p, int transparent)
+SDL_Texture* Gfx::MakeTexture(const Picture& p, int transparent, const Palette* palIn, int cell, bool upscale)
 {
-    std::vector<uint32_t> argb(static_cast<size_t>(p.w) * p.h);
-    for (size_t i = 0; i < argb.size(); ++i)
+    if (p.Empty())
+        return nullptr;
+    const Palette& pal = palIn ? *palIn : _pal;
+    const int d = _detail, W = p.w * d, H = p.h * d;
+    std::vector<uint32_t> argb;
+    if (d == 1 || !upscale)
+        argb = PlainPicture(p.px.data(), p.w, p.h, pal, transparent, W, H);
+    else if (cell <= 0)
+        argb = UpscalePicture(p.px.data(), p.w, p.h, pal, transparent, W, H);
+    else
     {
-        const int c = p.px[i];
-        if (c == transparent)
-        {
-            argb[i] = 0;
-            continue;
-        }
-        argb[i] = 0xFF000000u | (_pal[c & 15][0] << 16) | (_pal[c & 15][1] << 8) | _pal[c & 15][2];
+        // an atlas: each cell (a tile, a glyph) smoothed on its own, so neighbouring cells never round each other
+        argb.assign(static_cast<size_t>(W) * H, 0);
+        std::vector<uint8_t> one(static_cast<size_t>(cell) * cell);
+        const int cd = cell * d;
+        for (int cy = 0; cy + cell <= p.h; cy += cell)
+            for (int cx = 0; cx + cell <= p.w; cx += cell)
+            {
+                bool blank = true;
+                for (int y = 0; y < cell; ++y)
+                    for (int x = 0; x < cell; ++x)
+                    {
+                        const uint8_t c = p.px[static_cast<size_t>(cy + y) * p.w + cx + x];
+                        one[static_cast<size_t>(y) * cell + x] = c;
+                        blank = blank && transparent >= 0 && c == transparent;
+                    }
+                if (blank)
+                    continue;
+                const std::vector<uint32_t> px = UpscalePicture(one.data(), cell, cell, pal, transparent, cd, cd);
+                for (int y = 0; y < cd; ++y)
+                    std::copy_n(&px[static_cast<size_t>(y) * cd], cd, &argb[static_cast<size_t>(cy * d + y) * W + cx * d]);
+            }
     }
-    SDL_Texture* t = SDL_CreateTexture(_r, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, p.w, p.h);
+    SDL_Texture* t = SDL_CreateTexture(_r, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, W, H);
     if (!t)
         return nullptr;
-    SDL_UpdateTexture(t, nullptr, argb.data(), p.w * 4);
+    SDL_UpdateTexture(t, nullptr, argb.data(), W * 4);
     SDL_SetTextureBlendMode(t, transparent >= 0 ? SDL_BLENDMODE_BLEND : SDL_BLENDMODE_NONE);
+    // the original pixels are shown pixel for pixel; the upscaled ones are made for the scale in use and shrink or
+    // grow smoothly at any other (the phone's fractional sizes)
+    SDL_SetTextureScaleMode(t, d > 1 ? SDL_ScaleModeLinear : SDL_ScaleModeNearest);
     return t;
 }
 
+void Gfx::SetDetail(int detail)
+{
+    detail = std::clamp(detail, 1, 4);
+    if (detail == _detail || !_r)
+        return;
+    _detail = detail;
+    for (auto& [k, t] : _pictures)
+        if (t)
+            SDL_DestroyTexture(t);
+    _pictures.clear();
+    MakeFont();
+    MakeMasked();
+    const TileSheet plain = _plain;
+    SetPlainTiles(plain);
+}
+
+void Gfx::MakeFont()
+{
+    // a 16 x 16 grid of 8 x 8 glyphs, white on see-through (tinted per draw)
+    Picture glyphs;
+    glyphs.w = glyphs.h = 128;
+    glyphs.px.assign(128 * 128, 0);
+    for (int c = 0; c < 256; ++c)
+        for (int y = 0; y < 8; ++y)
+            for (int x = 0; x < 8; ++x)
+                if (_font8.glyphs[static_cast<size_t>(c)][static_cast<size_t>(y)] & (0x80 >> x))
+                    glyphs.px[static_cast<size_t>((c / 16) * 8 + y) * 128 + (c % 16) * 8 + x] = 1;
+    Palette white{};
+    white[1] = { 255, 255, 255 };
+    if (_font)
+        SDL_DestroyTexture(_font);
+    // the letters keep their original pixels (each one repeated): rounded by the upscaler they look soft and blobby
+    _font = MakeTexture(glyphs, 0, &white, 8, false);
+}
+
+void Gfx::MakeMasked()
+{
+    Picture masked;
+    masked.w = kTileColumns * 16;
+    masked.h = (_maskedSheet.count + kTileColumns - 1) / kTileColumns * 16;
+    masked.px.assign(static_cast<size_t>(masked.w) * masked.h, kSeeThrough);
+    for (int t = 0; t < _maskedSheet.count; ++t)
+        for (int y = 0; y < 16; ++y)
+            for (int x = 0; x < 16; ++x)
+                masked.px[static_cast<size_t>((t / kTileColumns) * 16 + y) * masked.w + (t % kTileColumns) * 16 + x] =
+                    _maskedSheet.Tile(t)[y * 16 + x];
+    if (_masked)
+        SDL_DestroyTexture(_masked);
+    _masked = MakeTexture(masked, kSeeThrough, nullptr, 16);
+}
 
 namespace {
 
@@ -222,35 +302,17 @@ bool Gfx::Init(SDL_Renderer* r, const Megadata& mega, const MapGraphics& map)
         for (int i = 0; i < 16; ++i)
             _ui[static_cast<size_t>(i)] = static_cast<uint8_t>(map16[static_cast<size_t>(i)] & 15);
 
-    // font atlas: 16x16 grid of 8x8 glyphs, white on transparent (tinted per draw)
-    Font8 font;
-    if (!DecodeFont(mega.Read("egafont.fnt"), font))
+    if (!DecodeFont(mega.Read("egafont.fnt"), _font8))
         return false;
-    PrepareFont(font);
-    std::vector<uint32_t> glyphs(128 * 128, 0);
-    for (int c = 0; c < 256; ++c)
-        for (int y = 0; y < 8; ++y)
-            for (int x = 0; x < 8; ++x)
-                if (font.glyphs[c][y] & (0x80 >> x))
-                    glyphs[static_cast<size_t>((c / 16) * 8 + y) * 128 + (c % 16) * 8 + x] = 0xFFFFFFFF;
-    _font = SDL_CreateTexture(r, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, 128, 128);
+    PrepareFont(_font8);
+    MakeFont();
     if (!_font)
         return false;
-    SDL_UpdateTexture(_font, nullptr, glyphs.data(), 128 * 4);
-    SDL_SetTextureBlendMode(_font, SDL_BLENDMODE_BLEND);
 
     if (!SetPlainTiles(map.plain))
         return false;
-    Picture masked;
-    masked.w = kTileColumns * 16;
-    masked.h = (map.masked.count + kTileColumns - 1) / kTileColumns * 16;
-    masked.px.assign(static_cast<size_t>(masked.w) * masked.h, kSeeThrough);
-    for (int t = 0; t < map.masked.count; ++t)
-        for (int y = 0; y < 16; ++y)
-            for (int x = 0; x < 16; ++x)
-                masked.px[static_cast<size_t>((t / kTileColumns) * 16 + y) * masked.w + (t % kTileColumns) * 16 + x] =
-                    map.masked.Tile(t)[y * 16 + x];
-    _masked = MakeTexture(masked, kSeeThrough);
+    _maskedSheet = map.masked;
+    MakeMasked();
 
     return _tiles != nullptr;
 }
@@ -269,7 +331,7 @@ bool Gfx::SetPlainTiles(const TileSheet& plain)
                 atlas.px[static_cast<size_t>((t / kTileColumns) * 16 + y) * atlas.w + (t % kTileColumns) * 16 + x] = plain.Tile(t)[y * 16 + x];
     if (_tiles)
         SDL_DestroyTexture(_tiles);
-    _tiles = MakeTexture(atlas, -1);
+    _tiles = MakeTexture(atlas, -1, nullptr, 16);
 
     _tileColour.resize(plain.count);
     for (int t = 0; t < plain.count; ++t)
@@ -310,6 +372,9 @@ Gfx::~Gfx()
             SDL_DestroyTexture(t);
     if (_font)
         SDL_DestroyTexture(_font);
+    for (SDL_Texture* a : _fontAtlases)
+        if (a)
+            SDL_DestroyTexture(a);
     if (_tiles)
         SDL_DestroyTexture(_tiles);
     if (_masked)
@@ -339,7 +404,11 @@ bool Gfx::PictureSize(const std::string& name, int& w, int& h)
 {
     w = h = 0;
     SDL_Texture* t = PictureTexture(name);
-    return t && SDL_QueryTexture(t, nullptr, nullptr, &w, &h) == 0;
+    if (!t || SDL_QueryTexture(t, nullptr, nullptr, &w, &h) != 0)
+        return false;
+    w /= _detail;
+    h /= _detail;
+    return true;
 }
 
 SDL_Texture* Gfx::PictureTexture(const std::string& key)
@@ -416,7 +485,7 @@ void Gfx::DrawPicture(const std::string& name, int x, int y)
         return;
     int w, h;
     SDL_QueryTexture(t, nullptr, nullptr, &w, &h);
-    const SDL_Rect dst = R(x, y, w, h);
+    const SDL_Rect dst = R(x, y, w / _detail, h / _detail);
     SDL_RenderCopy(_r, t, nullptr, &dst);
     DrawPictureText(*this, name, x, y);
 }
@@ -426,7 +495,7 @@ void Gfx::DrawPicturePart(const std::string& name, int sx, int sy, int w, int h,
     SDL_Texture* t = PictureTexture(name);
     if (!t)
         return;
-    const SDL_Rect src{ sx, sy, w, h };
+    const SDL_Rect src = Src(sx, sy, w, h);
     const SDL_Rect dst = R(x, y, w, h);
     SDL_RenderCopy(_r, t, &src, &dst);
     DrawPictureText(*this, name, x, y, sx, sy, w, h);
@@ -446,7 +515,7 @@ void Gfx::DrawFullScreen(const std::string& file, const std::string& palette, co
             const std::vector<uint8_t> pal = _mega->Read(palette);
             if (pal.size() >= 48)
                 _pal = LoadPalette(pal);
-            t = MakeTexture(p, -1);
+            t = MakeTexture(p, -1, &_pal);
             _pal = saved;
         }
         it = _pictures.emplace(key, t).first;
@@ -477,14 +546,14 @@ void Gfx::DrawButton(int face, int x, int y)
 
 void Gfx::DrawTile(int id, int x, int y, int size)
 {
-    const SDL_Rect src{ (id % kTileColumns) * 16, (id / kTileColumns) * 16, 16, 16 };
+    const SDL_Rect src = Src((id % kTileColumns) * 16, (id / kTileColumns) * 16, 16, 16);
     const SDL_Rect dst = R(x, y, size, size);
     SDL_RenderCopy(_r, _tiles, &src, &dst);
 }
 
 void Gfx::DrawTileAt(int id, const SDL_Rect& dst)
 {
-    const SDL_Rect src{ (id % kTileColumns) * 16, (id / kTileColumns) * 16, 16, 16 };
+    const SDL_Rect src = Src((id % kTileColumns) * 16, (id / kTileColumns) * 16, 16, 16);
     SDL_RenderCopy(_r, _tiles, &src, &dst);
 }
 
@@ -496,23 +565,84 @@ void Gfx::DrawAnyTile(int id, int x, int y, int size)
         return;
     }
     const int m = id - 848;
-    const SDL_Rect src{ (m % kTileColumns) * 16, (m / kTileColumns) * 16, 16, 16 };
+    const SDL_Rect src = Src((m % kTileColumns) * 16, (m / kTileColumns) * 16, 16, 16);
     const SDL_Rect dst = R(x, y, size, size);
     SDL_RenderCopy(_r, _masked, &src, &dst);
 }
 
 void Gfx::Text(int x, int y, const std::string& s, int c)
 {
-    SDL_SetTextureColorMod(_font, Ui(c)[0], Ui(c)[1], Ui(c)[2]);
+    TintFont(c);
     for (size_t i = 0; i < s.size(); ++i)
     {
         const auto ch = static_cast<unsigned char>(s[i]);
-        if (ch <= 0x20)
-            continue;
-        const SDL_Rect src{ (ch % 16) * 8, (ch / 16) * 8, 8, 8 };
-        const SDL_Rect dst = R(x + static_cast<int>(i) * 8, y, 8, 8);
-        SDL_RenderCopy(_r, _font, &src, &dst);
-        DrawCapitalMark(ch, x + static_cast<int>(i) * 8, y);
+        if (ch > 0x20)
+            Glyph(ch, x + static_cast<int>(i) * 8, y, _fontChoice);
+    }
+}
+
+void Gfx::TintFont(int c)
+{
+    SDL_SetTextureColorMod(_font, Ui(c)[0], Ui(c)[1], Ui(c)[2]);
+    for (int k = 0; k < 3; ++k)
+        _tint[k] = Ui(c)[k];
+}
+
+void Gfx::SetFont(int font) { _fontChoice = std::clamp(font, 0, FontCount() - 1); }
+
+SDL_Texture* Gfx::FontAtlas(int font)
+{
+    if (font <= 0 || font >= FontCount() || !_r)
+        return nullptr;
+    // as sharp as the screen shows the interface (also without Modern Render)
+    const int detail = std::clamp(std::max(_detail, _scale), 1, 4);
+    if (detail != _fontAtlasDetail)
+    {
+        for (SDL_Texture*& a : _fontAtlases)
+            if (a)
+                SDL_DestroyTexture(a);
+        _fontAtlases.assign(static_cast<size_t>(FontCount()), nullptr);
+        _fontAtlasDetail = detail;
+    }
+    SDL_Texture*& atlas = _fontAtlases[static_cast<size_t>(font)];
+    if (!atlas)
+    {
+        const std::vector<uint32_t> argb = ModernFontAtlas(_font8, detail, font);
+        const int W = 16 * 8 * detail, H = 16 * kModernFontCellH * detail;
+        if (argb.empty() || !(atlas = SDL_CreateTexture(_r, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, W, H)))
+            return nullptr;
+        SDL_UpdateTexture(atlas, nullptr, argb.data(), W * 4);
+        SDL_SetTextureBlendMode(atlas, SDL_BLENDMODE_BLEND);
+        SDL_SetTextureScaleMode(atlas, SDL_ScaleModeLinear);
+    }
+    return atlas;
+}
+
+void Gfx::Glyph(unsigned char ch, int x, int y, int font)
+{
+    if (SDL_Texture* atlas = FontAtlas(font))
+    {
+        const int d = _fontAtlasDetail;
+        const SDL_Rect src{ (ch % 16) * 8 * d, (ch / 16) * kModernFontCellH * d, 8 * d, kModernFontCellH * d };
+        const SDL_Rect dst = R(x, y - kModernFontAbove, 8, kModernFontCellH);
+        SDL_SetTextureColorMod(atlas, _tint[0], _tint[1], _tint[2]);
+        SDL_RenderCopy(_r, atlas, &src, &dst);
+        return;
+    }
+    const SDL_Rect src = Src((ch % 16) * 8, (ch / 16) * 8, 8, 8);
+    const SDL_Rect dst = R(x, y, 8, 8);
+    SDL_RenderCopy(_r, _font, &src, &dst);
+    DrawCapitalMark(ch, x, y);
+}
+
+void Gfx::TextInFont(int font, int x, int y, const std::string& s, int c)
+{
+    TintFont(c);
+    for (size_t i = 0; i < s.size(); ++i)
+    {
+        const auto ch = static_cast<unsigned char>(s[i]);
+        if (ch > 0x20)
+            Glyph(ch, x + static_cast<int>(i) * 8, y, font);
     }
 }
 
@@ -524,7 +654,7 @@ void Gfx::DrawCapitalMark(unsigned char ch, int x, int y)
 {
     if (const int m = s_capMark[ch])
     {
-        const SDL_Rect src{ (m % 16) * 8, (m / 16) * 8 + 7, 8, 1 };
+        const SDL_Rect src = Src((m % 16) * 8, (m / 16) * 8 + 7, 8, 1);
         const SDL_Rect dst = R(x, y - 1, 8, 1);
         SDL_RenderCopy(_r, _font, &src, &dst);
     }
@@ -568,17 +698,12 @@ void Gfx::TextFit(int x, int y, int room, const std::string& s, int c, int align
         Text(pen, y, s, c);
         return;
     }
-    SDL_SetTextureColorMod(_font, Ui(c)[0], Ui(c)[1], Ui(c)[2]);
+    TintFont(c);
     for (const char ch : s)
     {
         const auto u = static_cast<unsigned char>(ch);
         if (u > 0x20)
-        {
-            const SDL_Rect src{ (u % 16) * 8, (u / 16) * 8, 8, 8 };
-            const SDL_Rect dst = R(pen - s_ink[u][0], y, 8, 8);
-            SDL_RenderCopy(_r, _font, &src, &dst);
-            DrawCapitalMark(u, pen - s_ink[u][0], y);
-        }
+            Glyph(u, pen - s_ink[u][0], y, _fontChoice);
         pen += InkWidth(u) + gap;
     }
 }
@@ -702,5 +827,160 @@ void Gfx::Wrap(int x, int y, int w, const std::string& text, int colour)
 }
 
 int Gfx::WrapHeight(int w, const std::string& text) { return WrapLayout(w, text, nullptr); }
+
+// ---------------------------------------------------------------- --graphicstest
+
+int Gfx::SelfTest(const Megadata& mega, const MapGraphics& map)
+{
+    int fails = 0;
+    auto check = [&](bool ok, const std::string& what) {
+        std::printf("%s %s\n", ok ? "ok  " : "FAIL", what.c_str());
+        fails += !ok;
+    };
+    constexpr int kW = 640 * 4, kH = 480 * 4;
+    SDL_Surface* target = SDL_CreateRGBSurfaceWithFormat(0, kW, kH, 32, SDL_PIXELFORMAT_ARGB8888);
+    SDL_Renderer* rd = target ? SDL_CreateSoftwareRenderer(target) : nullptr;
+    if (!rd)
+    {
+        check(false, "a software renderer for the interface check");
+        if (target)
+            SDL_FreeSurface(target);
+        return fails;
+    }
+    // what one drawing looks like: the frame's pixels after drawing at interface scale `scale`
+    auto shot = [&](Gfx& g, int scale, const std::function<void()>& draw, int w, int h) {
+        SDL_SetRenderDrawColor(rd, 255, 0, 255, 255);
+        SDL_RenderClear(rd);
+        g.SetScale(scale);
+        draw();
+        SDL_RenderPresent(rd);
+        std::vector<uint32_t> px(static_cast<size_t>(w * scale) * h * scale);
+        const auto* p = static_cast<const uint32_t*>(target->pixels);
+        for (int y = 0; y < h * scale; ++y)
+            for (int x = 0; x < w * scale; ++x)
+                px[static_cast<size_t>(y) * w * scale + x] = p[static_cast<size_t>(y) * (target->pitch / 4) + x] & 0xFFFFFF;
+        return px;
+    };
+    Gfx g;
+    if (!g.Init(rd, mega, map))
+    {
+        check(false, "the interface pictures could be read");
+        SDL_DestroyRenderer(rd);
+        SDL_FreeSurface(target);
+        return fails;
+    }
+    struct Case
+    {
+        std::string what;
+        int w, h;
+        std::function<void()> draw;
+    };
+    const std::vector<Case> cases = {
+        { "a window (buywndo.bmp)", 256, 224, [&] { g.DrawPicture("buywndo.bmp", 0, 0); } },
+        { "the toolbar (cntlbtnh.bmp, a part)", 256, 32, [&] { g.DrawPicturePart("cntlbtnh.bmp", 0, 0, 256, 32, 0, 0); } },
+        { "the editor's icons (editeasy.lzs)", 48, 208, [&] { g.DrawPicture("editeasy.lzs", 0, 0); } },
+        { "a button face (buttons.til)", 48, 24, [&] { g.DrawPicture("buttons.til$1", 0, 0); } },
+        { "a picture of a bank (alltiles.btl)", 112, 64, [&] { g.DrawBank("alltiles.btl", 0, 0, 0); } },
+        { "tiles (title bar, icons)", 128, 16, [&] { for (int i = 0; i < 8; ++i) g.DrawTile(i, i * 16, 0); } },
+        { "masked tiles", 128, 16, [&] { for (int i = 0; i < 8; ++i) g.DrawAnyTile(848 + i * 7, i * 16, 0); } },
+        { "a sprite (airplane.spr)", 64, 64, [&] { SDL_Rect r = g.R(0, 0, 64, 64); g.DrawSprite("airplane.spr", 0, r); } },
+        { "the font", 160, 8, [&] { g.Text(0, 0, "Week 2 of Aug, $40000", kBlack); } },
+        { "a full screen (sftitle.int)", 640, 480, [&] { SDL_Rect r = g.R(0, 0, 640, 480); g.DrawFullScreen("sftitle.int", "sftitle.pal", r); } },
+    };
+    auto lin = [](uint32_t v) {
+        const double c = v / 255.0;
+        return c <= 0.04045 ? c / 12.92 : std::pow((c + 0.055) / 1.055, 2.4);
+    };
+    // the classic look at scale 2, then the upscaled one at each detail: same size, colours kept on the whole, the
+    // shapes redrawn (pixels changed from plain repetition), every picture's size in interface units unchanged
+    int bw = 0, bh = 0;
+    g.SetDetail(1);
+    g.PictureSize("buywndo.bmp", bw, bh);
+    for (int detail = 2; detail <= 4; ++detail)
+    {
+        for (const Case& c : cases)
+        {
+            g.SetDetail(1);
+            g.SetFont(0); // the classic look: the game's own font
+            const std::vector<uint32_t> plain = shot(g, detail, c.draw, c.w, c.h);
+            g.SetDetail(detail);
+            g.SetFont(kDefaultFont);
+            const auto made = std::chrono::steady_clock::now();
+            const std::vector<uint32_t> smooth = shot(g, detail, c.draw, c.w, c.h);
+            const double took = std::chrono::duration<double>(std::chrono::steady_clock::now() - made).count();
+            double sum[2][3] = {}, raw[2][3] = {};
+            std::set<uint32_t> colours[2];
+            size_t changed = 0;
+            for (size_t i = 0; i < plain.size(); ++i)
+            {
+                colours[0].insert(plain[i]);
+                colours[1].insert(smooth[i]);
+                changed += plain[i] != smooth[i];
+                for (int k = 0; k < 3; ++k)
+                {
+                    sum[0][k] += lin((plain[i] >> (16 - 8 * k)) & 0xFF);
+                    sum[1][k] += lin((smooth[i] >> (16 - 8 * k)) & 0xFF);
+                    raw[0][k] += (plain[i] >> (16 - 8 * k)) & 0xFF;
+                    raw[1][k] += (smooth[i] >> (16 - 8 * k)) & 0xFF;
+                }
+            }
+            // in linear light, the light the screen gives (a dither or a speckle shown as its colour mixes there, as
+            // the eye mixes it, so its average stays), or in the stored values (a see-through edge is mixed with
+            // what lies under it there, by the renderer)
+            double light = 0, stored = 0;
+            for (int k = 0; k < 3; ++k)
+            {
+                light = std::max(light, std::fabs(sum[0][k] - sum[1][k]) / static_cast<double>(plain.size()) * 255);
+                stored = std::max(stored, std::fabs(raw[0][k] - raw[1][k]) / static_cast<double>(plain.size()));
+            }
+            const double drift = std::min(light, stored);
+            char line[200];
+            const double share = 100.0 * static_cast<double>(changed) / static_cast<double>(plain.size());
+            std::snprintf(line, sizeof line, "detail %d, %s: %.1f%% of pixels redrawn, %zu colours (classic %zu), colour change %.2f / 255, made in %.2f s",
+                          detail, c.what.c_str(), share, colours[1].size(), colours[0].size(), drift, took);
+            // the font is redrawn in the default modern one (ui/ModernFont.h): thinner strokes, so less ink
+            check(changed > 0 && share < 50 && drift < (c.what == "the font" ? 24.0 : 8.0), line);
+        }
+        int w = 0, h = 0;
+        g.PictureSize("buywndo.bmp", w, h);
+        check(w == bw && h == bh, "detail " + std::to_string(detail) + ": a picture keeps its size in interface units");
+    }
+    // the modern fonts (Options > Advanced): every letter has ink, none is cut off at its cell's top or bottom (the
+    // accents of the capitals, the descenders), and the game's tick stays its own
+    for (int font = 1; font < FontCount(); ++font)
+        for (int detail = 2; detail <= 4; ++detail)
+        {
+            const std::vector<uint32_t> atlas = ModernFontAtlas(g._font8, detail, font);
+            const int cw = 8 * detail, chh = kModernFontCellH * detail, W = 16 * cw;
+            bool inked = !atlas.empty(), uncut = !atlas.empty();
+            for (int c = 0x21; c < 256 && !atlas.empty(); ++c)
+            {
+                if (c >= 0x7F && c <= 0xA0)
+                    continue;
+                long ink = 0;
+                for (int y = 0; y < chh; ++y)
+                    for (int x = 0; x < cw; ++x)
+                    {
+                        const uint32_t a = atlas[static_cast<size_t>((c / 16) * chh + y) * W + (c % 16) * cw + x] >> 24;
+                        ink += a > 0;
+                        if (a > 0 && (y == 0 || y == chh - 1))
+                            uncut = false;
+                    }
+                inked = inked && ink > 0;
+            }
+            check(inked && uncut, std::string(FontName(font)) + " at detail " + std::to_string(detail) + ": all letters drawn, none cut off");
+        }
+    // a weather palette change at the largest detail: how long the tiles take to be made again
+    g.SetDetail(4);
+    const auto t0 = std::chrono::steady_clock::now();
+    g.SetPlayPalette(1);
+    const double secs = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
+    std::printf("     a palette change at detail 4: %.2f s\n", secs);
+    check(secs < 1.5, "a palette change at detail 4 stays quick");
+    SDL_DestroyRenderer(rd);
+    SDL_FreeSurface(target);
+    std::printf("interface pictures %s\n", fails ? "FAIL" : "ok");
+    return fails;
+}
 
 } // namespace osf

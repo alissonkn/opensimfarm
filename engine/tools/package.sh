@@ -36,6 +36,15 @@ want=("$@")
 has() { local w; for w in "${want[@]}"; do [ "$w" = "$1" ] && return 0; done; return 1; }
 
 need() { command -v "$1" >/dev/null 2>&1 || { echo "package.sh: $1 is missing ($2)" >&2; exit 1; }; }
+# the licences of the fonts built into the program (Extras > Font), one after the other
+fontLicences() {
+    local d
+    for d in "$ENGINE"/src/third_party/fonts/*/; do
+        echo "==== $(basename "$d") ===="
+        cat "$d/OFL.txt"
+        echo
+    done
+}
 need cmake "install CMake"
 python3 -c "import PIL" 2>/dev/null || { echo "package.sh: Pillow is missing (python3 -m pip install --user pillow)" >&2; exit 1; }
 python3 -m ziglang version >/dev/null 2>&1 || { echo "package.sh: Zig is missing (python3 -m pip install --user ziglang)" >&2; exit 1; }
@@ -74,12 +83,13 @@ if has windows; then
     cp "$BUILD_WIN/opensimfarm.exe" "$S/"
     cp "$ROOT/README.md" "$S/README.md"
     cp "$ENGINE/LICENSE.txt" "$S/LICENSE.txt"
+    fontLicences > "$S/FONT-LICENSE.txt"
     cp "$ENGINE/packaging/windows/opensimfarm.ico" "$S/"
     NSI=("${MAKENSIS[@]}" -V2 -DVERSION="$VERSION" -DSTAGE="$S")
     OUT=$DIST/OpenSimFarm-$VERSION-windows-x64-setup.exe
     "${NSI[@]}" -DOUTFILE="$OUT" "$ENGINE/packaging/windows/opensimfarm.nsi"
     rm -f "$DIST/OpenSimFarm-$VERSION-windows-x64.zip"
-    (cd "$S" && 7z a -tzip -bso0 -bsp0 "$DIST/OpenSimFarm-$VERSION-windows-x64.zip" opensimfarm.exe README.md LICENSE.txt)
+    (cd "$S" && 7z a -tzip -bso0 -bsp0 "$DIST/OpenSimFarm-$VERSION-windows-x64.zip" opensimfarm.exe README.md LICENSE.txt FONT-LICENSE.txt)
     ls -la "$OUT" "$DIST/OpenSimFarm-$VERSION-windows-x64.zip"
 fi
 
@@ -101,6 +111,9 @@ if has rpm || has deb; then
         install -D -m 644 "$WORK/icon/opensimfarm-$n.png" "$T/usr/share/icons/hicolor/${n}x$n/apps/opensimfarm.png"
     done
     install -m 644 "$ROOT/README.md" "$T/usr/share/doc/opensimfarm/README.md"
+    # the licence of the font built into the program (Modern Render's letters)
+    fontLicences > "$T/usr/share/doc/opensimfarm/FONT-LICENSE.txt"
+    chmod 644 "$T/usr/share/doc/opensimfarm/FONT-LICENSE.txt"
 fi
 
 # ---------------------------------------------------------------- rpm
@@ -134,6 +147,7 @@ install -D -m 644 "$ENGINE/LICENSE.txt" %{buildroot}%{_datadir}/licenses/opensim
 %{_datadir}/applications/opensimfarm-reconfigure.desktop
 %{_datadir}/icons/hicolor/*/apps/opensimfarm.png
 %doc %{_datadir}/doc/opensimfarm/README.md
+%license %{_datadir}/doc/opensimfarm/FONT-LICENSE.txt
 %license %{_datadir}/licenses/opensimfarm/LICENSE.txt
 EOF
     rpmbuild -bb --quiet --define "_topdir $R" "$R/SPECS/opensimfarm.spec"
@@ -155,6 +169,11 @@ if has deb; then
         echo "Copyright: 2026 OpenSimFarm developers"
         echo "License: GPL-3.0-or-later"
         echo " On Debian systems the full text is in /usr/share/common-licenses/GPL-3."
+        echo
+        echo "Files: usr/bin/opensimfarm (the built-in fonts: Space Mono, IBM Plex Mono, JetBrains Mono, Press Start 2P)"
+        echo "Copyright: their authors (see FONT-LICENSE.txt)"
+        echo "License: OFL-1.1"
+        echo " The full text is in /usr/share/doc/opensimfarm/FONT-LICENSE.txt."
     } > "$D/data/usr/share/doc/opensimfarm/copyright"
     find "$D/data" -type d -exec chmod 755 {} +
     SIZE=$(du -sk "$D/data" | cut -f1)

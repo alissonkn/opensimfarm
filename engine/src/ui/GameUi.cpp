@@ -1,6 +1,7 @@
 // OpenSimFarm - an open re-implementation of SimFarm. Copyright (c) 2026 OpenSimFarm developers.
 // Licensed under the GNU General Public License version 3 (see LICENSE.txt).
 #include "ui/GameUi.h"
+#include "ui/PixelArt.h"
 #include "game/Machines.h"
 
 #include "assets/Graphics.h"
@@ -33,13 +34,13 @@ void GameUi::BuildMenus()
 {
     _menus = {
         // the original's menus, item for item, and a Help menu (the engine's extras are on keys: F1 help, F5 / F9 quick save / load,
-        // Ctrl+1/2/3 interface size; the prebuilt farms are on the region screen of New Game), each with the drop-down
-        // box (x, width, height) measured on the original
+        // Ctrl+1/2/3 interface size; the prebuilt farms are on the region screen of New Game; its options are in the
+        // ADVANCED window, Options > Advanced), each with the drop-down box (x, width, height) measured on the original
         { N_("File"), 8, { { N_("About SimFarm"), "win:17" }, { N_("New Game"), "newgame" }, { N_("Save"), "savecurrent" }, { N_("Save As"), "win:12" },
                        { N_("Load Game"), "win:13" }, { N_("Quit"), "quit" } }, 0, 128, 75 }, // no Load Crop: the PLANT list loads crops
         { N_("Options"), 64, { { N_("Music"), "music" }, { N_("Sound Effects"), "sfx" }, { N_("AutoBuy"), "opt:opt_autobuy" }, { N_("AutoScroll"), "opt:opt_autoscroll" },
                            { N_("AutoDoze"), "opt:opt_autodoze" }, { N_("AutoGoto"), "opt:opt_autogoto" }, { N_("Messages"), "msgs" }, { N_("AutoLease"), "opt:menu_6" },
-                           { N_("Smart Driving"), "smartdrive" }, { N_("Modern Sound"), "modernsound" }, { N_("Modern Render"), "modernrender" }, { N_("Sound Volume"), "win:20" }, { N_("Language"), "win:21" } }, 64, 136, 160 },
+                           { N_("Advanced"), "win:22" } }, 64, 136, 112 },
         { N_("Speed"), 144, { { N_("Ultra"), "speed:0" }, { N_("Fast"), "speed:1" }, { N_("Normal"), "speed:2" }, { N_("Slow"), "speed:3" }, { N_("Pause"), "speed:4" } }, 144, 64, 64 },
         { N_("Windows"), 208, { { N_("Buy"), "win:0" }, { N_("Sell"), "win:1" }, { N_("Evaluation"), "win:5" }, { N_("Map"), "win:3" }, { N_("Weather"), "win:4" },
                             { N_("Balance Sheet"), "win:9" }, { N_("Bank"), "win:10" }, { N_("Market Value"), "win:8" },
@@ -193,7 +194,7 @@ void GameUi::OpenWindow(int kind)
                                                                { kWinWeather, { 160, 128 } }, { kWinBalance, { 128, 96 } },
                                                                { kWinBank, { 176, 96 } }, { kWinMarket, { 144, 112 } }, { kWinEvaluation, { 128, 128 } }, { kWinExpert, { 128, 96 } },
                                                                { kWinCrop, { 160, 96 } }, { kWinSave, { 160, 96 } }, { kWinLoad, { 160, 96 } }, { kWinAbout, { 96, 96 } }, { kWinHelp, { 40, 40 } },
-                                                               { kWinSound, { 192, 112 } }, { kWinLanguage, { 224, 112 } } };
+                                                               { kWinAdvanced, { 192, 80 } } };
     if (const auto it = kPlace.find(kind); it != kPlace.end())
     {
         w->x = std::clamp(it->second.first, 0, std::max(0, _w - w->w));
@@ -273,7 +274,7 @@ bool GameUi::ItemEnabled(const std::string& cmd) const
     if (cmd.rfind("win:", 0) == 0)
     {
         const int k = std::stoi(cmd.substr(4));
-        return k == kWinWeather || k == kWinMarket || k == kWinBalance || k == kWinBank || k == kWinMap || k == kWinEvaluation || k == kWinBuy || k == kWinSell || k == kWinSave || k == kWinLoad || k == kWinExpert || k == kWinCrop || k == kWinAbout || k == kWinHelp || k == kWinEdit || k == kWinSound || k == kWinLanguage;
+        return k == kWinWeather || k == kWinMarket || k == kWinBalance || k == kWinBank || k == kWinMap || k == kWinEvaluation || k == kWinBuy || k == kWinSell || k == kWinSave || k == kWinLoad || k == kWinExpert || k == kWinCrop || k == kWinAbout || k == kWinHelp || k == kWinEdit || k == kWinAdvanced;
     }
     return true;
 }
@@ -1599,6 +1600,12 @@ void GameUi::UiAnswer(const GameEvent& e, int button)
 
 bool GameUi::UiCommand(const std::string& cmd)
 {
+    // the ADVANCED window's switches: as the menus did them
+    if (cmd == "smartdrive" || cmd == "modernsound" || cmd == "modernrender")
+    {
+        Execute(cmd);
+        return true;
+    }
     if (cmd.rfind("saved:", 0) == 0)
     {
         Saved(cmd.substr(6));
@@ -1725,7 +1732,8 @@ GameUi::~GameUi()
 void GameUi::UpdateCursor()
 {
     const int scale = _g.Scale();
-    if (_cursorScale != scale && _g.Mega())
+    // (made again when the scale or Modern Render's detail changes: key scale * 8 + detail)
+    if (_cursorScale != scale * 8 + _g.Detail() && _g.Mega())
     {
         // cursors.til: 6 cursors, each a group of four mask bitmaps then four image bitmaps (16x16, 1 bpp);
         // a pixel shows where the mask bit is set, white where the image bit is set, else black. The Windows
@@ -1748,20 +1756,29 @@ void GameUi::UpdateCursor()
             auto* px = static_cast<uint32_t*>(surf->pixels);
             const uint8_t* m = &d[static_cast<size_t>(2 * c) * 128];
             const uint8_t* im = &d[static_cast<size_t>(2 * c + 1) * 128];
-            for (int y = 0; y < 16 * scale; ++y)
-                for (int x = 0; x < 16 * scale; ++x)
+            // the cursor as a 16 x 16 picture: 255 hidden, 0 black, 15 white
+            std::vector<uint8_t> pic(256);
+            for (int sy = 0; sy < 16; ++sy)
+                for (int sx = 0; sx < 16; ++sx)
                 {
-                    const int sx = x / scale, sy = y / scale;
                     const int mw = (m[sy * 2] << 8) | m[sy * 2 + 1], iw = (im[sy * 2] << 8) | im[sy * 2 + 1];
                     const int bit = 0x8000 >> sx;
-                    px[y * (surf->pitch / 4) + x] = !(mw & bit) ? 0 : (iw & bit) ? 0xFFFFFFFFu : 0xFF000000u;
+                    pic[static_cast<size_t>(sy * 16 + sx)] = !(mw & bit) ? 255 : (iw & bit) ? 15 : 0;
                 }
+            Palette bw{};
+            bw[15] = { 255, 255, 255 };
+            // Modern Render: upscaled for the size it is shown at
+            const std::vector<uint32_t> argb = _g.Detail() > 1 ? UpscalePicture(pic.data(), 16, 16, bw, 255, 16 * scale, 16 * scale)
+                                                               : PlainPicture(pic.data(), 16, 16, bw, 255, 16 * scale, 16 * scale);
+            for (int y = 0; y < 16 * scale; ++y)
+                for (int x = 0; x < 16 * scale; ++x)
+                    px[y * (surf->pitch / 4) + x] = argb[static_cast<size_t>(y) * 16 * scale + x];
             _cursors[c] = SDL_CreateColorCursor(surf, hot[c][0] * scale, hot[c][1] * scale);
             SDL_FreeSurface(surf);
         }
         if (!_arrow)
             _arrow = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW);
-        _cursorScale = scale;
+        _cursorScale = scale * 8 + _g.Detail();
         _shownCursor = -2;
     }
     int mx, my;

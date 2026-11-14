@@ -20,7 +20,7 @@ Does OpenSimFarm use AI? *YES*. It's 2026, of course it does.
 * Zoom and scrolling at any window size; a touch layout for phones in the browser version
 * A radio in the menu bar, plus seven new songs composed for OpenSimFarm
 * A Funds list of every cash change, and every crop available from the start
-* Optional extras: smart machine driving, "Modern Sound" and "Modern Render"
+* Optional extras (Options > Advanced): smart machine driving, "Modern Sound", "Modern Render" (every picture upscaled with a pixel-art scaler at your screen's resolution) and a choice of fonts
 
 ## Install
 Downloads: https://github.com/alissonkn/opensimfarm/releases/latest

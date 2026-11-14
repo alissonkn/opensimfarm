@@ -646,7 +646,9 @@ int MapView::SelfTest(const MapGraphics& gfx)
         if (!ok)
             ++fails;
     };
-    // the doubling rule: a straight edge stays straight, a flat block stays flat, a diagonal step gets rounded
+    // the scaler: a straight edge stays straight, a flat block stays flat, a dither stays as it is when doubled
+    // once (inside the tile: at its corners the repeated edge looks like a shape) and keeps its colours when doubled
+    // twice, a diagonal gets finer steps
     {
         std::vector<uint8_t> half(256), flat(256, 5), diag(256), dither(256);
         for (int i = 0; i < 256; ++i)
@@ -655,29 +657,45 @@ int MapView::SelfTest(const MapGraphics& gfx)
             diag[static_cast<size_t>(i)] = (i % 16) > (i / 16) ? 1 : 2;
             dither[static_cast<size_t>(i)] = ((i % 16) + (i / 16)) % 2 ? 3 : 4;
         }
-        const std::vector<uint8_t> h2 = Double(half, 16), f2 = Double(flat, 16), d2 = Double(diag, 16), c2 = Double(dither, 16);
-        bool straight = true, same = true, kept = true;
-        for (int i = 0; i < 1024; ++i)
+        for (const int size : { 32, 48, 64 })
         {
-            straight = straight && h2[static_cast<size_t>(i)] == (i < 512 ? 1 : 2);
-            same = same && f2[static_cast<size_t>(i)] == 5;
-            kept = kept && c2[static_cast<size_t>(i)] == dither[static_cast<size_t>((i / 32 / 2) * 16 + (i % 32) / 2)];
+            const std::string at = " (" + std::to_string(size / 16) + " times)";
+            check(SmoothTile(half.data(), gfx.palette, false, size) == PlainTile(half.data(), gfx.palette, false, size), ("the scaler keeps a straight edge straight" + at).c_str());
+            check(SmoothTile(flat.data(), gfx.palette, false, size) == PlainTile(flat.data(), gfx.palette, false, size), ("the scaler keeps a flat block flat" + at).c_str());
+            {
+                const std::vector<uint32_t> s = SmoothTile(dither.data(), gfx.palette, false, size), p = PlainTile(dither.data(), gfx.palette, false, size);
+                const int edge = size / 16;
+                bool same = true;
+                double sum[2] = {};
+                for (int y = edge; y < size - edge; ++y)
+                    for (int x = edge; x < size - edge; ++x)
+                    {
+                        const size_t i = static_cast<size_t>(y) * size + x;
+                        same = same && s[i] == p[i];
+                        for (int k = 0; k < 3; ++k)
+                        {
+                            sum[0] += (s[i] >> (8 * k)) & 0xFF;
+                            sum[1] += (p[i] >> (8 * k)) & 0xFF;
+                        }
+                    }
+                if (size == 32)
+                    check(same, ("the scaler leaves a dither as it is" + at).c_str());
+                else
+                    check(std::fabs(sum[0] - sum[1]) * 50 < sum[1], ("the scaler keeps a dither's colours" + at).c_str());
+            }
+            const std::vector<uint32_t> s = SmoothTile(diag.data(), gfx.palette, false, size), p = PlainTile(diag.data(), gfx.palette, false, size);
+            long changed = 0;
+            for (size_t i = 0; i < s.size(); ++i)
+                changed += s[i] != p[i];
+            check(changed >= 6 * (size / 16) && changed < size * size / 8, ("the scaler gives a diagonal finer steps" + at).c_str());
         }
-        check(kept, "doubling leaves a dither as it is");
-        int rounded = 0; // quarters taking the neighbour's colour along the diagonal
-        for (int y = 0; y < 16; ++y)
-            for (int x = 0; x < 16; ++x)
-                for (int q = 0; q < 4; ++q)
-                    rounded += d2[static_cast<size_t>((2 * y + q / 2) * 32 + 2 * x + q % 2)] != diag[static_cast<size_t>(y * 16 + x)];
-        check(straight, "doubling keeps a straight edge straight");
-        check(same, "doubling keeps a flat block flat");
-        check(rounded >= 14, "doubling rounds a diagonal");
     }
-    // the player's tiles: colours kept on the whole, edges softened, see-through parts kept
+    // the player's tiles: colours kept on the whole, edges redrawn with the tiles' own colours only, see-through
+    // parts kept
     if (gfx.plain.count > 0 && gfx.masked.count > 0)
     {
         double drift = 0, maxDrift = 0;
-        long softened = 0, flatTiles = 0, flatOk = 0;
+        long redrawn = 0, newColours = 0, flatTiles = 0, flatOk = 0;
         for (int t = 0; t < gfx.plain.count; ++t)
         {
             const std::vector<uint32_t> s = SmoothTile(gfx.plain.Tile(t), gfx.palette, false, 32), p = PlainTile(gfx.plain.Tile(t), gfx.palette, false, 32);
@@ -707,15 +725,19 @@ int MapView::SelfTest(const MapGraphics& gfx)
                 bool inPalette = false;
                 for (const auto& c : gfx.palette)
                     inPalette = inPalette || (s[i] & 0xFFFFFF) == ((static_cast<uint32_t>(c[0]) << 16) | (c[1] << 8) | c[2]);
-                softened += !inPalette;
+                newColours += !inPalette;
+                redrawn += s[i] != p[i];
             }
         }
-        std::printf("     plain tiles: %d, mean colour change %.2f / 255 (largest %.1f), %ld smoothed edge pixels, %ld of %ld flat tiles unchanged\n",
-                    gfx.plain.count, drift / gfx.plain.count, maxDrift, softened, flatOk, flatTiles);
-        check(drift / gfx.plain.count < 3.0, "smoothing keeps the tiles' colours");
-        check(softened > 1000, "smoothing softens edges");
-        check(flatOk == flatTiles, "smoothing leaves flat tiles exactly as they are");
-        long groundSame = 0, groundAll = 0; // the plain ground (tiles 15-30) is a texture: kept as it is
+        std::printf("     plain tiles: %d, mean colour change %.2f / 255 (largest %.1f), %ld redrawn edge pixels, %ld in new colours, %ld of %ld flat tiles unchanged\n",
+                    gfx.plain.count, drift / gfx.plain.count, maxDrift, redrawn, newColours, flatOk, flatTiles);
+        check(drift / gfx.plain.count < 3.0, "upscaling keeps the tiles' colours");
+        check(redrawn > 1000, "upscaling redraws edges");
+        check(newColours == 0, "upscaling uses only the tiles' own colours");
+        check(flatOk == flatTiles, "upscaling leaves flat tiles exactly as they are");
+        // the plain ground (tiles 15-30): its speckles get rounded too, but the ground keeps its colours
+        long groundSame = 0, groundAll = 0;
+        double groundSum[2][3] = {};
         for (int t = 15; t <= 30 && t < gfx.plain.count; ++t)
         {
             const std::vector<uint32_t> s = SmoothTile(gfx.plain.Tile(t), gfx.palette, false, 32), p = PlainTile(gfx.plain.Tile(t), gfx.palette, false, 32);
@@ -723,11 +745,18 @@ int MapView::SelfTest(const MapGraphics& gfx)
             {
                 groundSame += s[i] == p[i];
                 ++groundAll;
+                for (int k = 0; k < 3; ++k)
+                {
+                    groundSum[0][k] += (s[i] >> (16 - 8 * k)) & 0xFF;
+                    groundSum[1][k] += (p[i] >> (16 - 8 * k)) & 0xFF;
+                }
             }
         }
-        std::printf("     ground tiles: %.1f %% of the pixels unchanged\n", 100.0 * groundSame / std::max(1L, groundAll));
-        // (the Windows edition's ground is dithered in larger patches, a little more of it is taken for shapes)
-        check(groundSame * 100 >= groundAll * (gfx.windowsEdition ? 95 : 97), "the ground's texture stays as it is");
+        double groundDrift = 0;
+        for (int k = 0; k < 3; ++k)
+            groundDrift = std::max(groundDrift, std::fabs(groundSum[0][k] - groundSum[1][k]) / std::max(1L, groundAll));
+        std::printf("     ground tiles: %.1f %% of the pixels unchanged, colour change %.2f / 255\n", 100.0 * groundSame / std::max(1L, groundAll), groundDrift);
+        check(groundDrift < 2.0, "the ground keeps its colours");
         long seeS = 0, seeP = 0, bleed = 0;
         // the see-through pixels are no colour of the palette: changing every colour the tile does not use must not
         // change the smoothed tile (no fringe from a see-through colour)
@@ -747,7 +776,7 @@ int MapView::SelfTest(const MapGraphics& gfx)
             }
         }
         std::printf("     masked tiles: see-through pixels %ld smoothed / %ld plain, %ld pixels tinted by the see-through colour\n", seeS, seeP, bleed);
-        check(std::labs(seeS - seeP) * 20 < seeP, "smoothing keeps the see-through parts");
+        check(std::labs(seeS - seeP) * 20 < seeP, "upscaling keeps the see-through parts");
         check(bleed == 0, "no fringe from the see-through colour");
     }
     else

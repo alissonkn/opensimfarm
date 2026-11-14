@@ -7,7 +7,7 @@
 
 namespace osf {
 
-// The engine's "modern sound" processing (an engine addition, Options > Modern Sound). It works on the samples the
+// The engine's "modern sound" processing (an engine addition, Options > Advanced). It works on the samples the
 // engine has just decoded from the player's own sound files, in memory only, while the game runs: nothing is written
 // back or stored, and nothing of the original is part of OpenSimFarm.
 

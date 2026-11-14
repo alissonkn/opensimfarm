@@ -9,7 +9,7 @@
 
 namespace osf {
 
-// The engine's "modern sound" synthesizer (an engine addition, Options > Modern Sound): plays the notes of the
+// The engine's "modern sound" synthesizer (an engine addition, Options > Advanced): plays the notes of the
 // player's own song files with instruments made here in code (no recorded instruments, no sound banks):
 // FM piano / bells / electric piano, drawbar organ, plucked strings (Karplus-Strong), detuned, filtered strings, pads
 // and brass, reeds and flutes with breath and vibrato, and a synthesized General-MIDI drum kit. Stereo, with the

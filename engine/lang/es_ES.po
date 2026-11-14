@@ -3481,3 +3481,19 @@ msgstr "Sobre el cultivo"
 
 #~ msgid "More"
 #~ msgstr "Más"
+
+#: src/ui/Windows.cpp
+msgid "Original"
+msgstr "Original"
+
+#: src/ui/GameUi.cpp
+msgid "Advanced"
+msgstr "Avanzado"
+
+#: src/ui/Windows.cpp
+msgid "ADVANCED"
+msgstr "AVANZADO"
+
+#: src/ui/Windows.cpp
+msgid "Font"
+msgstr "Fuente"

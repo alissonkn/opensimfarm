@@ -1209,24 +1209,7 @@ msgid "AutoLease"
 msgstr ""
 
 #: src/ui/GameUi.cpp
-msgid "Smart Driving"
-msgstr ""
-
-#: src/ui/GameUi.cpp
-msgid "Modern Sound"
-msgstr ""
-
-#: src/ui/GameUi.cpp
-msgid "Modern Render"
-msgstr ""
-
-#: src/ui/GameUi.cpp
-msgid "Sound Volume"
-msgstr ""
-
-#: src/ui/GameUi.cpp
-#: src/ui/StartScreen.cpp
-msgid "Language"
+msgid "Advanced"
 msgstr ""
 
 #: src/ui/GameUi.cpp
@@ -2070,6 +2053,11 @@ msgid "MAP 96 x 96"
 msgstr ""
 
 #: src/ui/StartScreen.cpp
+#: src/ui/Windows.cpp
+msgid "Language"
+msgstr ""
+
+#: src/ui/StartScreen.cpp
 msgid ""
 "CHOOSE\n"
 "A REGION"
@@ -2564,7 +2552,7 @@ msgid "Funds  {0}"
 msgstr ""
 
 #: src/ui/Windows.cpp
-msgid "SOUND"
+msgid "ADVANCED"
 msgstr ""
 
 #: src/ui/Windows.cpp
@@ -2572,25 +2560,21 @@ msgid "Effects"
 msgstr ""
 
 #: src/ui/Windows.cpp
-msgid "Modern sound"
+msgid "Modern Sound"
 msgstr ""
 
 #: src/ui/Windows.cpp
-msgid "Cleaner effects in stereo,"
+msgid "Modern Render"
 msgstr ""
 
 #: src/ui/Windows.cpp
-msgid "The sound as the original"
+msgid "Smart Driving"
 msgstr ""
 
 #: src/ui/Windows.cpp
-msgid "new instruments for songs."
+msgid "Font"
 msgstr ""
 
 #: src/ui/Windows.cpp
-msgid "plays it."
-msgstr ""
-
-#: src/ui/Windows.cpp
-msgid "LANGUAGE"
+msgid "Original"
 msgstr ""

@@ -3481,3 +3481,19 @@ msgstr "Sobre a cultura"
 
 #~ msgid "More"
 #~ msgstr "Mais"
+
+#: src/ui/Windows.cpp
+msgid "Original"
+msgstr "Original"
+
+#: src/ui/GameUi.cpp
+msgid "Advanced"
+msgstr "Avançado"
+
+#: src/ui/Windows.cpp
+msgid "ADVANCED"
+msgstr "AVANÇADO"
+
+#: src/ui/Windows.cpp
+msgid "Font"
+msgstr "Fonte"

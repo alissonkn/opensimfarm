@@ -4,6 +4,7 @@
 // The windows draw their original background picture and put live values into the boxes of that picture.
 // Box positions were measured on the pictures; every label is part of the picture itself.
 #include "ui/Windows.h"
+#include "ui/ModernFont.h"
 #include "core/Lang.h"
 #include "audio/Sound.h"
 
@@ -2151,116 +2152,157 @@ private:
     int _top = 0;
 };
 
-// ---------------------------------------------------------------- SOUND (an engine addition: volumes, Modern Sound)
-class SoundWindow : public Window
+// ---------------------------------------------------------------- ADVANCED (an engine addition: the engine's own options)
+// The volumes of the music and the effects, the switches (Modern Sound, Modern Render, Smart Driving), the font of all
+// the text and the language, each of the last two a drop-down list that opens upwards over the window
+class AdvancedWindow : public Window
 {
 public:
-    SoundWindow() : Window(kWinSound, N_("SOUND"), "", 256, 112) {}
-    static constexpr int kTrackX = 76, kStep = 12; // 0 .. 10 in steps of 12 pixels
-    Rect Track(int row) const { return { kTrackX - 2, 8 + 22 * row, 10 * kStep + 4, 12 }; }
-    Rect Check() const { return { 8, 54, 12, 12 }; }
+    static constexpr int kTrackX = 76, kStep = 12; // a volume 0 .. 10 in steps of 12 pixels
+    static constexpr int kSwitches = 3, kListRowH = 14;
+    enum List { kNone = -1, kFont = 0, kLanguage = 1 };
+    AdvancedWindow() : Window(kWinAdvanced, N_("ADVANCED"), "", 256, 148), _langs(AvailableLanguages()) {}
+    Rect Track(int k) const { return { kTrackX - 2, 8 + 22 * k, 10 * kStep + 4, 12 }; }
+    Rect Check(int i) const { return { 8, 54 + 18 * i, 12, 12 }; }
+    Rect Box(int list) const { return { 76, 110 + 18 * list, w - 84, 14 }; }
+    int Count(int list) const { return list == kFont ? FontCount() : static_cast<int>(_langs.size()); }
+    Rect ListRow(int list, int i) const
+    {
+        const Rect b = Box(list);
+        return { b.x, b.y - kListRowH * (Count(list) - i), b.w, kListRowH };
+    }
 
     void DrawContent(Gfx& g, UiContext& ctx) override
     {
         g.Fill(0, 0, w, h, kLightGrey);
-        if (!ctx.audio)
-            return;
-        const int vol[2] = { ctx.audio->MusicVolume(), ctx.audio->EffectsVolume() };
-        static const char* const kName[2] = { N_("Music"), N_("Effects") };
-        for (int k = 0; k < 2; ++k)
-        {
-            const Rect t = Track(k);
-            g.Text(8, t.y + 2, Tr(kName[k]), kBlack);
-            g.Fill(t.x, t.y, t.w, t.h, kWhite);
-            g.Bevel(t.x, t.y, t.w, t.h, false);
-            if (vol[k] > 0)
-                g.Fill(t.x + 2, t.y + 2, vol[k] * kStep, t.h - 4, kBlue);
-            g.TextRight(w - 4, t.y + 2, std::to_string(vol[k] * 10) + "%", kBlack);
-        }
-        const Rect c = Check();
-        g.Fill(c.x, c.y, c.w, c.h, kWhite);
-        g.Bevel(c.x, c.y, c.w, c.h, false);
-        if (ctx.audio->Modern())
-            for (int i = 0; i < 6; ++i) // a tick
-            {
-                g.Fill(c.x + 2 + i, c.y + 5 + (i < 2 ? i : 2 - (i - 2)), 2, 2, kBlack);
-            }
-        g.Text(28, c.y + 2, Tr("Modern sound"), kBlack);
-        g.Text(8, 74, ctx.audio->Modern() ? Tr("Cleaner effects in stereo,") : Tr("The sound as the original"), kDarkGrey);
-        g.Text(8, 86, ctx.audio->Modern() ? Tr("new instruments for songs.") : Tr("plays it."), kDarkGrey);
-    }
-    void Click(int x, int y, UiContext& ctx) override
-    {
-        if (!ctx.audio)
-            return;
-        for (int k = 0; k < 2; ++k)
-            if (Rect t = Track(k); x >= t.x - 6 && x < t.x + t.w + 6 && y >= t.y - 3 && y < t.y + t.h + 3)
-            {
-                const int v = std::clamp((x - kTrackX + kStep / 2) / kStep, 0, 10);
-                if (k == 0)
-                    ctx.audio->SetMusicVolume(v);
-                else
-                {
-                    ctx.audio->SetEffectsVolume(v);
-                    ctx.sound = "cow1.voc"; // hear the new level
-                }
-            }
-        if (Rect c = Check(); x >= c.x && x < 140 && y >= c.y - 2 && y < c.y + c.h + 2)
-            ctx.command = "modernsound";
-    }
-    bool KeyDown(SDL_Keycode k, UiContext& ctx) override
-    {
-        if (!ctx.audio || (k != SDLK_LEFT && k != SDLK_RIGHT))
-            return false;
-        ctx.audio->SetEffectsVolume(ctx.audio->EffectsVolume() + (k == SDLK_RIGHT ? 1 : -1));
-        return true;
-    }
-};
-
-// ---------------------------------------------------------------- LANGUAGE (an engine addition: change the language while playing)
-class LanguageWindow : public Window
-{
-public:
-    static constexpr int kRowH = 14;
-    LanguageWindow() : Window(kWinLanguage, N_("LANGUAGE"), "", 184, 8), _langs(AvailableLanguages())
-    {
-        h = 8 + kRowH * static_cast<int>(_langs.size()) + 4;
-    }
-    Rect Row(size_t i) const { return { 8, 6 + kRowH * static_cast<int>(i), w - 16, kRowH - 2 }; }
-
-    void DrawContent(Gfx& g, UiContext&) override
-    {
-        g.Fill(0, 0, w, h, kLightGrey);
-        for (size_t i = 0; i < _langs.size(); ++i)
-        {
-            const Rect r = Row(i);
-            const bool current = _langs[i].code == CurrentLanguage();
-            if (current)
-                g.Fill(r.x, r.y, r.w, r.h, kBlue);
-            g.TextFit(r.x + 4, r.y + 2, r.w - 8, _langs[i].name, current ? kWhite : kBlack);
-        }
-    }
-    void Click(int x, int y, UiContext& ctx) override
-    {
-        for (size_t i = 0; i < _langs.size(); ++i)
-            if (Row(i).Contains(x, y) && _langs[i].code != CurrentLanguage())
-                ctx.command = "language:" + _langs[i].code;
-    }
-    bool KeyDown(SDL_Keycode k, UiContext& ctx) override
-    {
-        if (k != SDLK_UP && k != SDLK_DOWN)
-            return false;
-        size_t cur = 0;
+        _font = g.Font();
+        _lang = 0;
         for (size_t i = 0; i < _langs.size(); ++i)
             if (_langs[i].code == CurrentLanguage())
-                cur = i;
-        const size_t next = k == SDLK_UP ? (cur + _langs.size() - 1) % _langs.size() : (cur + 1) % _langs.size();
-        ctx.command = "language:" + _langs[next].code;
+                _lang = static_cast<int>(i);
+        // the volumes
+        if (ctx.audio)
+        {
+            const int vol[2] = { ctx.audio->MusicVolume(), ctx.audio->EffectsVolume() };
+            static const char* const kName[2] = { N_("Music"), N_("Effects") };
+            for (int k = 0; k < 2; ++k)
+            {
+                const Rect t = Track(k);
+                g.TextFit(8, t.y + 2, kTrackX - 14, Tr(kName[k]), kBlack);
+                g.Fill(t.x, t.y, t.w, t.h, kWhite);
+                g.Bevel(t.x, t.y, t.w, t.h, false);
+                if (vol[k] > 0)
+                    g.Fill(t.x + 2, t.y + 2, vol[k] * kStep, t.h - 4, kBlue);
+                g.TextRight(w - 4, t.y + 2, std::to_string(vol[k] * 10) + "%", kBlack);
+            }
+        }
+        // the switches: a box, ticked while it is on, and the option's name
+        const bool on[kSwitches] = { ctx.audio && ctx.audio->Modern(), ctx.view && ctx.view->Modern(), Machines::smartDriving };
+        static const char* const kSwitchName[kSwitches] = { N_("Modern Sound"), N_("Modern Render"), N_("Smart Driving") };
+        for (int i = 0; i < kSwitches; ++i)
+        {
+            const Rect c = Check(i);
+            g.Fill(c.x, c.y, c.w, c.h, kWhite);
+            g.Bevel(c.x, c.y, c.w, c.h, false);
+            if (on[i])
+                for (int j = 0; j < 6; ++j) // a tick
+                    g.Fill(c.x + 2 + j, c.y + 5 + (j < 2 ? j : 2 - (j - 2)), 2, 2, kBlack);
+            g.TextFit(28, c.y + 2, w - 36, Tr(kSwitchName[i]), kBlack);
+        }
+        // the drop-downs: the choice in use in a box with an arrow (the font's written in itself)
+        static const char* const kListName[2] = { N_("Font"), N_("Language") };
+        for (int list = kFont; list <= kLanguage; ++list)
+        {
+            const Rect b = Box(list);
+            g.TextFit(8, b.y + 3, b.x - 12, Tr(kListName[list]), kBlack);
+            g.Fill(b.x, b.y, b.w, b.h, kWhite);
+            g.Bevel(b.x, b.y, b.w, b.h, false);
+            Item(g, list, list == kFont ? _font : _lang, b.x + 4, b.y + 3, b.w - 20, kBlack);
+            for (int j = 0; j < 4; ++j) // the arrow: a small triangle pointing up (the list opens upwards)
+                g.Fill(b.x + b.w - 12 + j, b.y + 9 - j, 8 - 2 * j, 1, kBlack);
+        }
+        if (_open == kNone)
+            return;
+        const Rect top = ListRow(_open, 0);
+        g.Fill(top.x, top.y, top.w, kListRowH * Count(_open), kWhite);
+        g.Frame(top.x, top.y, top.w, kListRowH * Count(_open), kBlack);
+        const int current = _open == kFont ? _font : _lang;
+        for (int i = 0; i < Count(_open); ++i)
+        {
+            const Rect r = ListRow(_open, i);
+            if (i == current)
+                g.Fill(r.x + 1, r.y + 1, r.w - 2, r.h - 2, kBlue);
+            Item(g, _open, i, r.x + 4, r.y + 3, r.w - 8, i == current ? kWhite : kBlack);
+        }
+    }
+    void Click(int x, int y, UiContext& ctx) override
+    {
+        if (_open != kNone)
+        {
+            // the list: an entry is chosen; a click anywhere else just closes it
+            for (int i = 0; i < Count(_open); ++i)
+                if (ListRow(_open, i).Contains(x, y))
+                    ctx.command = _open == kFont ? "font:" + std::to_string(i) : "language:" + _langs[static_cast<size_t>(i)].code;
+            _open = kNone;
+            return;
+        }
+        for (int list = kFont; list <= kLanguage; ++list)
+            if (Box(list).Contains(x, y))
+            {
+                _open = list;
+                return;
+            }
+        if (ctx.audio)
+            for (int k = 0; k < 2; ++k)
+                if (Rect t = Track(k); x >= t.x - 6 && x < t.x + t.w + 6 && y >= t.y - 3 && y < t.y + t.h + 3)
+                {
+                    const int v = std::clamp((x - kTrackX + kStep / 2) / kStep, 0, 10);
+                    if (k == 0)
+                        ctx.audio->SetMusicVolume(v);
+                    else
+                    {
+                        ctx.audio->SetEffectsVolume(v);
+                        ctx.sound = "cow1.voc"; // hear the new level
+                    }
+                }
+        static const char* const kCommand[kSwitches] = { "modernsound", "modernrender", "smartdrive" };
+        for (int i = 0; i < kSwitches; ++i)
+            if (Rect c = Check(i); x >= c.x && x < w - 8 && y >= c.y - 2 && y < c.y + c.h + 2)
+                ctx.command = kCommand[i];
+    }
+    bool KeyDown(SDL_Keycode k, UiContext& ctx) override
+    {
+        // left / right: the effects' volume; up / down: the next font
+        if (ctx.audio && (k == SDLK_LEFT || k == SDLK_RIGHT))
+        {
+            ctx.audio->SetEffectsVolume(ctx.audio->EffectsVolume() + (k == SDLK_RIGHT ? 1 : -1));
+            return true;
+        }
+        if (k == SDLK_ESCAPE && _open != kNone)
+        {
+            _open = kNone;
+            return true;
+        }
+        if (k != SDLK_UP && k != SDLK_DOWN)
+            return false;
+        const int n = FontCount();
+        ctx.command = "font:" + std::to_string((_font + (k == SDLK_UP ? n - 1 : 1)) % n);
         return true;
     }
 
 private:
+    // an entry of a list, cut to the room: a font's name in that font, a language's own name
+    void Item(Gfx& g, int list, int i, int x, int y, int room, int colour) const
+    {
+        const size_t fit = static_cast<size_t>(std::max(0, room / 8));
+        if (list == kFont)
+            g.TextInFont(i, x, y, std::string(i == 0 ? Tr("Original") : FontName(i)).substr(0, fit), colour);
+        else if (i >= 0 && i < static_cast<int>(_langs.size()))
+            g.TextFit(x, y, room, _langs[static_cast<size_t>(i)].name, colour);
+    }
     std::vector<LanguageInfo> _langs;
+    int _font = 0, _lang = 0; // the font and the language in use, as last drawn
+    int _open = kNone;        // the list showing
 };
 
 std::unique_ptr<Window> MakeFieldWindow(int field) { return std::make_unique<FieldWindow>(field); }
@@ -2284,8 +2326,7 @@ std::unique_ptr<Window> MakeWindow(int kind)
     case kWinMap: return std::make_unique<MapWindow>();
     case kWinEvaluation: return std::make_unique<EvaluationWindow>();
     case kWinFunds: return std::make_unique<FundsWindow>();
-    case kWinSound: return std::make_unique<SoundWindow>();
-    case kWinLanguage: return std::make_unique<LanguageWindow>();
+    case kWinAdvanced: return std::make_unique<AdvancedWindow>();
     default: return nullptr;
     }
 }

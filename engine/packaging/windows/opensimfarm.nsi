@@ -7,7 +7,7 @@
 ; (%APPDATA%\OpenSimFarm\gamepath.txt). Nothing of the original game is changed (a setup disc's
 ; packed files are unpacked by the game into its own folder).
 ;
-; makensis -DVERSION=x.y.z -DSTAGE=<folder with opensimfarm.exe README.md LICENSE.txt, and opensimfarm.ico for
+; makensis -DVERSION=x.y.z -DSTAGE=<folder with opensimfarm.exe README.md LICENSE.txt FONT-LICENSE.txt, and opensimfarm.ico for
 ;          the installer's own icon (built into the installer; the installed shortcuts use the icon inside the exe)>
 ;          -DOUTFILE=<installer.exe> opensimfarm.nsi
 ;
@@ -182,6 +182,7 @@ Section "${APP}" SecMain
   Delete "$INSTDIR\SDL2.dll" ; versions before 0.6.2 had SDL2 beside the program
   File "${STAGE}\README.md"
   File "${STAGE}\LICENSE.txt"
+  File "${STAGE}\FONT-LICENSE.txt"
   ; remember the SimFarm folder where the game looks for it
   ${If} $GameDir != ""
     CreateDirectory "$APPDATA\OpenSimFarm"
@@ -229,6 +230,7 @@ Section "Uninstall"
   Delete "$INSTDIR\SDL2.dll"
   Delete "$INSTDIR\README.md"
   Delete "$INSTDIR\LICENSE.txt"
+  Delete "$INSTDIR\FONT-LICENSE.txt"
   Delete "$INSTDIR\uninstall.exe"
   RMDir "$INSTDIR"
   Delete "$SMPROGRAMS\${APP}.lnk"
