@@ -511,6 +511,7 @@ bool GameUi::RadioClick(int x, int y)
                 // a hint on the status line only (not kept in its message history)
                 _message = Tr("Radio: your pick. Press AUTO to let the game choose again.");
                 _messageTime = SDL_GetTicks();
+                _messageScroll = 0;
             }
             _radioManual = true;
             if (!musicOn && onCommand)
@@ -523,6 +524,7 @@ bool GameUi::RadioClick(int x, int y)
             _radioManual = false;
             _message = Tr("Radio: the game chooses the music again.");
             _messageTime = SDL_GetTicks();
+            _messageScroll = 0;
         }
         _radioPressed = k;
         _radioPressedAt = SDL_GetTicks();
@@ -670,6 +672,7 @@ void GameUi::ShowMessage(const std::string& m)
 {
     _message = m;
     _messageTime = SDL_GetTicks();
+    _messageScroll = 0;
     if (m.empty())
         return;
     std::string date;
@@ -715,7 +718,7 @@ std::string GameUi::StatusText()
         text = TrF("Flying  height {0}", f.Altitude()) + (f.Spraying() ? std::string("  ") + Tr("SPRAYING") : std::string()) + "   " +
                (FlightArrows() ? Tr("Steer with the arrow buttons") : Tr("Arrows fly, F sprays, Enter lands"));
     }
-    else if (!_message.empty() && SDL_GetTicks() - _messageTime < 6000)
+    else if (!_message.empty() && SDL_GetTicks() - _messageTime < std::max<Uint32>(6000, _messageScroll))
         text = _message;
     else if (_ctx.sim->GetSpeed() == Speed::Paused)
         text = Tr("Game Paused...");
@@ -745,12 +748,37 @@ void GameUi::DrawStatus()
     const std::string speed = Tr(kSpeedName[std::clamp(static_cast<int>(_ctx.sim->GetSpeed()), 0, 4)]);
     const int sx = _w - kScrollBar - 4 - Gfx::SmallTextWidth(speed);
     _g.SmallText(sx, kStatusY + 4, speed, kNavy);
-    // a text too long for the row is drawn with tighter letters, and cut only when even that does not fit
+    // a text too long for the row is drawn with tighter letters (always a pixel apart: touching letters cannot be
+    // read, user 2026-11-15); when even that does not fit it scrolls along the row: shown from its start for a
+    // moment, moved left until its end shows, held there, and again from the start. A message stays up until it was
+    // read to its end once.
     const int room = sx - 8 - tx;
-    if (Gfx::TextWidth(text) > room && Gfx::FitWidth(text, room) <= room)
-        _g.TextFit(tx, kStatusY + 3, room, text, kBlack);
+    const Uint32 now = SDL_GetTicks();
+    if (text != _statusText)
+    {
+        _statusText = text;
+        _statusSince = now;
+    }
+    const bool isMessage = !_message.empty() && text == _message;
+    if (Gfx::TextWidth(text) <= room)
+        _g.Text(tx, kStatusY + 3, text, kBlack);
+    else if (Gfx::FitWidth(text, room, 1) <= room)
+        _g.TextFit(tx, kStatusY + 3, room, text, kBlack, 0, 1);
     else
-        _g.Text(tx, kStatusY + 3, text.substr(0, static_cast<size_t>(std::max(0, room / 8))), kBlack);
+    {
+        constexpr Uint32 kHold = 1500;   // ms at each end
+        constexpr int kSpeed = 40;       // interface pixels a second
+        const int over = Gfx::TextWidth(text) - room;
+        const Uint32 travel = static_cast<Uint32>(over) * 1000 / kSpeed;
+        const Uint32 cycle = kHold + travel + kHold;
+        const Uint32 t = (now - _statusSince) % cycle;
+        const int shift = t < kHold ? 0 : t < kHold + travel ? static_cast<int>((t - kHold) * kSpeed / 1000) : over;
+        if (isMessage)
+            _messageScroll = static_cast<Uint32>(_statusSince - _messageTime) + cycle;
+        _g.Clip(tx, kStatusY + 1, room, kStatusH - 2); // inside the row's frame
+        _g.Text(tx - shift, kStatusY + 3, text, kBlack);
+        _g.ClearClip();
+    }
 }
 
 // ---------------------------------------------------------------- EDIT window frame

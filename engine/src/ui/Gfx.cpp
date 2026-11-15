@@ -661,12 +661,12 @@ void Gfx::DrawCapitalMark(unsigned char ch, int x, int y)
 }
 
 // spacing used by TextFit: 8 = monospaced, else the gap in pixels between the letters' ink
-static int FitGap(const std::string& s, int room, int& width)
+static int FitGap(const std::string& s, int room, int& width, int minGap = 0)
 {
     width = static_cast<int>(s.size()) * 8;
     if (width <= room)
         return 8;
-    for (int gap = 1; gap >= 0; --gap)
+    for (int gap = 1; gap >= minGap; --gap)
     {
         width = 0;
         for (const char ch : s)
@@ -675,23 +675,23 @@ static int FitGap(const std::string& s, int room, int& width)
             width += Gfx::InkWidth(u) + gap;
         }
         width -= gap;
-        if (width <= room || gap == 0)
+        if (width <= room || gap == minGap)
             return gap;
     }
     return 0;
 }
 
-int Gfx::FitWidth(const std::string& s, int room)
+int Gfx::FitWidth(const std::string& s, int room, int minGap)
 {
     int width = 0;
-    FitGap(s, room, width);
+    FitGap(s, room, width, minGap);
     return width;
 }
 
-void Gfx::TextFit(int x, int y, int room, const std::string& s, int c, int align)
+void Gfx::TextFit(int x, int y, int room, const std::string& s, int c, int align, int minGap)
 {
     int width = 0;
-    const int gap = FitGap(s, room, width);
+    const int gap = FitGap(s, room, width, minGap);
     int pen = align == 1 ? x + (room - width) / 2 : align == 2 ? x + room - width : x;
     if (gap == 8)
     {

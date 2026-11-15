@@ -58,6 +58,9 @@ public:
     // detail, keeping its size and colours; 0 when all is well
     static int SelfTest(const Megadata& mega, const MapGraphics& map);
     SDL_Renderer* Renderer() const { return _r; }
+    // drawing cut to a rectangle in interface units until ClearClip
+    void Clip(int x, int y, int w, int h) { const SDL_Rect c = R(x, y, w, h); SDL_RenderSetClipRect(_r, &c); }
+    void ClearClip() { SDL_RenderSetClipRect(_r, nullptr); }
     const Megadata* Mega() const { return _mega; }
     const Palette& Pal() const { return _pal; }
     // the RGB of one of the engine's interface colours (Colour): for the Windows edition the Windows colour that
@@ -98,9 +101,11 @@ public:
     static int TextWidth(const std::string& s) { return static_cast<int>(s.size()) * 8; }
     // a text in [x, x + room): monospaced when it fits, else each letter as wide as its ink and one pixel apart, else
     // with no pixel between letters (a translation over a picture's label); align 0 left, 1 centre, 2 right
-    void TextFit(int x, int y, int room, const std::string& s, int colour, int align = 0);
+    // minGap 1: the letters keep a pixel between them however long the text (the status row: touching letters cannot
+    // be read); the text may then be wider than room
+    void TextFit(int x, int y, int room, const std::string& s, int colour, int align = 0, int minGap = 0);
     // the width TextFit draws s in (more than room when even the tightest spacing does not fit)
-    static int FitWidth(const std::string& s, int room);
+    static int FitWidth(const std::string& s, int room, int minGap = 0);
 
     // the font with the accented letters added (AddLatin1) and its ink widths noted for TextFit (Init does it; the
     // language test calls it without a window)

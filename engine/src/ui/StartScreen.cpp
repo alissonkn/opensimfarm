@@ -23,9 +23,9 @@ constexpr Button kUseRegion{ 97, 233, 140, 22 }, kDesign{ 97, 258, 140, 22 }, kL
 bool In(const Button& b, int x, int y) { return x >= b.x && y >= b.y && x < b.x + b.w && y < b.y + b.h; }
 // the map size of a designed world, under the design picture (an engine addition: 96 x 96 as the original, or
 // 144 x 144 for more land). The region screen stays as the original: its worlds are 96 x 96.
-constexpr Button kMapSizeButton{ 150, 342, 150, 22 };
+constexpr Button kMapSizeButton{ 129, 342, 150, 22 }; // flush with the design panel's left edge (129)
 // the map editor's button beside it (an engine addition)
-constexpr Button kEditButton{ 340, 342, 150, 22 };
+constexpr Button kEditButton{ 329, 342, 150, 22 }; // and its right edge (479)
 // the language button (an engine addition), centred under the panel in the black part of the picture, and its list
 constexpr Button kLanguageButton{ 200, 350, 240, 20 };
 constexpr int kLanguageRowH = 14;

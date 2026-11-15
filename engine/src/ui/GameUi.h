@@ -399,6 +399,9 @@ private:
     int _dragDX = 0, _dragDY = 0;
     std::string _message;
     Uint32 _messageTime = 0;
+    Uint32 _messageScroll = 0;  // ms a long message needs to scroll to its end once (DrawStatus)
+    std::string _statusText;    // the status row's text as last drawn, and since when (its scrolling)
+    Uint32 _statusSince = 0;
     // the engine's message history: the status row's down button opens a list of earlier messages, newest first
     std::deque<std::pair<std::string, std::string>> _history; // date, text
     bool _historyOpen = false;

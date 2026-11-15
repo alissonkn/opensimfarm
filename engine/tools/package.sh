@@ -36,7 +36,7 @@ want=("$@")
 has() { local w; for w in "${want[@]}"; do [ "$w" = "$1" ] && return 0; done; return 1; }
 
 need() { command -v "$1" >/dev/null 2>&1 || { echo "package.sh: $1 is missing ($2)" >&2; exit 1; }; }
-# the licences of the fonts built into the program (Extras > Font), one after the other
+# the licences of the fonts built into the program (Options > Advanced > Font), one after the other
 fontLicences() {
     local d
     for d in "$ENGINE"/src/third_party/fonts/*/; do
