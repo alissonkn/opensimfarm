@@ -74,6 +74,7 @@ add_custom_command(OUTPUT ${OSF_FONT_CPP}
 add_executable(opensimfarm
     src/main.cpp
     src/core/Paths.cpp
+    src/core/DiscImage.cpp
     src/core/InstallDisc.cpp
     src/core/Lang.cpp
     ${OSF_LANG_CPP}

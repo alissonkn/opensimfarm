@@ -1,6 +1,7 @@
 // OpenSimFarm - an open re-implementation of SimFarm. Copyright (c) 2026 OpenSimFarm developers.
 // Licensed under the GNU General Public License version 3 (see LICENSE.txt).
 #include "core/Paths.h"
+#include "core/DiscImage.h"
 #include "core/InstallDisc.h"
 
 #include <algorithm>
@@ -31,17 +32,100 @@ static std::string Lower(std::string s)
     return s;
 }
 
-std::string ConfigDir()
+// the per-user folder the settings were kept in before the folder beside the program (and still are when that one
+// cannot be written)
+static fs::path UserConfigDir()
 {
 #ifdef _WIN32
     const char* base = std::getenv("APPDATA");
-    fs::path p = base ? fs::path(base) / "OpenSimFarm" : fs::path("OpenSimFarm");
+    return base ? fs::path(base) / "OpenSimFarm" : fs::path("OpenSimFarm");
 #else
     const char* xdg = std::getenv("XDG_CONFIG_HOME");
     const char* home = std::getenv("HOME");
-    fs::path p = xdg && *xdg ? fs::path(xdg) / "opensimfarm" : fs::path(home ? home : ".") / ".config" / "opensimfarm";
+    return xdg && *xdg ? fs::path(xdg) / "opensimfarm" : fs::path(home ? home : ".") / ".config" / "opensimfarm";
 #endif
-    return p.string();
+}
+
+// the folder the program is in (empty when unknown)
+static fs::path ProgramDir()
+{
+    std::error_code ec;
+#ifdef _WIN32
+    wchar_t buf[MAX_PATH * 4];
+    const DWORD n = GetModuleFileNameW(nullptr, buf, static_cast<DWORD>(sizeof buf / sizeof buf[0]));
+    if (n == 0 || n >= sizeof buf / sizeof buf[0])
+        return {};
+    return fs::path(std::wstring(buf, n)).parent_path();
+#else
+    const fs::path exe = fs::read_symlink("/proc/self/exe", ec);
+    return ec ? fs::path() : exe.parent_path();
+#endif
+}
+
+// `dir` made (when missing) and written to
+static bool Writable(const fs::path& dir)
+{
+    std::error_code ec;
+    fs::create_directories(dir, ec);
+    const fs::path probe = dir / ".write-test";
+    bool ok = static_cast<bool>(std::ofstream(probe));
+    fs::remove(probe, ec);
+    return ok;
+}
+
+// The settings folder beside the program, once (data/.copied marks it done): the per-user folder's settings, saves and
+// the rest are copied into it without replacing what is there already (the installer may have written gamepath.txt;
+// the old folder is left as it was), and a remembered folder inside the old one now points into the new one
+static void TakeOverUserConfig(const fs::path& from, const fs::path& to)
+{
+    std::error_code ec;
+    const fs::path marker = to / ".copied";
+    if (fs::exists(marker, ec) || !fs::is_directory(from, ec) || fs::equivalent(from, to, ec))
+        return;
+    std::ofstream(marker) << from.string() << "\n";
+    fs::copy(from, to, fs::copy_options::recursive | fs::copy_options::skip_existing, ec);
+    if (ec)
+        std::fprintf(stderr, "OpenSimFarm: the settings in %s could not all be copied to %s: %s\n", from.string().c_str(),
+                     to.string().c_str(), ec.message().c_str());
+    std::string saved;
+    {
+        std::ifstream in(to / "gamepath.txt");
+        std::getline(in, saved);
+    }
+    while (!saved.empty() && (saved.back() == '\r' || saved.back() == '\n'))
+        saved.pop_back();
+    const std::string old = from.string();
+    if (saved.size() > old.size() && saved.compare(0, old.size(), old) == 0 && (saved[old.size()] == '/' || saved[old.size()] == '\\'))
+        std::ofstream(to / "gamepath.txt") << (to.string() + saved.substr(old.size())) << "\n";
+}
+
+std::string ConfigDir()
+{
+#ifdef __EMSCRIPTEN__
+    return UserConfigDir().string(); // the browser's own storage (the page sets XDG_CONFIG_HOME)
+#else
+    static const std::string dir = [] {
+        const fs::path user = UserConfigDir();
+#ifndef _WIN32
+        // set on purpose (the tests, a second set of settings): it wins over the folder beside the program
+        if (const char* xdg = std::getenv("XDG_CONFIG_HOME"); xdg && *xdg)
+            return user.string();
+#endif
+        // beside the program, as "data", where it can be written: an unpacked zip or a build. Not in a system folder
+        // (the rpm and deb put the program into /usr/bin), nor in a read-only one: there, the per-user folder
+        const fs::path prog = ProgramDir();
+        const std::string ps = prog.generic_string();
+        const bool system = ps.rfind("/usr/", 0) == 0 || ps.rfind("/bin", 0) == 0 || ps.rfind("/opt/", 0) == 0;
+        if (prog.empty() || system)
+            return user.string();
+        const fs::path here = prog / "data";
+        if (!Writable(here))
+            return user.string();
+        TakeOverUserConfig(user, here);
+        return here.string();
+    }();
+    return dir;
+#endif
 }
 
 std::optional<std::string> FindFileNoCase(const std::string& dir, const std::string& name)
@@ -100,6 +184,19 @@ std::optional<std::string> PlayableGameDirectory(const std::string& dir)
 {
     if (IsGameDirectory(dir))
         return dir;
+#ifndef __EMSCRIPTEN__
+    if (IsDiscImage(dir))
+    {
+        // an image of the disc: the game copied (or unpacked) from it once, as from the disc itself
+        std::string error;
+        const auto copy = GameFromDiscImage(dir, SetupDiscCopy(dir), error);
+        if (!copy)
+            std::fprintf(stderr, "OpenSimFarm: no usable SimFarm in the disc image %s: %s\n", dir.c_str(), error.c_str());
+        else if (IsGameDirectory(*copy))
+            return copy;
+        return std::nullopt;
+    }
+#endif
     if (!IsSetupDisc(dir))
         return std::nullopt;
     std::string error;

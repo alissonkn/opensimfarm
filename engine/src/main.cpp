@@ -4,8 +4,9 @@
 // OpenSimFarm runs on the player's own copy of SimFarm (Maxis, 1993); no original file is part of it.
 //
 // Usage:
-//   opensimfarm [path-to-SimFarm-folder] [farm.SSM|save.SFM]      play (the folder is remembered)
+//   opensimfarm [path-to-SimFarm-folder] [farm.SSM|save.SFM]      play (the folder is remembered; also the setup disc or its image)
 //   opensimfarm --reconfigure [farm.SSM|save.SFM]                  choose the SimFarm folder again (folder dialog), then play
+//   opensimfarm --prepare PATH                                     check PATH (folder, setup disc or its .iso/.bin) and remember it
 //   opensimfarm --findgame [folder]                                where SimFarm is found (search of the usual places)
 //   opensimfarm --selftest [folder]                                 load and re-save every prebuilt farm, compare bytes
 //   opensimfarm --simulate DAYS [farm] [folder]                     run DAYS game days without a window and print a report
@@ -94,6 +95,23 @@ static void Fatal(const std::string& msg, bool gui = true)
     std::fprintf(stderr, "OpenSimFarm: %s\n", msg.c_str());
     if (gui)
         SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "OpenSimFarm", Latin1ToUtf8(msg).c_str(), nullptr);
+}
+
+// settings.txt in the settings folder: its key=value lines (spaces around the key or the value are allowed, as another
+// program, such as a launcher, may edit the file)
+static std::map<std::string, std::string> ReadSettingsFile()
+{
+    std::map<std::string, std::string> out;
+    std::ifstream in(std::filesystem::path(ConfigDir()) / "settings.txt");
+    auto trim = [](std::string s) {
+        const auto a = s.find_first_not_of(" \t\r"), b = s.find_last_not_of(" \t\r");
+        return a == std::string::npos ? std::string() : s.substr(a, b - a + 1);
+    };
+    std::string line;
+    while (std::getline(in, line))
+        if (const auto eq = line.find('='); eq != std::string::npos)
+            out[trim(line.substr(0, eq))] = trim(line.substr(eq + 1));
+    return out;
 }
 
 static std::string ResolveFarm(const std::string& gameDir, const std::string& arg)
@@ -2478,6 +2496,37 @@ int main(int argc, char** argv)
         std::printf("%s\n", dir ? dir->c_str() : error.c_str());
         return dir ? 0 : 1;
     }
+    if (argc > 2 && std::strcmp(argv[1], "--prepare") == 0)
+    {
+        // --prepare PATH: the game's start without a window, for a launcher's setup screen: PATH (the SimFarm folder,
+        // the setup disc or an image of it, unpacked here) gets the full check the game makes before it plays and is
+        // remembered for the next starts. Prints "progress FRACTION TEXT" lines; 0 = ready, 2 = not usable (why on
+        // stderr)
+        std::setvbuf(stdout, nullptr, _IONBF, 0);
+        std::printf("progress 0.1 Reading your copy of SimFarm\n");
+        const auto dir = PlayableGameDirectory(argv[2]);
+        if (!dir)
+        {
+            std::fprintf(stderr, "OpenSimFarm: %s does not hold SimFarm's files (MEGADATA.IDX and MEGADATA.EEA), and is not "
+                                 "a SimFarm disc or an image of one.\n", argv[2]);
+            return 2;
+        }
+        std::printf("progress 0.7 Checking the game files\n");
+        Megadata mega;
+        MapGraphics gfx;
+        GameState probe;
+        std::string err;
+        const auto scen = FindFileNoCase(*dir, "SCEN0.SSM");
+        if (!mega.Open(*dir, err) || !LoadMapGraphics(mega, gfx) || !scen || !probe.Load(*dir, *scen, err))
+        {
+            std::fprintf(stderr, "OpenSimFarm: the SimFarm files in %s cannot be used: %s\n", dir->c_str(),
+                         err.empty() ? (scen ? "the tile sheets or the palette are missing" : "SCEN0.SSM is missing") : err.c_str());
+            return 2;
+        }
+        RememberGameDirectory(*dir);
+        std::printf("progress 1 Ready to play\n");
+        return 0;
+    }
     if (argc > 4 && std::strcmp(argv[1], "--run") == 0)
     {
         // --run FROM DAYS TO [folder]: load a save, run DAYS game days at timer level, write TO
@@ -3295,14 +3344,9 @@ int main(int argc, char** argv)
     }
     // the language: the one chosen before (settings.txt), else the system's when the program has it
     {
-        std::ifstream in(std::filesystem::path(ConfigDir()) / "settings.txt");
-        std::string line, lang;
-        while (std::getline(in, line))
-            if (line.rfind("language=", 0) == 0)
-                lang = line.substr(9);
-        while (!lang.empty() && (lang.back() == '\r' || lang.back() == ' '))
-            lang.pop_back();
-        SetLanguage(lang.empty() ? SystemLanguage() : lang);
+        const auto file = ReadSettingsFile();
+        const auto lang = file.find("language");
+        SetLanguage(lang == file.end() || lang->second.empty() ? SystemLanguage() : lang->second);
     }
     std::optional<std::string> gameDir;
 #ifndef __EMSCRIPTEN__
@@ -3512,13 +3556,8 @@ int main(int argc, char** argv)
     }
     // interface settings of the last session (settings.txt in the settings folder: key=value lines)
     std::map<std::string, int> settings;
-    {
-        std::ifstream in(std::filesystem::path(ConfigDir()) / "settings.txt");
-        std::string line;
-        while (std::getline(in, line))
-            if (const auto eq = line.find('='); eq != std::string::npos)
-                settings[line.substr(0, eq)] = std::atoi(line.c_str() + eq + 1);
-    }
+    for (const auto& [key, value] : ReadSettingsFile())
+        settings[key] = std::atoi(value.c_str());
     if (settings.count("scale"))
         uiScale = std::clamp(settings["scale"], 1, 4);
     gfxUi.SetScale(uiScale);
