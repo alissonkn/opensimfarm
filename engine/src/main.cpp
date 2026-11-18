@@ -97,6 +97,11 @@ static void Fatal(const std::string& msg, bool gui = true)
         SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "OpenSimFarm", Latin1ToUtf8(msg).c_str(), nullptr);
 }
 
+// OpenSimFarm keeps everything in its own folder: said when that folder cannot be written ({0}: the data folder)
+static const char* const kUnwritableText = N_(
+    "OpenSimFarm keeps its settings and saves in its own folder,\nbut it cannot write to\n{0}\n\nMove the OpenSimFarm "
+    "folder to a place you can write to\n(not Program Files), then start it again.");
+
 // settings.txt in the settings folder: its key=value lines (spaces around the key or the value are allowed, as another
 // program, such as a launcher, may edit the file)
 static std::map<std::string, std::string> ReadSettingsFile()
@@ -2503,6 +2508,11 @@ int main(int argc, char** argv)
         // remembered for the next starts. Prints "progress FRACTION TEXT" lines; 0 = ready, 2 = not usable (why on
         // stderr)
         std::setvbuf(stdout, nullptr, _IONBF, 0);
+        if (const std::string bad = UnwritableConfigDir(); !bad.empty())
+        {
+            std::fprintf(stderr, "OpenSimFarm: %s\n", TrF(kUnwritableText, bad).c_str());
+            return 2;
+        }
         std::printf("progress 0.1 Reading your copy of SimFarm\n");
         const auto dir = PlayableGameDirectory(argv[2]);
         if (!dir)
@@ -3348,6 +3358,14 @@ int main(int argc, char** argv)
         const auto lang = file.find("language");
         SetLanguage(lang == file.end() || lang->second.empty() ? SystemLanguage() : lang->second);
     }
+#ifndef __EMSCRIPTEN__
+    if (const std::string bad = UnwritableConfigDir(); !bad.empty())
+    {
+        Fatal(TrF(kUnwritableText, bad));
+        SDL_Quit();
+        return 1;
+    }
+#endif
     std::optional<std::string> gameDir;
 #ifndef __EMSCRIPTEN__
     if (reconfigure)

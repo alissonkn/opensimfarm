@@ -99,6 +99,9 @@ static void TakeOverUserConfig(const fs::path& from, const fs::path& to)
         std::ofstream(to / "gamepath.txt") << (to.string() + saved.substr(old.size())) << "\n";
 }
 
+// the data folder beside the program when it cannot be written (empty: it can)
+static std::string g_unwritable;
+
 std::string ConfigDir()
 {
 #ifdef __EMSCRIPTEN__
@@ -106,26 +109,34 @@ std::string ConfigDir()
 #else
     static const std::string dir = [] {
         const fs::path user = UserConfigDir();
+        const fs::path prog = ProgramDir();
 #ifndef _WIN32
         // set on purpose (the tests, a second set of settings): it wins over the folder beside the program
         if (const char* xdg = std::getenv("XDG_CONFIG_HOME"); xdg && *xdg)
             return user.string();
-#endif
-        // beside the program, as "data", where it can be written: an unpacked zip or a build. Not in a system folder
-        // (the rpm and deb put the program into /usr/bin), nor in a read-only one: there, the per-user folder
-        const fs::path prog = ProgramDir();
+        // the rpm and deb put the program into /usr/bin, where a player cannot write: the per-user folder
         const std::string ps = prog.generic_string();
-        const bool system = ps.rfind("/usr/", 0) == 0 || ps.rfind("/bin", 0) == 0 || ps.rfind("/opt/", 0) == 0;
-        if (prog.empty() || system)
+        if (prog.empty() || ps.rfind("/usr/", 0) == 0 || ps.rfind("/bin", 0) == 0)
             return user.string();
-        const fs::path here = prog / "data";
+#endif
+        // everything beside the program, in "data"; never elsewhere (a folder that cannot be written is reported)
+        const fs::path here = (prog.empty() ? fs::current_path() : prog) / "data";
         if (!Writable(here))
-            return user.string();
+        {
+            g_unwritable = here.string();
+            return here.string();
+        }
         TakeOverUserConfig(user, here);
         return here.string();
     }();
     return dir;
 #endif
+}
+
+std::string UnwritableConfigDir()
+{
+    ConfigDir();
+    return g_unwritable;
 }
 
 std::optional<std::string> FindFileNoCase(const std::string& dir, const std::string& name)

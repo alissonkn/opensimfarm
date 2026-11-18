@@ -9,11 +9,15 @@
 // the user tells us where SimFarm is installed and the engine reads the files from there.
 namespace osf {
 
-// Directory that holds our settings, saves and the rest: the folder "data" beside the program when it can be written
-// there (made at the first start, with the settings of the per-user folder copied into it once), else the per-user folder
-// (Linux: ~/.config/opensimfarm, also whenever $XDG_CONFIG_HOME is set: $XDG_CONFIG_HOME/opensimfarm; Windows:
-// %APPDATA%\OpenSimFarm). The program in /usr, /bin or /opt (the rpm and deb) always uses the per-user folder.
+// Directory that holds our settings, saves, the copy of an unpacked disc and the rest: the folder "data" beside the
+// program, made at the first start (the settings and saves of the per-user folder earlier versions used,
+// %APPDATA%\OpenSimFarm or ~/.config/opensimfarm, are copied into it once). Only on Linux is the per-user folder still
+// used: for the program in /usr or /bin (the rpm and deb), and whenever $XDG_CONFIG_HOME is set
+// ($XDG_CONFIG_HOME/opensimfarm).
 std::string ConfigDir();
+
+// ConfigDir() when it cannot be written (the program in a folder the player may not write to), else empty
+std::string UnwritableConfigDir();
 
 // Returns true when `dir` looks like a SimFarm installation (MEGADATA.IDX/.EEA present).
 bool IsGameDirectory(const std::string& dir);

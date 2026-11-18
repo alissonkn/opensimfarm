@@ -21,19 +21,13 @@
   },
   "saves": ["{install}/data/saves", "{install}/data/settings.txt"],
   "folders": {
-    "saves": [
-      { "path": "{install}/data/saves", "if": "{install}/data" },
-      { "path": "{config}/opensimfarm/saves" }
-    ]
+    "saves": [{ "path": "{install}/data/saves" }]
   },
   "config": [
     {
       "id": "main",
       "format": "ini",
-      "file": [
-        { "path": "{install}/data/settings.txt", "if": "{install}/data" },
-        { "path": "{config}/opensimfarm/settings.txt" }
-      ]
+      "file": [{ "path": "{install}/data/settings.txt" }]
     }
   ],
   "settings": [

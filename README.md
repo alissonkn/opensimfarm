@@ -43,10 +43,10 @@ The SimFarm folder is the one holding `MEGADATA.IDX` and `MEGADATA.EEA`: an inst
 unpacked once), and so does an image of a SimFarm CD (`.iso`, or the `.bin` of a `.cue`/`.bin` copy) in place of
 the folder. Without a folder, OpenSimFarm searches the usual places and then asks.
 
-Settings and saves live in a `data` folder beside the program (from the zip, the tar.gz or the Windows installer).
-Where that folder can't be written (the rpm and deb, or a read-only folder) they live in `~/.config/opensimfarm/`
-(Linux) or `%APPDATA%\OpenSimFarm\` (Windows). The first start of a newer version copies the settings and saves from
-there into `data`; the old folder is kept as it was.
+Settings and saves live with the game, in the `data` folder beside the program (saves in `data/saves`), wherever you
+put or install it; the folder must be one you can write to. The first start copies the settings and saves of earlier
+versions (`%APPDATA%\OpenSimFarm\`, `~/.config/opensimfarm/`) into `data` once; you can delete the old folder
+afterwards. Only the rpm and deb, whose program is in `/usr/bin`, keep them in `~/.config/opensimfarm/`.
 
 ## Licence
 GNU General Public License version 3; see [engine/LICENSE.txt](engine/LICENSE.txt).

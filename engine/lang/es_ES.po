@@ -10,6 +10,22 @@ msgstr ""
 
 #: src/main.cpp
 msgid ""
+"OpenSimFarm keeps its settings and saves in its own folder,\n"
+"but it cannot write to\n"
+"{0}\n"
+"\n"
+"Move the OpenSimFarm folder to a place you can write to\n"
+"(not Program Files), then start it again."
+msgstr ""
+"OpenSimFarm guarda la configuración y las partidas en su propia carpeta,\n"
+"pero no puede escribir en\n"
+"{0}\n"
+"\n"
+"Mueve la carpeta de OpenSimFarm a un lugar donde puedas escribir\n"
+"(no en Archivos de programa) y vuelve a iniciarlo."
+
+#: src/main.cpp
+msgid ""
 "No folder dialog is available on this system (install zenity or kdialog),\n"
 "so tell OpenSimFarm the folder once by starting it as\n"
 "  opensimfarm /path/to/SIMFARM\n"
