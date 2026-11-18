@@ -36,8 +36,9 @@ cmake --build build-win
 ```
 
 ### Building the installers
-`engine/tools/package.sh [windows] [rpm] [deb]` (no argument: all three) builds the release packages into
-`engine/dist/`, the Windows ones included, on Linux. The version is the `project(OpenSimFarm VERSION ...)` number in
+`engine/tools/package.sh [windows] [rpm] [deb] [tar]` (no argument: all four) builds the release packages into
+`engine/dist/`, the Windows ones included, on Linux. The Windows zip and the Linux tar.gz also carry
+`packaging/recomplauncher.json`, which tells RecompLauncher how to set the game up and start it. The version is the `project(OpenSimFarm VERSION ...)` number in
 `engine/CMakeLists.txt`.
 
 1. Tools, once. Fedora:
@@ -91,7 +92,8 @@ GitHub Pages on every push to `main` that changes `site/`, `engine/src/`, `engin
 
 ## Tests
 All of these run headless on Linux: no screen, no sound card. Each needs your SimFarm folder; without one given,
-it uses the folder the game remembers (`~/.config/opensimfarm/gamepath.txt`).
+it uses the folder the game remembers (`gamepath.txt` in the settings folder: `engine/build/data/` for a build, or
+`$XDG_CONFIG_HOME/opensimfarm/` when `XDG_CONFIG_HOME` is set, which also keeps a test's settings apart from yours).
 
 ### The desktop game, headless
 The checks are built into the program. `SDL_VIDEODRIVER=dummy` keeps them from opening a window and
@@ -143,7 +145,7 @@ engine/tools/play.sh key space      # xdotool keys
 engine/tools/play.sh shot NAME      # screenshot -> $OUT/NAME.png (set OUT to a folder of your choice)
 engine/tools/play.sh stop
 ```
-It uses your own settings (`~/.config/opensimfarm/`); the coordinates assume `scale=2`.
+It uses your own settings (`engine/build/data/`); the coordinates assume `scale=2`.
 
 ## Adding or updating a language
 Each language is a dictionary in the gettext `.po` format in `engine/lang/`. Each entry pairs a text of the game
@@ -154,8 +156,8 @@ Each language is a dictionary in the gettext `.po` format in `engine/lang/`. Eac
   header's `Language` and `X-Language-Name` (the language's name in its own words) and every `msgstr`, then build.
   `{0}`, `{1}` ... stand for numbers and names the game fills in; a translation may put them in another order.
   `\n` starts a new line.
-* A `.po` file can also go into the `languages` folder of the settings folder (`~/.config/opensimfarm/languages/` on
-  Linux). The game reads it at start, without a rebuild. A file there with the code of a built-in language replaces
+* A `.po` file can also go into the `languages` folder of the settings folder (`data/languages/` beside the program,
+  or `~/.config/opensimfarm/languages/` for the rpm and deb). The game reads it at start, without a rebuild. A file there with the code of a built-in language replaces
   that language.
 * Some texts come from your SimFarm files, not from the program: message boxes, item and crop descriptions, the Farm
   Expert's cards and crop names. They are translated by id (`event:12`, `item:40`, `card:30:1`,

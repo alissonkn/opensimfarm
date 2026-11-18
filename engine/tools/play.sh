@@ -18,7 +18,7 @@ start) cd "$ROOT/engine"
   setsid env SDL_VIDEODRIVER=x11 ./${BIN:-build}/opensimfarm $2 > "$OUT/play.log" 2>&1 < /dev/null & echo $! > "$OUT/play.pid"; sleep 4
   [ -z "$2" ] && { xdotool key space; sleep 0.3; xdotool key space; sleep 0.5; };;
 load) cd "$ROOT/engine"
-  setsid env SDL_VIDEODRIVER=x11 ./${BIN:-build}/opensimfarm "$(cat ~/.config/opensimfarm/gamepath.txt)" "$2" > "$OUT/play.log" 2>&1 < /dev/null & echo $! > "$OUT/play.pid"; sleep 4;;
+  setsid env SDL_VIDEODRIVER=x11 ./${BIN:-build}/opensimfarm "$(cat ./${BIN:-build}/data/gamepath.txt 2>/dev/null || cat ~/.config/opensimfarm/gamepath.txt)" "$2" > "$OUT/play.log" 2>&1 < /dev/null & echo $! > "$OUT/play.pid"; sleep 4;;
 shot) ffmpeg -loglevel error -y -f x11grab -video_size 1280x960 -i :78+160,119 -frames:v 1 -vf scale=640:480:flags=neighbor "$OUT/$2.png";;
 c) xdotool mousemove $(X $2) $(Y $3); sleep 0.2; xdotool click 1; sleep ${4:-0.6};;
 rc) xdotool mousemove $(X $2) $(Y $3); sleep 0.2; xdotool click 3; sleep 0.5;;

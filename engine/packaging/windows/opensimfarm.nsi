@@ -4,7 +4,8 @@
 ; Windows installer (NSIS 3, built by tools/package.sh). Installs for the current user only (no administrator
 ; rights needed) into %LOCALAPPDATA%\Programs\OpenSimFarm, finds the player's own SimFarm folder (the game's own
 ; search, run from the installer) or lets the player choose it, and remembers it where the game looks
-; (%APPDATA%\OpenSimFarm\gamepath.txt). Nothing of the original game is changed (a setup disc's
+; (data\gamepath.txt beside the program; earlier versions kept it in %APPDATA%\OpenSimFarm, whose settings
+; and saves the game copies into data at its first start). Nothing of the original game is changed (a setup disc's
 ; packed files are unpacked by the game into its own folder).
 ;
 ; makensis -DVERSION=x.y.z -DSTAGE=<folder with opensimfarm.exe README.md LICENSE.txt FONT-LICENSE.txt, and opensimfarm.ico for
@@ -101,9 +102,14 @@ Function GamePagePre
     Return
   ${EndIf}
   StrCpy $Searched 1
-  ; a folder remembered by an earlier installation or by the game
+  ; a folder remembered by an earlier installation or by the game (beside the program, or where earlier
+  ; versions kept it)
   ClearErrors
-  FileOpen $2 "$APPDATA\OpenSimFarm\gamepath.txt" r
+  FileOpen $2 "$INSTDIR\data\gamepath.txt" r
+  ${If} ${Errors}
+    ClearErrors
+    FileOpen $2 "$APPDATA\OpenSimFarm\gamepath.txt" r
+  ${EndIf}
   ${IfNot} ${Errors}
     FileRead $2 $0
     FileClose $2
@@ -185,8 +191,8 @@ Section "${APP}" SecMain
   File "${STAGE}\FONT-LICENSE.txt"
   ; remember the SimFarm folder where the game looks for it
   ${If} $GameDir != ""
-    CreateDirectory "$APPDATA\OpenSimFarm"
-    FileOpen $0 "$APPDATA\OpenSimFarm\gamepath.txt" w
+    CreateDirectory "$INSTDIR\data"
+    FileOpen $0 "$INSTDIR\data\gamepath.txt" w
     FileWrite $0 "$GameDir$\r$\n"
     FileClose $0
   ${EndIf}
@@ -224,7 +230,8 @@ Function .onInstSuccess
 done:
 FunctionEnd
 
-; the player's saves and settings (%APPDATA%\OpenSimFarm) are kept
+; the player's saves and settings (data beside the program, or %APPDATA%\OpenSimFarm) are kept: the folder stays
+; when data is in it
 Section "Uninstall"
   Delete "$INSTDIR\opensimfarm.exe"
   Delete "$INSTDIR\SDL2.dll"

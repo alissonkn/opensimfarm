@@ -1,0 +1,129 @@
+{
+  "$schema": "https://recomplauncher.com/schema/recomplauncher.json",
+  "format": 1,
+  "name": "OpenSimFarm",
+  "repo": "alissonkn/opensimfarm",
+  "game": {
+    "kind": "iso_or_folder",
+    "label": "Your own copy of SimFarm (DOS or Windows): the folder it's installed in (the one with MEGADATA.EEA), or a disc image (.iso, or .cue/.bin) of the SimFarm for Windows CD.",
+    "check": { "file": "MEGADATA.EEA", "iso9660": "MEGADATA.EE_" }
+  },
+  "prepare": {
+    "program": ["opensimfarm.exe", "opensimfarm"],
+    "args": ["--prepare", "{game}"],
+    "label": "Checking your copy, and unpacking the game from a CD",
+    "timeout": 120,
+    "done": ["{install}/data/gamepath.txt"]
+  },
+  "start": {
+    "program": ["opensimfarm.exe", "opensimfarm"],
+    "args": []
+  },
+  "saves": ["{install}/data/saves", "{install}/data/settings.txt"],
+  "folders": {
+    "saves": [
+      { "path": "{install}/data/saves", "if": "{install}/data" },
+      { "path": "{config}/opensimfarm/saves" }
+    ]
+  },
+  "config": [
+    {
+      "id": "main",
+      "format": "ini",
+      "file": [
+        { "path": "{install}/data/settings.txt", "if": "{install}/data" },
+        { "path": "{config}/opensimfarm/settings.txt" }
+      ]
+    }
+  ],
+  "settings": [
+    {
+      "id": "window", "label": "Window size", "group": "Picture",
+      "help": "The game's 640 x 480 picture, 1 to 4 times as large. Until you pick one, the game picks the largest that fits your screen.",
+      "choices": [
+        { "label": "640 x 480", "set": { "scale": "1" } },
+        { "label": "1280 x 960", "set": { "scale": "2" } },
+        { "label": "1920 x 1440", "set": { "scale": "3" } },
+        { "label": "2560 x 1920", "set": { "scale": "4" } }
+      ]
+    },
+    {
+      "id": "render", "label": "Modern Render", "group": "Picture",
+      "help": "Smoothed pictures, and animals, machines and cars glide from cell to cell. Off draws them as the original does.",
+      "choices": [
+        { "label": "On", "set": { "modernrender": "1" } },
+        { "label": "Off", "set": { "modernrender": "0" } }
+      ],
+      "defaults": { "modernrender": "1" }
+    },
+    {
+      "id": "font", "label": "Font", "group": "Picture",
+      "help": "The letters all the game's text is drawn in. Original is the game's own font.",
+      "choices": [
+        { "label": "Original", "set": { "font": "0" } },
+        { "label": "Space Mono", "set": { "font": "1" } },
+        { "label": "IBM Plex Mono", "set": { "font": "2" } },
+        { "label": "JetBrains Mono", "set": { "font": "3" } },
+        { "label": "Press Start 2P", "set": { "font": "4" } }
+      ],
+      "defaults": { "font": "1" }
+    },
+    {
+      "id": "modernsound", "label": "Modern Sound", "group": "Sound",
+      "help": "Cleaner effects placed on the map, and new instruments for the music. Off plays the sound as the original does.",
+      "choices": [
+        { "label": "On", "set": { "modernsound": "1" } },
+        { "label": "Off", "set": { "modernsound": "0" } }
+      ],
+      "defaults": { "modernsound": "1" }
+    },
+    {
+      "id": "music", "label": "Music", "group": "Sound",
+      "choices": [
+        { "label": "On", "set": { "music": "1" } },
+        { "label": "Off", "set": { "music": "0" } }
+      ],
+      "defaults": { "music": "1" }
+    },
+    {
+      "id": "sfx", "label": "Sound effects", "group": "Sound",
+      "choices": [
+        { "label": "On", "set": { "sfx": "1" } },
+        { "label": "Off", "set": { "sfx": "0" } }
+      ],
+      "defaults": { "sfx": "1" }
+    },
+    {
+      "id": "smartdriving", "label": "Smart driving", "group": "Game",
+      "help": "Machines plan their way to the field and back. Off: they steer as in the original.",
+      "choices": [
+        { "label": "On", "set": { "smartdriving": "1" } },
+        { "label": "Off", "set": { "smartdriving": "0" } }
+      ],
+      "defaults": { "smartdriving": "1" }
+    },
+    {
+      "id": "messages", "label": "Messages", "group": "Game",
+      "help": "The game's message boxes. Off shows only the important ones, as the original's Messages option does.",
+      "choices": [
+        { "label": "On", "set": { "messages": "1" } },
+        { "label": "Off", "set": { "messages": "0" } }
+      ],
+      "defaults": { "messages": "1" }
+    },
+    {
+      "id": "language", "label": "Language", "group": "Game",
+      "help": "The language of the menus and texts. System picks your computer's language when the game has it.",
+      "choices": [
+        { "label": "System", "set": { "language": "" } },
+        { "label": "English", "set": { "language": "en" } },
+        { "label": "Português (Brasil)", "set": { "language": "pt_BR" } },
+        { "label": "Español", "set": { "language": "es_ES" } }
+      ],
+      "defaults": { "language": "" }
+    }
+  ],
+  "actions": [
+    { "id": "saves", "label": "Saves", "help": "Your saved farms.", "open": "saves" }
+  ]
+}

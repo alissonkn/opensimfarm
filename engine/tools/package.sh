@@ -2,10 +2,12 @@
 # OpenSimFarm - an open re-implementation of SimFarm. Copyright (c) 2026 OpenSimFarm developers.
 # Licensed under the GNU General Public License version 3 (see LICENSE.txt).
 #
-# package.sh [windows] [rpm] [deb]  (none = all three): builds the release packages into engine/dist/
+# package.sh [windows] [rpm] [deb] [tar]  (none = all four): builds the release packages into engine/dist/
 #   windows  OpenSimFarm-VERSION-windows-x64-setup.exe (NSIS installer) and OpenSimFarm-VERSION-windows-x64.zip
 #   rpm      opensimfarm-VERSION-1.x86_64.rpm
 #   deb      opensimfarm_VERSION-1_amd64.deb
+#   tar      OpenSimFarm-VERSION-linux-x64.tar.gz (the program in a folder of its own; needs the system's SDL2)
+# The zip and the tar.gz carry packaging/recomplauncher.json beside the program (RecompLauncher installs from them).
 # None of them holds anything of the original game: the game finds the player's own SimFarm folder (installer page,
 # or its own search and folder dialog at the first start).
 #
@@ -32,7 +34,7 @@ HOMEPAGE=https://github.com/alissonkn/opensimfarm
 SUMMARY="Open re-implementation of SimFarm (plays with your own copy of the game)"
 
 want=("$@")
-[ ${#want[@]} -eq 0 ] && want=(windows rpm deb)
+[ ${#want[@]} -eq 0 ] && want=(windows rpm deb tar)
 has() { local w; for w in "${want[@]}"; do [ "$w" = "$1" ] && return 0; done; return 1; }
 
 need() { command -v "$1" >/dev/null 2>&1 || { echo "package.sh: $1 is missing ($2)" >&2; exit 1; }; }
@@ -85,16 +87,17 @@ if has windows; then
     cp "$ENGINE/LICENSE.txt" "$S/LICENSE.txt"
     fontLicences > "$S/FONT-LICENSE.txt"
     cp "$ENGINE/packaging/windows/opensimfarm.ico" "$S/"
+    cp "$ENGINE/packaging/recomplauncher.json" "$S/"
     NSI=("${MAKENSIS[@]}" -V2 -DVERSION="$VERSION" -DSTAGE="$S")
     OUT=$DIST/OpenSimFarm-$VERSION-windows-x64-setup.exe
     "${NSI[@]}" -DOUTFILE="$OUT" "$ENGINE/packaging/windows/opensimfarm.nsi"
     rm -f "$DIST/OpenSimFarm-$VERSION-windows-x64.zip"
-    (cd "$S" && 7z a -tzip -bso0 -bsp0 "$DIST/OpenSimFarm-$VERSION-windows-x64.zip" opensimfarm.exe README.md LICENSE.txt FONT-LICENSE.txt)
+    (cd "$S" && 7z a -tzip -bso0 -bsp0 "$DIST/OpenSimFarm-$VERSION-windows-x64.zip" opensimfarm.exe README.md LICENSE.txt FONT-LICENSE.txt recomplauncher.json)
     ls -la "$OUT" "$DIST/OpenSimFarm-$VERSION-windows-x64.zip"
 fi
 
 # ---------------------------------------------------------------- Linux file tree (shared by rpm and deb)
-if has rpm || has deb; then
+if has rpm || has deb || has tar; then
     echo "== Linux $VERSION"
     if [ ! -f "$BUILD_PKG/CMakeCache.txt" ]; then
         cmake -S "$ENGINE" -B "$BUILD_PKG" -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="$TOOLCHAINS/linux-glibc235.cmake" \
@@ -200,5 +203,19 @@ EOF
     OUT=$DIST/opensimfarm_$VERSION-1_amd64.deb
     rm -f "$OUT"
     (cd "$D" && ar rc "$OUT" debian-binary control.tar.gz data.tar.gz)
+    ls -la "$OUT"
+fi
+
+# ---------------------------------------------------------------- tar.gz (the program with its papers, for unpacking anywhere)
+if has tar; then
+    A=$WORK/tar
+    rm -rf "$A" && mkdir -p "$A"
+    install -m 755 "$T/usr/bin/opensimfarm" "$A/opensimfarm"
+    install -m 644 "$ROOT/README.md" "$A/README.md"
+    install -m 644 "$ENGINE/LICENSE.txt" "$A/LICENSE.txt"
+    install -m 644 "$T/usr/share/doc/opensimfarm/FONT-LICENSE.txt" "$A/FONT-LICENSE.txt"
+    install -m 644 "$ENGINE/packaging/recomplauncher.json" "$A/recomplauncher.json"
+    OUT=$DIST/OpenSimFarm-$VERSION-linux-x64.tar.gz
+    tar --owner=0 --group=0 --numeric-owner -C "$A" -czf "$OUT" opensimfarm README.md LICENSE.txt FONT-LICENSE.txt recomplauncher.json
     ls -la "$OUT"
 fi

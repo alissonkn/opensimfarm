@@ -1,5 +1,7 @@
 # OpenSimFarm
 
+<a href="https://recomplauncher.com"><picture><source media="(prefers-color-scheme: dark)" srcset="https://recomplauncher.com/assets/press/launcher/badge-light.svg"><img alt="Get it on RecompLauncher" src="https://recomplauncher.com/assets/press/launcher/badge-dark.svg" height="48"></picture></a>
+
 OpenSimFarm is an independent, open-source re-implementation of the 1993 farm simulation game
 SimFarm, written in C++17 with SDL2. It runs on Linux, Windows and in the browser.
 
@@ -25,7 +27,8 @@ Does OpenSimFarm use AI? *YES*. It's 2026, of course it does.
 ## Install
 Downloads: https://github.com/alissonkn/opensimfarm/releases/latest
 - **Windows**: `OpenSimFarm-VERSION-windows-x64-setup.exe` (no administrator rights needed), or the plain zip.
-- **Linux**: `.rpm` (Fedora, openSUSE ...) and `.deb` (Debian 12+, Ubuntu 22.04+).
+- **Linux**: `.rpm` (Fedora, openSUSE ...) and `.deb` (Debian 12+, Ubuntu 22.04+), or the plain `.tar.gz`.
+- **RecompLauncher**: installs and updates it, and sets it up from your copy of SimFarm.
 - **Browser**: https://alissonkn.github.io/opensimfarm/play/ — your SimFarm files are read locally, never uploaded.
 
 ## Run
@@ -37,9 +40,13 @@ opensimfarm --reconfigure                # choose the SimFarm folder again
 ```
 The SimFarm folder is the one holding `MEGADATA.IDX` and `MEGADATA.EEA`: an installed DOS or Windows game, or the
 `SIMFARM` folder of the Windows CD. A Windows CD with only a setup program works too (choose the CD; the files are
-unpacked once). Without a folder, OpenSimFarm searches the usual places and then asks.
+unpacked once), and so does an image of a SimFarm CD (`.iso`, or the `.bin` of a `.cue`/`.bin` copy) in place of
+the folder. Without a folder, OpenSimFarm searches the usual places and then asks.
 
-Settings and saves live in `~/.config/opensimfarm/` (Linux) or `%APPDATA%\OpenSimFarm\` (Windows).
+Settings and saves live in a `data` folder beside the program (from the zip, the tar.gz or the Windows installer).
+Where that folder can't be written (the rpm and deb, or a read-only folder) they live in `~/.config/opensimfarm/`
+(Linux) or `%APPDATA%\OpenSimFarm\` (Windows). The first start of a newer version copies the settings and saves from
+there into `data`; the old folder is kept as it was.
 
 ## Licence
 GNU General Public License version 3; see [engine/LICENSE.txt](engine/LICENSE.txt).
