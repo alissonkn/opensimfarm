@@ -1355,6 +1355,64 @@ static int ToolsTest(const std::string& gameDir, const std::string& farm)
             const EditResult b = ShopBuy(s, sim, 12, bx + 5, by + 3);
             expect(t.ok && c.ok && b.ok && s.cash == c0 - 400 - 480 - 800, "BUY places a tractor, a cow and a silo " + t.message + c.message + b.message);
             {
+                // machinery storage: storable machinery goes into sheds and barns, never into silos; an item bought
+                // and clicked inside a building goes into a free storage slot
+                GameState t = s;
+                Simulation tsim(t);
+                int bx2 = -1, by2 = -1;
+                for (int c = 1; c < 11 && bx2 < 0; ++c)
+                    for (int r = 1; r < 11 && bx2 < 0; ++r)
+                    {
+                        bool block = true;
+                        for (int x = c * 8; x < c * 8 + 2 && block; ++x)
+                            for (int y = r * 8; y < r * 8 + 2 && block; ++y)
+                                block = !t.world.At(x, y).HasObject() && t.world.At(x, y).BaseTile() >= 15 && t.world.At(x, y).BaseTile() <= 30 && t.PlotOwner(x / 8, y / 8) == 1;
+                        if (block) { bx2 = c * 8; by2 = r * 8; t.SetPlotOwner(c, r, 1); }
+                    }
+                expect(bx2 >= 0, "bare ground found for machinery storage test");
+                if (bx2 >= 0)
+                {
+                    // a small shed on (bx2, by2)
+                    const EditResult sb = ShopBuy(t, tsim, 14, bx2, by2);
+                    expect(sb.ok, "small shed bought: " + sb.message);
+                    if (sb.ok)
+                    {
+                        // 1) buying a tractor directly on the shed cell should store it (original behaviour)
+                        GameState u = t;
+                        Simulation usim(u);
+                        const EditResult direct = ShopBuy(u, usim, 0, bx2, by2);
+                        expect(direct.ok, "tractor bought directly into shed: " + direct.message);
+                        if (direct.ok)
+                        {
+                            int di = usim.Fleet().MachineAt(bx2, by2);
+                            expect(di > 0 && Machine(u.machines, di).Flags() & 0x04, "tractor stored in shed on direct buy");
+                        }
+                        // 2) tractor placed beside the shed, then moved into it with the Move tool
+                        GameState v = t;
+                        Simulation vsim(v);
+                        const int mx = bx2 + 2, my = by2; // cell just right of the shed, same owned plot
+                        if (mx < t.world.size && !t.world.At(mx, my).HasObject() && t.world.At(mx, my).BaseTile() >= 15 && t.world.At(mx, my).BaseTile() <= 30 && t.PlotOwner(mx / 8, my / 8) == 1)
+                        {
+                            const EditResult tk = ShopBuy(v, vsim, 0, mx, my);
+                            expect(tk.ok, "tractor bought beside shed: " + tk.message);
+                            if (tk.ok)
+                            {
+                                int ti = vsim.Fleet().MachineAt(mx, my);
+                                expect(ti > 0, "tractor on map beside shed");
+                                if (ti > 0)
+                                {
+                                    const EditResult mv = DropObject(v, vsim, kMoveMachine, ti, mx, my, bx2, by2);
+                                    expect(mv.ok, "move tractor into shed accepted: " + mv.message);
+                                    if (mv.ok)
+                                        for (int k = 0; k < 8; ++k) vsim.TimerTick();
+                                    expect(Machine(v.machines, ti).Flags() & 0x04, "moved tractor stored in shed");
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            {
                 // seed: the bag goes into a building's free slot (bare ground refused), planting uses it up and frees
                 // the slot (seen live on MVB)
                 GameState tsd = s;

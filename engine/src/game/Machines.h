@@ -66,6 +66,11 @@ public:
     int MachineAt(int x, int y) const;                        // in-use machine whose footprint covers a cell
     // the Move tool's drop: out of its building if it was stored there, then it drives to (x, y)
     void PlayerMove(int index, int x, int y);
+    // a shed or barn covering a cell, and parking a machine into its free storage slot; used by the Move tool
+    // and by BUY when an item is placed straight into a building: storable machinery goes into sheds and barns,
+    // never into silos
+    int BuildingAt(int x, int y) const;          // shed or barn covering a cell
+    bool Store(int index);                       // park a machine in the building at its cell
     static int TileFor(int type, int heading, bool loaded = false);
     static int Cells(int type);            // footprint length along the heading (1 or 2)
     // saves written by earlier engine builds could hold a two-cell machine split over unrelated building slots
@@ -84,8 +89,6 @@ private:
     void StepBarrels();
     bool SweepStep(Field& f, Machine& lead, int paintTile);
     int Lease(int type);
-    int BuildingAt(int x, int y) const;    // shed or barn covering a cell
-    bool Store(int index);                 // park a machine in the building at its cell
     void Unstore(int index);               // take it out
 
     GameState& _s;

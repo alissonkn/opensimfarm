@@ -221,10 +221,27 @@ EditResult ShopBuy(GameState& s, Simulation& sim, int rec, int x, int y)
             const std::string why = sim.Plane().Buy();
             return { why.empty(), why.empty() ? std::string(Tr("The crop duster waits at the town airport.")) : why, why.empty() ? "plopitem.voc" : "uhoh.voc" };
         }
-        if (!sim.Fleet().FootprintFree(rec, x, y))
-            return { false, Tr("There is no room here."), "uhoh.voc" };
-        if (!sim.Fleet().Create(rec, x, y))
-            return { false, Tr("You have too many machines."), "uhoh.voc" };
+        // a storable machine bought onto a shed or barn cell goes straight into a free storage slot: storable
+        // machinery goes into sheds and barns, never into silos. Otherwise it is placed on bare ground or road and
+        // must be moved into a shed or barn afterwards with the Move tool.
+        if (const int st = sim.Fleet().BuildingAt(x, y))
+        {
+            const int mi = sim.Fleet().Create(rec, x, y);
+            if (!mi)
+                return { false, Tr("You have too many machines."), "uhoh.voc" };
+            if (!sim.Fleet().Store(mi))
+            {
+                sim.Fleet().Remove(mi);
+                return { false, Tr("There is no room there."), "uhoh.voc" };
+            }
+        }
+        else
+        {
+            if (!sim.Fleet().FootprintFree(rec, x, y))
+                return { false, Tr("There is no room here."), "uhoh.voc" };
+            if (!sim.Fleet().Create(rec, x, y))
+                return { false, Tr("You have too many machines."), "uhoh.voc" };
+        }
         sim.Spend(rec, price);
         s.scalars["asset_machinery"] += price;
         own();
