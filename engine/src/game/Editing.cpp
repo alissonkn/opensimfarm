@@ -487,8 +487,15 @@ EditResult ApplyTool(GameState& s, Simulation& sim, Tool tool, int cx, int cy, i
         // building removal (no refund - there's no structure to sell).
         if (c.HasObject() && !sim.StructureAt(cx, cy))
         {
-            const int o = c.overlay & 0x7FF;
-            if (!(o >= 848 && o <= 945) && !(o >= kHayTile && o <= kHayTile + 4))
+            // only skip if there is actually a parked machine here
+            bool machineHere = false;
+            for (int i = 1; i < 127 && !machineHere; ++i)
+            {
+                Machine m(s.machines, i);
+                if (m.InUse() && m.Placed() && m.X() == cx && m.Y() == cy && m.Type() < 8)
+                    machineHere = true;
+            }
+            if (!machineHere)
             {
                 if (!sim.Spend(-1, info.cost))
                     return Refuse(Tr("Not enough money."));
@@ -504,11 +511,13 @@ EditResult ApplyTool(GameState& s, Simulation& sim, Tool tool, int cx, int cy, i
             if (o >= 848 && o <= 945)
             {
                 // a parked machine is sold at its value
+                bool machineHere = false;
                 for (int i = 1; i < 127; ++i)
                 {
                     Machine m(s.machines, i);
                     if (m.InUse() && m.Placed() && m.X() == cx && m.Y() == cy && !(m.Flags() & 0x0B) && m.Type() < 8)
                     {
+                        machineHere = true;
                         const int64_t value = s.CatalogPrice(m.Type()) >> (m.Wear() >> 6);
                         const int type = m.Type();
                         sim.Fleet().Remove(i);
@@ -518,7 +527,16 @@ EditResult ApplyTool(GameState& s, Simulation& sim, Tool tool, int cx, int cy, i
                         return { true, "The machine was sold for " + std::to_string(value) + ".", "bulldoze.voc" };
                     }
                 }
-                return Refuse(Tr("That machine is busy."));
+                // overlay in machine range but no machine parked here: orphaned cell, clear it
+                if (!machineHere)
+                {
+                    if (!sim.Spend(-1, info.cost))
+                        return Refuse(Tr("Not enough money."));
+                    c.base = static_cast<uint16_t>((c.base & 0x7000) | GroundTile(s, sim.SoilWetness(), cx, cy));
+                    c.overlay &= 0xF800;
+                    sim.Puff(cx, cy);
+                    return { true, Tr("The building was removed."), "bulldoze.voc" };
+                }
             }
             if (o < kHayTile || o > kHayTile + 4)
                 return Refuse(Tr("That cannot be bulldozed."));
