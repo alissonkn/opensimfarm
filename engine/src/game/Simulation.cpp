@@ -1785,8 +1785,8 @@ int64_t Simulation::RemoveStructure(int index, bool refund)
                 c.overlay &= 0xF800;
             }
             // always restore ground: open buildings keep 0x8D9 on cells with stored items,
-            // which HasObject would block (only empty slots got ground before)
-            c.base = static_cast<uint16_t>((c.base & 0xF800) | GroundTile(_s, _wetness, x, y));
+            // clearing HasObject bit so the cell looks empty when placing new buildings
+            c.base = static_cast<uint16_t>((c.base & 0x7000) | GroundTile(_s, _wetness, x, y));
             c.overlay &= 0xF800;
         }
     // stored contents inside are lost with the building: harvested crops, seed bags,
