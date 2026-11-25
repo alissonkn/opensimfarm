@@ -643,6 +643,23 @@ void Machines::Remove(int index)
             _s.SetPlotType(pc, pr, _s.PlotType(pc, pr) & ~(slot == 3 ? 0x20 : 0x40));
     }
     Lift(m);
+    // a stored machine keeps its index/type/picture in its barn/shed slot grid: clear those slots
+    // before dropping the stored flag, else a sold machine still appears in the building (F54a)
+    if (m.Flags() & 0x04)
+    {
+        const int st = BuildingAt(m.X(), m.Y());
+        if (st)
+        {
+            const size_t b = static_cast<size_t>(st) * 70;
+            for (int k = 0; k < 12; ++k)
+                if (Rd8(_s.structures, b + 0x3A + k) == index)
+                {
+                    Wr8(_s.structures, b + 0x3A + k, 0);
+                    Wr16(_s.structures, b + 0x22 + 2 * static_cast<size_t>(k), 0xFFFF);
+                    Wr16(_s.structures, b + 0x0A + 2 * static_cast<size_t>(k), 0xD9);
+                }
+        }
+    }
     m.SetFlags(0);
     _s.machineCount = std::max(0, _s.machineCount - 1);
     _sim.Puff(m.X(), m.Y());

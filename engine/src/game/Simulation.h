@@ -29,7 +29,8 @@ enum class Speed { Ultra, Fast, Normal, Slow, Paused };
 // An event shown in a modal box: events.dat record, alltiles.btl picture, and our own short wording for the status line.
 constexpr int kTownVoteEvent = -32; // GameEvent id that asks for the Town Choice vote
 constexpr int kBulldozeFieldEvent = -33; // "destroy this field?" (the bulldozer on a field)
-constexpr int kGameOverEvent = -34;      // the farm is lost: start a new game? (YES / NO)
+constexpr int kBulldozeStructureEvent = -34; // "destroy this structure?" (bulldozer on a building with contents)
+constexpr int kGameOverEvent = -35;      // the farm is lost: start a new game? (YES / NO)
 constexpr int kRodeoEvent = 61;          // events.dat 61: bet 500 on cousin Jed?
 constexpr int kFairEvent = -62;          // enter an animal in the judging contest for 200? (own text)
 
@@ -176,6 +177,7 @@ public:
     void TownVoteTimeout();
     bool TownOffer();                // the town buys its next plot (year end; tests)          // the dialog left unanswered: a random plot type 1-14       // Town Choice: 0 residential, 1 commercial, 2 airport, 3 recreational
     void AskBulldozeField(int index); // the bulldozer on a field asks first; YES deletes it for 25
+    void AskBulldozeStructure(int index); // the bulldozer on a building with contents asks first; YES destroys it and its contents for 25
     void StatusRefresh(Field& f);    // the original's field status refresh (N byte, markers)
     void HarvestPay(Field& f, bool mayStore); // value, contract settlement, store or sell
     void HarvestEnd(Field& f);
@@ -281,6 +283,7 @@ private:
     int64_t _townPot = 0, _townCarry = 0;
     int64_t _lastTax = 0; // last year's tax (not saved by the original either)
     int _pendingBulldoze = 0;
+    int _pendingBulldozeStructure = 0;
     int _loanGrace = 0, _taxGrace = 0;
     std::array<int, 7> _weekPattern{}, _nextPattern{};
     std::array<std::array<int, 30>, 16> _history{};

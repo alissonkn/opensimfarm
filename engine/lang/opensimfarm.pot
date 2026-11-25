@@ -437,6 +437,10 @@ msgid "Not enough money."
 msgstr ""
 
 #: src/game/Editing.cpp
+msgid "The building was removed."
+msgstr ""
+
+#: src/game/Editing.cpp
 #: src/game/Shop.cpp
 msgid "That machine is busy."
 msgstr ""
@@ -655,6 +659,10 @@ msgstr ""
 
 #: src/game/Shop.cpp
 msgid "There is no room here."
+msgstr ""
+
+#: src/game/Shop.cpp
+msgid "Spray is kept in a barn."
 msgstr ""
 
 #: src/game/Shop.cpp
@@ -1030,6 +1038,10 @@ msgstr ""
 
 #: src/game/Simulation.cpp
 msgid "Are you sure you want to destroy this field?"
+msgstr ""
+
+#: src/game/Simulation.cpp
+msgid "Destroy this structure? All contents will be lost."
 msgstr ""
 
 #: src/game/Simulation.cpp

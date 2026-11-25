@@ -170,6 +170,8 @@ void ShopFootprint(const GameState& s, int rec, int& w, int& h)
         h = Machines::Cells(rec);
 }
 
+static int BuildingCovering(const GameState& s, int x, int y, bool& open);
+
 EditResult ShopBuy(GameState& s, Simulation& sim, int rec, int x, int y)
 {
     const int price = ShopPrice(s, rec);
@@ -258,29 +260,35 @@ EditResult ShopBuy(GameState& s, Simulation& sim, int rec, int x, int y)
     }
     if (rec >= 82 && rec <= 85)
     {
-        MapCell& c = s.world.At(x, y);
-        if (c.HasObject() || !Buildable(c.BaseTile(), s.scalars["opt_autodoze"] != 0))
-            return { false, Tr("There is no room here."), "uhoh.voc" };
-        AutoDoze(s, sim, x, y, 1, 1);
-        for (int i = 1; i < 127; ++i)
-        {
-            const size_t b = static_cast<size_t>(i) * 20;
-            if (Rd8(s.objects20, b + 2) & 0x20)
-                continue;
-            for (size_t o = 0; o < 20; ++o)
-                s.objects20[b + o] = 0;
-            Wr16(s.objects20, b, cat);
-            Wr8(s.objects20, b + 2, 0x20);
-            Wr8(s.objects20, b + 5, x);
-            Wr8(s.objects20, b + 6, y);
-            s.object20Count++;
-            c.base |= 0x800;
-            c.overlay = static_cast<uint16_t>((c.overlay & 0xF800) | ShopMapTile(rec));
-            sim.Spend(cat, price);
-            own();
-            return { true, "", "plopitem.voc" };
-        }
-        return { false, Tr("There is no room for more supplies."), "uhoh.voc" };
+        // sprays bought from BUY go into barn/shed storage (like seed bags), not placed as barrels on the map:
+        // the original's small/large barn hold seed, spray and livestock feed; the weekly hint says to place seed
+        // and sprays inside sheds or barns (F54b)
+        bool open = false;
+        const int st = BuildingCovering(s, x, y, open);
+        if (!st)
+            return { false, Tr("Spray is kept in a barn."), "uhoh.voc" };
+        const size_t sb = static_cast<size_t>(st) * 70;
+        const int bcat = Rd16(s.structures, sb);
+        if (bcat < 0x42 || bcat > 0x45)
+            return { false, Tr("Spray is kept in a barn."), "uhoh.voc" };
+        // find a free objects20 record
+        int recIdx = 0;
+        for (int i = 1; i < 127 && !recIdx; ++i)
+            if (!(Rd8(s.objects20, static_cast<size_t>(i) * 20 + 2) & 0x20))
+                recIdx = i;
+        if (!recIdx)
+            return { false, Tr("There is no room for more supplies."), "uhoh.voc" };
+        const size_t ob = static_cast<size_t>(recIdx) * 20;
+        for (size_t o = 0; o < 20; ++o)
+            s.objects20[ob + o] = 0;
+        Wr16(s.objects20, ob, cat);
+        Wr8(s.objects20, ob + 2, 0x20);
+        const int sprayType = 0xDC + (rec - 82); // 0xDC fertilizer, 0xDD pesticide, 0xDE herbicide, 0xDF fungicide
+        if (!StoreIn(s, sim, st, sprayType, recIdx, ShopMapTile(rec)))
+            return { false, Tr("There is no room there."), "uhoh.voc" };
+        sim.Spend(cat, price);
+        own();
+        return { true, "", "plopitem.voc" };
     }
     if (rec >= 12 && rec <= 20)
     {

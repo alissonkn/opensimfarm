@@ -1153,6 +1153,34 @@ static int ToolsTest(const std::string& gameDir, const std::string& farm)
         expect(s.world.At(fx - 1, fy).BaseTile() >= 15 && s.world.At(fx - 1, fy).BaseTile() <= 30, "bulldozed cell is ground again");
     }
     {
+        // orphaned building graphics: HasObject set but no structure record
+        // (a save where a building was removed incompletely). bulldoze should
+        // clear the orphaned cell instead of refusing (F55).
+        GameState to = s;
+        Simulation tsim(to);
+        int ox = -1, oy = -1;
+        for (int x = 0; x < to.world.size && ox < 0; ++x)
+            for (int y = 0; y < to.world.size && oy < 0; ++y)
+            {
+                MapCell& m = to.world.At(x, y);
+                if (!m.HasObject() && m.BaseTile() >= 15 && m.BaseTile() <= 30 &&
+                    to.PlotOwner(x / 8, y / 8) == 1)
+                    { ox = x; oy = y; }
+            }
+        if (ox >= 0)
+        {
+            // create an orphaned cell: building tile + HasObject, no structure record
+            to.world.At(ox, oy).base = static_cast<uint16_t>((to.world.At(ox, oy).base & 0xF800) | 0x800 | 451);
+            to.world.At(ox, oy).overlay = static_cast<uint16_t>((to.world.At(ox, oy).overlay & 0xF800) | 452);
+            const EditResult er = ApplyTool(to, tsim, Tool::Bulldoze, ox, oy, 0);
+            expect(er.ok, "orphaned building cell can be bulldozed: " + er.message);
+            if (er.ok)
+                expect(!to.world.At(ox, oy).HasObject() && to.world.At(ox, oy).BaseTile() >= 15 &&
+                           to.world.At(ox, oy).BaseTile() <= 30,
+                       "orphaned building cell restored to ground");
+        }
+    }
+    {
         // AutoDoze (seen live): a rock is cleared for 25 before the road goes down; a fence stays and the road
         // is refused
         GameState t = s;
@@ -1457,24 +1485,127 @@ static int ToolsTest(const std::string& gameDir, const std::string& farm)
                 }
             }
             {
-                // a barrel bought, then moved with the Move tool: it is there at once (seen live on MRKC)
+                // a spray bought goes into a barn/shed slot (F54b): buy a small barn on the previously bare cell,
+                // then buy fertilizer into it, pick the barrel up with the Move tool and move it to bare ground
                 GameState t3 = s;
                 Simulation s3(t3);
-                const EditResult br = ShopBuy(t3, s3, 82, bx + 1, by + 5);
-                int kind = 0, index = 0;
-                std::string why;
-                const bool picked = br.ok && PickObject(t3, s3, bx + 1, by + 5, kind, index, why) && kind == kMoveBarrel;
-                const EditResult mv = picked ? DropObject(t3, s3, kind, index, bx + 1, by + 5, bx + 4, by + 4) : EditResult{};
-                const int ox = Rd8(t3.objects20, static_cast<size_t>(index) * 20 + 5), oy = Rd8(t3.objects20, static_cast<size_t>(index) * 20 + 6);
-                expect(mv.ok && ox == bx + 4 && oy == by + 4 && t3.world.At(ox, oy).HasObject() && (t3.world.At(ox, oy).overlay & 0x7FF) == 915 &&
-                           !t3.world.At(bx + 1, by + 5).HasObject(),
-                       "the Move tool moves a barrel at once to " + std::to_string(ox) + "," + std::to_string(oy) + " " + why + mv.message);
+                const EditResult bs = ShopBuy(t3, s3, 16, bx + 1, by + 5); // small barn
+                expect(bs.ok, "small barn bought for spray test: " + bs.message);
+                if (bs.ok)
+                {
+                    const EditResult br = ShopBuy(t3, s3, 82, bx + 1, by + 5); // spray into the barn
+                    expect(br.ok, "spray bought into barn: " + br.message);
+                    if (br.ok)
+                    {
+                        const int st = s3.StructureAt(bx + 1, by + 5);
+                        const size_t sb = static_cast<size_t>(st) * 70;
+                        bool stored = false;
+                        for (int k = 0; k < 12 && !stored; ++k)
+                            stored = Rd8(t3.structures, sb + 0x3A + k) != 0 &&
+                                     Rd16(t3.structures, sb + 0x22 + 2 * static_cast<size_t>(k)) >= 0xDC &&
+                                     Rd16(t3.structures, sb + 0x22 + 2 * static_cast<size_t>(k)) <= 0xDF;
+                        expect(stored, "spray stored in a barn slot");
+                        if (stored)
+                        {
+                            int kind = 0, index = 0;
+                            std::string why;
+                            const bool picked = PickObject(t3, s3, bx + 1, by + 5, kind, index, why) && kind == kMoveBarrel;
+                            expect(picked, "barrel picked from barn cell: " + why);
+                            if (picked)
+                            {
+                                const EditResult mv = DropObject(t3, s3, kind, index, bx + 1, by + 5, bx + 4, by + 4);
+                                expect(mv.ok, "barrel moved from barn to ground: " + mv.message);
+                            }
+                        }
+                    }
+                }
             }
             GameState t2 = s;
             Simulation s2(t2);
             const int64_t before = t2.cash;
             const EditResult dz = ApplyTool(t2, s2, Tool::Bulldoze, bx + 5, by + 3, 0);
             expect(dz.ok && t2.cash == before + 800 && s2.StructureAt(bx + 5, by + 3) == 0, "bulldozing the silo sells it " + dz.message);
+            {
+                // refuse to bulldoze a building with anything stored inside (machines, seed, sprays, crops, ...)
+                GameState t4 = s;
+                Simulation s4(t4);
+                const EditResult barn = ShopBuy(t4, s4, 16, bx, by + 3); // small barn
+                expect(barn.ok, "small barn bought for refuse test: " + barn.message);
+                if (barn.ok)
+                {
+                    const EditResult tr = ShopBuy(t4, s4, 0, bx, by + 3); // tractor into barn
+                    expect(tr.ok, "tractor bought into barn: " + tr.message);
+                    if (tr.ok)
+                    {
+                        // bulldoze without confirmation: asks first, building stays
+                        const EditResult rz = ApplyTool(t4, s4, Tool::Bulldoze, bx, by + 3, 0);
+                        expect(rz.ok, "bulldoze barn with tractor inside asks first: " + rz.message);
+                        expect(s4.StructureAt(bx, by + 3) != 0, "barn still there after first bulldoze click");
+                        // confirm: YES destroys building and contents for 25, no refund
+                        s4.Answer(kBulldozeStructureEvent, true);
+                        expect(s4.StructureAt(bx, by + 3) == 0, "barn gone after confirmed bulldoze");
+                        int ti = s4.Fleet().MachineAt(bx, by + 3);
+                        if (ti > 0)
+                            expect(!Machine(t4.machines, ti).InUse(), "tractor removed from fleet with barn");
+                    }
+                }
+            }
+            {
+                // bulldoze a building with stored contents: first click asks, second click (YES) destroys
+                GameState t5 = s;
+                Simulation s5(t5);
+                const EditResult barn5 = ShopBuy(t5, s5, 16, bx, by + 3); // small barn
+                expect(barn5.ok, "small barn bought for bulldoze-with-contents test: " + barn5.message);
+                if (barn5.ok)
+                {
+                    const EditResult tr5 = ShopBuy(t5, s5, 0, bx, by + 3); // tractor into barn
+                    expect(tr5.ok, "tractor bought into barn for bulldoze test: " + tr5.message);
+                    if (tr5.ok)
+                    {
+                        int ti = s5.Fleet().MachineAt(bx, by + 3);
+                        expect(ti > 0, "tractor stored in barn");
+                        if (ti > 0)
+                        {
+                            // first bulldoze click asks for confirmation
+                            const EditResult cz1 = ApplyTool(t5, s5, Tool::Bulldoze, bx, by + 3, 0);
+                            expect(cz1.ok, "bulldoze barn with tractor asks first: " + cz1.message);
+                            expect(s5.StructureAt(bx, by + 3) != 0, "barn still there after first click");
+                            // confirm with YES
+                            s5.Answer(kBulldozeStructureEvent, true);
+                            expect(s5.StructureAt(bx, by + 3) == 0, "barn gone after confirmed bulldoze");
+                            expect(!Machine(t5.machines, ti).InUse(), "tractor removed from fleet with barn");
+                        }
+                    }
+                }
+            }
+            {
+                // bulldoze a building with stored contents: clicking NO keeps everything
+                GameState t6 = s;
+                Simulation s6(t6);
+                const EditResult barn6 = ShopBuy(t6, s6, 16, bx, by + 3); // small barn
+                expect(barn6.ok, "small barn bought for NO test: " + barn6.message);
+                if (barn6.ok)
+                {
+                    const EditResult tr6 = ShopBuy(t6, s6, 0, bx, by + 3); // tractor into barn
+                    expect(tr6.ok, "tractor bought into barn for NO test: " + tr6.message);
+                    if (tr6.ok)
+                    {
+                        int ti6 = s6.Fleet().MachineAt(bx, by + 3);
+                        expect(ti6 > 0, "tractor stored in barn for NO test");
+                        if (ti6 > 0)
+                        {
+                            // first bulldoze click asks for confirmation
+                            const EditResult cn1 = ApplyTool(t6, s6, Tool::Bulldoze, bx, by + 3, 0);
+                            expect(cn1.ok, "bulldoze barn with tractor asks first (NO test): " + cn1.message);
+                            expect(s6.StructureAt(bx, by + 3) != 0, "barn still there after first click (NO test)");
+                            // cancel with NO
+                            s6.Answer(kBulldozeStructureEvent, false);
+                            expect(s6.StructureAt(bx, by + 3) != 0, "barn still there after NO");
+                            expect(Machine(t6.machines, ti6).InUse(), "tractor still in fleet after NO");
+                        }
+                    }
+                }
+            }
             {
                 // a content cow facing a barn walks into it (a slot of the barn, flag 4) and later out west of it;
                 // facing the silo it is held back and turns to a random walk
@@ -1657,6 +1788,52 @@ static int ToolsTest(const std::string& gameDir, const std::string& farm)
         auto machines = SaleList(s, sim, 1);
         const int64_t c1 = s.cash;
         expect(!machines.empty() && ShopSell(s, sim, machines.back()).ok && s.cash > c1, "SELL a machine pays its value");
+        {
+            // selling a stored machine clears its barn/shed slot: a sold machine must not stay in the building (F54a)
+            GameState tv = s;
+            Simulation svim(tv);
+            int shedX = -1, shedY = -1;
+            for (int dx = 0; dx < 8 && shedX < 0; ++dx)
+                for (int dy = 0; dy < 8 && shedY < 0; ++dy)
+                {
+                    int cx = bx + dx, cy = by + dy;
+                    if (cx < tv.world.size && cy < tv.world.size && !tv.world.At(cx, cy).HasObject() &&
+                        tv.world.At(cx, cy).BaseTile() >= 15 && tv.world.At(cx, cy).BaseTile() <= 30 &&
+                        tv.PlotOwner(cx / 8, cy / 8) == 1)
+                        { shedX = cx; shedY = cy; }
+                }
+            if (shedX >= 0)
+            {
+                const EditResult sb = ShopBuy(tv, svim, 14, shedX, shedY); // small shed
+                expect(sb.ok, "small shed bought for sell test: " + sb.message);
+                if (sb.ok)
+                {
+                    const EditResult tb = ShopBuy(tv, svim, 0, shedX, shedY); // tractor into shed
+                    expect(tb.ok, "tractor bought into shed: " + tb.message);
+                    if (tb.ok)
+                    {
+                        int ti = svim.Fleet().MachineAt(shedX, shedY);
+                        expect(ti > 0 && Machine(tv.machines, ti).Flags() & 0x04, "tractor stored in shed");
+                        if (ti > 0)
+                        {
+                            auto vsale = SaleList(tv, svim, 1);
+                            bool sold = false;
+                            for (const auto& mi : vsale)
+                                if (mi.index == ti) { sold = ShopSell(tv, svim, mi).ok; break; }
+                            expect(sold, "tractor sold");
+                            // the shed slot must be cleared
+                            const int st = svim.StructureAt(shedX, shedY);
+                            const size_t svb = static_cast<size_t>(st) * 70;
+                            bool cleared = true;
+                            for (int k = 0; k < 12; ++k)
+                                if (Rd8(tv.structures, svb + 0x3A + k) == ti)
+                                    cleared = false;
+                            expect(cleared, "sold machine's shed slot cleared");
+                        }
+                    }
+                }
+            }
+        }
         if (bx >= 0)
         {
             int kind = 0, index = 0;

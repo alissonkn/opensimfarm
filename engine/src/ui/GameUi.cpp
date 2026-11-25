@@ -1210,6 +1210,7 @@ void GameUi::UseTool(int px, int py, bool first, int cellX, int cellY)
 {
     if (!_ctx.view || !_ctx.state || !_ctx.sim || _tool == Tool::None)
         return;
+    // clear nothing when switching tools (bulldoze has no confirmation in the original)
     int cx = cellX, cy = cellY;
     if (cellX < 0 && !_ctx.view->CellAt(px, py, cx, cy))
         return;

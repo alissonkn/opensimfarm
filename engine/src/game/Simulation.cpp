@@ -1784,15 +1784,33 @@ int64_t Simulation::RemoveStructure(int index, bool refund)
                 c.base &= static_cast<uint16_t>(~0x800);
                 c.overlay &= 0xF800;
             }
-            if (!c.HasObject())
-                c.base = static_cast<uint16_t>((c.base & 0xF800) | GroundTile(_s, _wetness, x, y));
+            // always restore ground: open buildings keep 0x8D9 on cells with stored items,
+            // which HasObject would block (only empty slots got ground before)
+            c.base = static_cast<uint16_t>((c.base & 0xF800) | GroundTile(_s, _wetness, x, y));
+            c.overlay &= 0xF800;
         }
-    // stored stacks inside are lost with the building
+    // stored contents inside are lost with the building: harvested crops, seed bags,
+    // sprays/fertilizer, and stored machines all go with it
     for (int k = 0; k < 12; ++k)
     {
-        const int it = Rd16(_s.structures, b + 0x22 + 2 * k) == 0xFFFF ? 0 : Rd8(_s.structures, b + 0x3A + k);
-        if (it > 0 && it < 512 && Rd16(_s.items, static_cast<size_t>(it) * 12) >= 0xA8 && Rd16(_s.items, static_cast<size_t>(it) * 12) <= 0xB7)
-            RemoveItem(it);
+        const size_t sk = static_cast<size_t>(k);
+        const int content = Rd16(_s.structures, b + 0x22 + 2 * sk);
+        const int itemIdx = Rd8(_s.structures, b + 0x3A + sk);
+        // clear the slot
+        Wr8(_s.structures, b + 0x3A + sk, 0);
+        Wr16(_s.structures, b + 0x22 + 2 * sk, 0xFFFF);
+        Wr16(_s.structures, b + 0x0A + 2 * sk, 0xD9);
+        // remove item records (harvested crops 0xA8-0xB7, seed bags 0xC0-0xD7,
+        // sprays/fertilizer 0xDC-0xDF)
+        if (itemIdx > 0 && itemIdx < 512)
+        {
+            const int itemType = Rd16(_s.items, static_cast<size_t>(itemIdx) * 12);
+            if ((itemType >= 0xA8 && itemType < 0xD8) || (itemType >= 0xDC && itemType <= 0xDF))
+                RemoveItem(itemIdx);
+        }
+        // remove stored machines from the fleet (destroyed with the building)
+        if (content >= 0 && content <= 8 && itemIdx > 0 && itemIdx < 127)
+            _machines->Remove(itemIdx);
     }
     const int64_t value = (!refund || (Rd8(_s.structures, b + 2) & 0x02)) ? 0 : _s.CatalogPrice(rec); // a burst tower is worth nothing
     Wr8(_s.structures, b + 2, 0);
@@ -2202,6 +2220,11 @@ void Simulation::Answer(int id, bool yes)
     {
         DeleteField(_pendingBulldoze);
         _pendingBulldoze = 0;
+    }
+    if (id == kBulldozeStructureEvent && _pendingBulldozeStructure > 0 && Spend(-1, 25))
+    {
+        RemoveStructure(_pendingBulldozeStructure, false); // no refund: everything inside is destroyed
+        _pendingBulldozeStructure = 0;
     }
     // YES pays the bet / the entry fee now; the entry word holds the payout flag
     if (id == kRodeoEvent && _s.scalars["ev_kind"] == 1 && Spend(-1, 500, Tr("Rodeo entry")))
@@ -2690,6 +2713,12 @@ void Simulation::AskBulldozeField(int index)
 {
     _pendingBulldoze = index;
     _events.push_back({ kBulldozeFieldEvent, 74, Tr("Are you sure you want to destroy this field?"), true, -1, -1, 3 }); // YES / CANCEL
+}
+
+void Simulation::AskBulldozeStructure(int index)
+{
+    _pendingBulldozeStructure = index;
+    _events.push_back({ kBulldozeStructureEvent, 74, Tr("Destroy this structure? All contents will be lost."), true, -1, -1, 3 }); // YES / CANCEL
 }
 
 int Simulation::SpareRandom()

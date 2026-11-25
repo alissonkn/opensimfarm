@@ -464,9 +464,39 @@ EditResult ApplyTool(GameState& s, Simulation& sim, Tool tool, int cx, int cy, i
         }
         if (const int st = sim.StructureAt(cx, cy))
         {
+            // if the building has stored contents (machines, seed, sprays, crops), ask for confirmation first,
+            // as the original does; YES destroys the building and everything inside for the bulldoze cost,
+            // with no refund
+            bool occupied = false;
+            const size_t sb = static_cast<size_t>(st) * 70;
+            for (int k = 0; k < 12 && !occupied; ++k)
+                if (Rd16(s.structures, sb + 0x22 + 2 * static_cast<size_t>(k)) != 0xFFFF)
+                    occupied = true;
+            if (occupied)
+            {
+                sim.AskBulldozeStructure(st);
+                return { true, "", "" };
+            }
             // a building is sold at its catalogue price and its ground restored
             const int64_t value = sim.RemoveStructure(st);
             return { true, "The building was sold for " + std::to_string(value) + ".", "bulldoze.voc" };
+        }
+        // orphaned building graphics: HasObject set but no structure record.
+        // a save's map cells and structure table can be out of sync (e.g. a
+        // building was removed incompletely). clear the orphaned cells like a
+        // building removal (no refund - there's no structure to sell).
+        if (c.HasObject() && !sim.StructureAt(cx, cy))
+        {
+            const int o = c.overlay & 0x7FF;
+            if (!(o >= 848 && o <= 945) && !(o >= kHayTile && o <= kHayTile + 4))
+            {
+                if (!sim.Spend(-1, info.cost))
+                    return Refuse(Tr("Not enough money."));
+                c.base = static_cast<uint16_t>((c.base & 0x7000) | GroundTile(s, sim.SoilWetness(), cx, cy));
+                c.overlay &= 0xF800;
+                sim.Puff(cx, cy);
+                return { true, Tr("The building was removed."), "bulldoze.voc" };
+            }
         }
         if (c.HasObject())
         {
