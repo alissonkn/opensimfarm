@@ -505,6 +505,28 @@ EditResult ApplyTool(GameState& s, Simulation& sim, Tool tool, int cx, int cy, i
                 return { true, Tr("The building was removed."), "bulldoze.voc" };
             }
         }
+        // structure record exists but its in-use flag is cleared, or its map cells
+        // were restored to ground without clearing the record. find the structure
+        // covering this cell (even inactive records) and remove it entirely.
+        if (!c.HasObject())
+        {
+            for (int i = 1; i < 127; ++i)
+            {
+                const size_t b = static_cast<size_t>(i) * 70;
+                const int cat = Rd16(s.structures, b);
+                if (!(s.structures[b + 2] & 0x20) || cat < 0x40 || cat > 0x48)
+                    continue;
+                const int rec = 12 + cat - 0x40;
+                const int w = std::max(1, Rd8(s.catalog, static_cast<size_t>(rec) * 18 + 8));
+                const int h = std::max(1, Rd8(s.catalog, static_cast<size_t>(rec) * 18 + 9));
+                const int bx = s.structures[b + 4], by = s.structures[b + 5];
+                if (cx >= bx && cy >= by && cx < bx + w && cy < by + h)
+                {
+                    sim.RemoveStructure(i, false); // no refund: structure was inactive
+                    return { true, Tr("The building was removed."), "bulldoze.voc" };
+                }
+            }
+        }
         if (c.HasObject())
         {
             const int o = c.overlay & 0x7FF;
