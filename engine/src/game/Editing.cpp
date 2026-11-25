@@ -449,7 +449,8 @@ EditResult ApplyTool(GameState& s, Simulation& sim, Tool tool, int cx, int cy, i
     if (tool == Tool::Bulldoze)
     {
         MapCell& c = s.world.At(cx, cy);
-        if (const int fi = sim.FieldIndexAt(cx, cy))
+        const int fi = sim.FieldIndexAt(cx, cy);
+        if (fi)
         {
             // the original asks "destroy this field?"; YES costs 25 and deletes it (param 1 = already answered)
             if (param == 1)
@@ -561,16 +562,25 @@ EditResult ApplyTool(GameState& s, Simulation& sim, Tool tool, int cx, int cy, i
                 }
             }
             if (o < kHayTile || o > kHayTile + 4)
+            {
                 return Refuse(Tr("That cannot be bulldozed."));
+            }
         }
         else if (!(kPaved.Has(id) || kDirt.Has(id) || kFence.Has(id) || kGate.Has(id) || kDitchEmpty.Has(id) || kDitchFull.Has(id) ||
                    kValve.Has(id) || kTrees.Has(id) || kTrough.Has(id) || kRocks.Has(id) ||
                    // also the road bridges (family 128), the broken fence pieces 192 / 193 and the tiles 73 / 74, 113 / 114
                    // (seen live: 192, 193, 73, 113 and 172 each went for 25; user finding F33)
-                   id == 172 || id == 173 || id == 192 || id == 193 || id == 73 || id == 74 || id == 113 || id == 114))
-            return Refuse();
+                   id == 172 || id == 173 || id == 192 || id == 193 || id == 73 || id == 74 || id == 113 || id == 114 ||
+                   // building tile 217 = empty slot picture (open buildings without structure record)
+                   // building tiles 440-480 = closed building pictures (sheds/barns/silos without structure record)
+                   id == 217 || (id >= 440 && id <= 480)))
+            {
+                return Refuse();
+            }
         if (!sim.Spend(-1, info.cost))
+        {
             return Refuse(Tr("Not enough money."));
+        }
         if (const int it = sim.ItemAt(cx, cy, 300))
             sim.RemoveItem(it);
         if (const int it = sim.ItemAt(cx, cy, 299))
