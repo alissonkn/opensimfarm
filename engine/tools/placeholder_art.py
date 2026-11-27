@@ -1018,18 +1018,21 @@ def town_house(style, s):
     return c.done()
 
 
-def civic(kind, s):
-    """A building of the town's centre, two tiles square, on paving."""
-    c = Cv(2, 2, s)
+def civic(kind, s, n=3):
+    """A building of the town's centre, `n` x `n` tiles (3, or 2 for the smaller ones), on paving. Drawn in a 2 x 2 design
+    and zoomed to fit."""
+    c = Cv(n, n, s)
+    c.z = n / 2.0
     c.rect(0, 0, 2, 2, (0xC4, 0xC0, 0xB4))
     for k in range(1, 4):
         c.line([(0, 0.5 * k), (2, 0.5 * k)], (0xB0, 0xAC, 0xA0), 0.015)
         c.line([(0.5 * k, 0), (0.5 * k, 2)], (0xB0, 0xAC, 0xA0), 0.015)
     c.shadow(0.1, 1.35, 1.98, 1.98, 70)
     col = {"hall": ((0xE8, 0xE4, 0xD8), (0x6C, 0x74, 0x84)), "church": ((0xF4, 0xF0, 0xE8), (0x6A, 0x4A, 0x38)),
-           "store": ((0xD8, 0x9C, 0x58), (0xA8, 0x40, 0x30)), "bank": ((0xC8, 0xCC, 0xD4), (0x48, 0x58, 0x70)),
+           "market": ((0xD8, 0x9C, 0x58), (0xA8, 0x40, 0x30)), "bank": ((0xC8, 0xCC, 0xD4), (0x48, 0x58, 0x70)),
            "school": ((0xC8, 0x58, 0x40), (0x58, 0x5E, 0x6C)), "diner": ((0x68, 0xB8, 0xC0), (0xD0, 0x40, 0x48)),
-           "clinic": ((0xF4, 0xF4, 0xF8), (0x40, 0x88, 0xC8)), "mill": ((0xB8, 0x98, 0x68), (0x70, 0x50, 0x30))}[kind]
+           "clinic": ((0xF4, 0xF4, 0xF8), (0x40, 0x88, 0xC8)), "mill": ((0xB8, 0x98, 0x68), (0x70, 0x50, 0x30)),
+           "depot": ((0xC8, 0xB4, 0x80), (0x3C, 0x7C, 0x48)), "dealer": ((0xF0, 0xF0, 0xEC), (0xC8, 0x32, 0x28))}[kind]
     wall, roof = col
     trim = (0xFF, 0xFF, 0xFF)
     c.rect(0.12, 0.85, 1.88, 1.86, wall)
@@ -1044,11 +1047,13 @@ def civic(kind, s):
         c.rect(0.8, 0.15, 1.2, 0.9, wall); c.poly([(0.74, 0.2), (1.0, -0.15), (1.26, 0.2)], roof)
         c.line([(1.0, -0.15), (1.0, -0.3)], (0xE0, 0xC0, 0x40), 0.04)
         c.ellipse(0.88, 0.5, 1.12, 0.72, (0x30, 0x30, 0x40))
-    elif kind in ("store", "diner"):
+    elif kind in ("market", "diner"):
         for k in range(8):
             c.rect(0.12 + 0.22 * k, 0.9, 0.12 + 0.22 * (k + 1), 1.15, roof if k % 2 == 0 else trim)
         c.rect(0.3, 1.25, 1.0, 1.6, GLASS)
-        c.rect(0.3, 1.25, 1.0, 1.6, GLASS)
+        if kind == "market":
+            for x, colr in ((0.25, (0xE0, 0x30, 0x30)), (0.45, (0xF0, 0xC0, 0x30)), (0.65, (0x50, 0xB0, 0x40))):
+                c.ellipse(x, 1.62, x + 0.14, 1.78, colr)
     elif kind == "bank":
         for x in (0.3, 0.7, 1.1, 1.5):
             c.rect(x, 1.0, x + 0.12, 1.85, trim)
@@ -1058,14 +1063,28 @@ def civic(kind, s):
         c.ellipse(0.93, 0.38, 1.07, 0.52, (0xE0, 0xC0, 0x40))
     elif kind == "clinic":
         c.rect(0.85, 0.95, 1.15, 1.2, (0xD0, 0x30, 0x2C)); c.rect(0.93, 0.87, 1.07, 1.28, (0xD0, 0x30, 0x2C))
+    elif kind == "depot":  # a grain depot: a roll-up door, sacks and a sign
+        c.rect(0.35, 1.1, 1.65, 1.85, shade(wall, 0.6))
+        for k in range(1, 6):
+            c.line([(0.35, 1.1 + 0.125 * k), (1.65, 1.1 + 0.125 * k)], shade(wall, 0.45), 0.02)
+        c.rect(0.6, 0.62, 1.4, 0.8, trim)
+        for x in (0.45, 0.75, 1.05, 1.35):
+            c.ellipse(x, 1.7, x + 0.22, 1.9, (0xD8, 0xC0, 0x88), (0x80, 0x68, 0x30), 0.02)
+    elif kind == "dealer":  # a machinery dealer: a big window with a tractor in it
+        c.rect(0.25, 1.05, 1.75, 1.8, GLASS)
+        c.rect(0.7, 1.3, 1.1, 1.75, (0xC8, 0x32, 0x28)); c.rect(0.62, 1.5, 0.72, 1.75, DARK); c.rect(1.08, 1.5, 1.18, 1.75, DARK)
+        c.rect(0.6, 0.62, 1.4, 0.8, (0xC8, 0x32, 0x28))
     else:  # mill
         c.rect(0.9, 0.2, 1.1, 0.5, (0x5A, 0x38, 0x1C))
         for a in range(0, 360, 90):
             t = math.radians(a + 20)
             c.line([(1.0, 0.35), (1.0 + 0.4 * math.sin(t), 0.35 - 0.4 * math.cos(t))], (0xF0, 0xEC, 0xE0), 0.07)
-    door = (0.88, 1.35, 1.12, 1.86) if kind not in ("store", "diner") else (1.2, 1.3, 1.5, 1.86)
-    c.rect(*door, (0x5A, 0x34, 0x1C))
-    if kind not in ("hall", "bank", "store", "diner"):
+    if kind not in ("market", "diner", "dealer", "depot"):
+        door = (0.88, 1.35, 1.12, 1.86)
+        c.rect(*door, (0x5A, 0x34, 0x1C))
+    elif kind in ("market", "diner"):
+        c.rect(1.2, 1.3, 1.5, 1.86, (0x5A, 0x34, 0x1C))
+    if kind not in ("hall", "bank", "market", "diner", "dealer", "depot"):
         for wx in (0.3, 1.5):
             c.rect(wx, 1.2, wx + 0.28, 1.5, trim); c.rect(wx + 0.03, 1.23, wx + 0.25, 1.47, GLASS)
     return c.done()

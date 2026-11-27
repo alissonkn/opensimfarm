@@ -1079,18 +1079,24 @@ def region_grids():
     return rows
 
 
-CIVIC = ["hall", "church", "store", "bank", "school", "diner", "clinic", "mill"]  # tiles 322 + 2 * index (2 x 2)
+# The town's buildings: (picture, first tile, size). The engine opens a window when one is clicked (Shop.cpp TownBuildingAt,
+# GameUi.cpp): the first five are Market, Sell, Bank, Buy and the Farm Expert; the Expert's is 2 x 2 (a part of its 3 x 3 block).
+CIVIC = [("market", 320, 3), ("depot", 323, 3), ("bank", 326, 3), ("dealer", 329, 3), ("school", 332, 2),
+         ("hall", 335, 3), ("church", 338, 3), ("diner", 352, 3), ("clinic", 355, 3)]
+CIVIC_BASE = {name: base for name, base, n in CIVIC}
 
 
 def town_blocks():
     """15 town plot templates, 8 x 8 each (rows of tile ids; the engine joins the dirt pieces and, as the town grows, swaps
-    the house spots for houses of the town's level). Each has a dirt-road cross and four 2 x 2 spots, a house (252) or one of
-    the town centre's buildings; the event ground (type 4) is a plaza of the 7 x 5 event tiles, the airport (type 5) a paved
-    runway across the ground."""
-    def spot(b, row, col, first):
-        b[row][col], b[row][col + 1], b[row + 1][col], b[row + 1][col + 1] = first, first + 1, first + 40, first + 41
+    the house spots (252) for houses of the town's level). The home plot (type 0, the whole town of a new world) holds the five
+    buildings the engine opens windows from; the event ground (type 4) is a plaza of the 7 x 5 event tiles, the airport (type 5)
+    a paved runway; every other plot has a dirt-road cross and four spots, houses or two of the other buildings."""
+    def put(b, row, col, first, n, w=None):
+        for dy in range(n):
+            for dx in range(w or n):
+                b[row + dy][col + dx] = first + 40 * dy + dx
 
-    civic_of = {0: (0, 1, 2, 3), 8: (2, 5, None, None), 12: (4, 6, None, None), 13: (7, 5, None, None), 14: (3, 2, None, None)}
+    extra = {8: ("hall", "church"), 12: ("diner", "clinic"), 13: ("hall", "diner"), 14: ("clinic", "church")}
     blocks = []
     for t in range(15):
         b = [[15] * 8 for _ in range(8)]
@@ -1105,14 +1111,27 @@ def town_blocks():
                 b[k][7] = 161
                 b[7][k] = 162
             b[7][7] = 171
+        elif t == 0:
+            put(b, 0, 0, CIVIC_BASE["market"], 3)
+            put(b, 0, 3, CIVIC_BASE["depot"], 3)
+            put(b, 3, 0, CIVIC_BASE["bank"], 3)
+            put(b, 3, 3, CIVIC_BASE["dealer"], 3)
+            put(b, 0, 6, CIVIC_BASE["school"], 2)
+            for i in range(8):
+                b[6][i] = 161       # a road along the buildings' feet ...
+            for j in range(2, 8):
+                b[j][6] = 161       # ... and one up the side, to the plot's edges
         else:
             for k in range(8):
                 b[k][3] = 161       # north-south dirt piece
                 b[3][k] = 162       # east-west dirt piece
             b[3][3] = 171           # the crossing
-            kinds = civic_of.get(t, (None,) * 4)
-            for (row, col), kind in zip(((0, 0), (0, 4), (4, 0), (4, 4)), kinds):
-                spot(b, row, col, 252 if kind is None else 322 + 2 * kind)
+            names = extra.get(t, ())
+            for n_, (row, col) in enumerate(((0, 0), (0, 4), (4, 0), (4, 4))):
+                if n_ < len(names):
+                    put(b, row, col, CIVIC_BASE[names[n_]], 3)
+                else:
+                    put(b, row, col, 252, 2)
         blocks.append(b)
     return blocks
 
@@ -1275,8 +1294,8 @@ TERRAIN_TEXTS = [
     (172, 174, "Bridge", "Lets you cross water."), (175, 176, "Water Trough", "Animals drink here. Fill it with water."),
     (177, 187, "Fence", "Keeps animals in and strangers out."), (188, 199, "Gate", "A gate in a fence."),
     (200, 216, "Weather", "A picture of the weather."), (217, 217, "Floor", "The floor inside a building."),
-    (232, 251, "Town", "Part of the town, where all sorts of things go on."), (252, 321, "House", "A home in the town."),
-    (322, 439, "Town Building", "A building in the town centre."), (440, 481, "Farm Building", "A building of the farm."),
+    (232, 251, "Town", "Part of the town, where all sorts of things go on."), (252, 319, "House", "A home in the town."),
+    (320, 439, "Town Building", "A building in the town centre."), (440, 481, "Farm Building", "A building of the farm."),
     (482, 534, "Town Square", "The place where the town holds its events."), (535, 538, "Rocks", "Rocks. They must be cleared with a bulldozer."),
     (539, 687, "Sign", "A sign that tells you about the field."), (688, 847, "Crop", "A crop growing in a field."),
     (848, 1047, "Thing", "Something on the farm."),
@@ -1462,15 +1481,16 @@ def build(size, labels):
         for k, t in enumerate(tiles):
             plain[t] = pic.crop(((k % 2) * size, (k // 2) * size, (k % 2 + 1) * size, (k // 2 + 1) * size))
     # the town: seven houses (the engine picks a style by the town's level: tiles 252 + 2 * style, + 1, + 40, + 41) and
-    # eight buildings of its centre (322 + 2 * kind, ..., + 40, + 41)
+    # nine buildings of its centre (CIVIC)
     for style in range(7):
         pic = art.town_house(style, size)
         for k, off in enumerate((0, 1, 40, 41)):
             plain[252 + 2 * style + off] = pic.crop(((k % 2) * size, (k // 2) * size, (k % 2 + 1) * size, (k // 2 + 1) * size))
-    for kind, name in enumerate(CIVIC):
-        pic = art.civic(name, size)
-        for k, off in enumerate((0, 1, 40, 41)):
-            plain[322 + 2 * kind + off] = pic.crop(((k % 2) * size, (k // 2) * size, (k % 2 + 1) * size, (k // 2 + 1) * size))
+    for name, base, n in CIVIC:  # the town's buildings, in the 3 x 3 blocks of tiles the engine knows them by (TownBuildingAt)
+        pic = art.civic(name, size, n)
+        for dy in range(n):
+            for dx in range(n):
+                plain[base + 40 * dy + dx] = pic.crop((dx * size, dy * size, (dx + 1) * size, (dy + 1) * size))
     plain[120] = art.pump(size)
     plain[481] = art.water_tower(size)
     plain[0x95] = art.water_tower(size, broken=True)

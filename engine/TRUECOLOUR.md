@@ -471,6 +471,12 @@ windmill, hay, silos, sheds, barns, the pump and the water tower, soil for field
 and Examine pictures (`alltiles.btl`) show the same drawings. Machines and animals are drawn once facing up and turned
 for the other headings, so a replacement pack needs every heading too.
 
+**The town.** The engine opens a window when a town building is clicked: Market, Sell, Bank, BUY and the Farm Expert, which
+it finds by their tiles (`TownBuildingAt` in `game/Shop.cpp`: 3 x 3 blocks of tiles starting at 320, 323, 326, 329 and 332;
+335, 338, 352 and 355 are four more that do nothing). A new world has only the home plot (8 x 8 cells), so those five go into
+the pack's plot layout `0`; the Expert's is 2 x 2 (a part of its block). Houses come in seven styles from tile 252 (2 x 2: tiles
+252 + 2 * style, + 1, + 40, + 41) which the engine swaps in at the house spots (`252` in a layout) as the town's level grows.
+
 **Inside a building.** Right-clicking a barn, shed or silo (not the pump or windmill) flips it to its inside: every cell
 becomes the floor (tile 217, `0xD9`) with the picture of what is stored in each slot on it (crop icons, barrels); a water
 tower shows its tank, filled to its level (tiles 83..86). Right-click again closes it. The Examine tool shows the same
