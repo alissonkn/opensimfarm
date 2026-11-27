@@ -245,6 +245,65 @@ come from their crop files, which a pack does not have yet.
 **Not covered yet:** the farm a game *starts* in is still loaded from `SCEN0.SSM` (the template only serves new
 worlds), as are the other prebuilt farms on the region map (`SCEN1..7.SSM`); without crop files no crop is loaded.
 
+## Crops
+
+The original keeps each crop in a `CROPS/*.CRP` file: a 70-byte parameter record, the crop's 14 pictures, its name and
+two help texts. A pack gives them as an optional `crops` block of `tilepack.json` (the full description is in
+`game/PackCrops.h`):
+
+```json
+"crops": [
+  { "file": "corn.crp", "name": "Corn",
+    "params": { "weeks": 18, "stages": 8, "baseTemp": 50, "heat": 100, "yield": 300, "price": 300, "seedBase": 100,
+                "waterMin": 5, "waterMax": 19, "drainA": 3, "drainB": 2, "drainC": 2,
+                "resistPests": 170, "resistWeeds": 150, "resistDisease": 190, "wetPenalty": 4, "dryPenalty": 4 },
+    "art": "crops/corn.png",
+    "help": ["Warm season crop.", "Rain: Medium."],
+    "info": "Corn~Temperature: Warm~Rain: Medium" }
+]
+```
+
+A pack's crops are all the crops there are (16 to 64): they stand in for the `CROPS` folder through a small registry
+(`SetPackCrops` in `game/Crops.h`); `LoadCropFile` finds them by file name in any case, `CropFiles` lists them for the
+crop-choosing window, and the first 16 are the ones a new world starts with. The file name is at most 14 characters,
+lower case, ending in `.crp`, because a save names its crops by it. `art` is a PNG of the crop's 14 pictures in a row,
+each as large as the pack's tiles: the 8 growth stages, the sign's four tiles, and the two icons. When a crop is loaded
+into a slot they are patched over the slot's tiles (`ApplyCropArtArgb`), as the original copies its crop files'
+pictures; the spare-crop lists show the RGB icon. A crop without `art` uses what the tile sheets hold for that slot.
+
+What the parameters do, found from the growth code (each is the byte `P<n>` of the original's record; the engine reads
+only these):
+
+* `weeks` (P36) is the weeks from planting to harvest, `stages` (P46, at most 8) the pictures it passes through.
+* `heat` (P10) and `baseTemp` (P47): each week the crop gets 7 heat for every degree F the week is above `baseTemp`;
+  below `heat` it falls behind (the heat deficit slows its growth); `heat` 0 means it needs none. `chillHours` (P8) is the
+  cold it needs.
+* `waterMin`, `waterMax` (P20, P22) are the moisture range. A field's moisture is **twice the soil wetness** (which runs
+  0 to 12), so the range lives in 0 to 24, and each full ditch beside the field lowers the minimum by 2 and each empty one
+  raises the maximum by 2. A week outside the range adds a large stress penalty.
+* `resistPests`, `resistWeeds`, `resistDisease` (P38..P40) are **thresholds, not flags**: each week a random 1..255
+  above the threshold adds the excess (at most 64) to that counter, so 0 is the fastest growth there is (a crop with 0
+  fills its counters in five weeks and every harvest is worth nothing); any non-zero value also quarters the effect of
+  a spray. The placeholder crops use 110 to 230.
+* `yield` (P12) and `price` (P14): a field is worth `yield * (price / 10)` before quality, and the seed costs a quarter of
+  `seedBase` (P18, at least 5); the market price starts at `price`.
+* `drainA..C` (P30..P32) are the weekly drains of the soil's three nutrients, `wetPenalty` and `dryPenalty` (P50, P51)
+  the stress a wet or dry week adds, `handPicked` (P37) a harvest by a picking crew and a truck, and `perennial` (P42 bit
+  1), `orchard` (bit 4), `harvestWeek` (P56, a week of the 48-week year) and `regrowAge` (the age it goes back to after a
+  harvest) the tree crops.
+
+Two things in the placeholder pack came from running the game and not from reading it. **The weather tables must keep the
+soil's wetness in range**: the engine keeps an accumulator (a rain day adds 8, a dry day takes off 1.25 to 1.75) and moves
+the wetness by `acc >> 3`, so a rain class of 3 or more a week soaks the soil to 12 for good; the generator simulates that
+model and steers each week's rain class to hold the wetness near a target (`climate_tables`). **The resistances must be
+high** (above). Before these two fixes every harvest was worth nothing.
+
+`opensimfarm --cropstest [pack folder]` needs no game files. It checks the block (the accessors read every parameter, 32
+bad blocks), the registry, the truecolour art patched into a tile sheet and the RGB icon. With a pack folder it
+generates a world on that pack's crops, saves and loads it (the crops are found again by their names), lists the spare
+crops, and runs the autoplayer for three years on **five different worlds**: each must stay solvent, sell at least four
+harvests for at least 8,000, keep its soil neither soaked nor parched, and not waste most of its harvests.
+
 ## The placeholder pack
 
 `packs/placeholder/` is a complete pack at 32 px, made by `tools/make_placeholder_pack.py` (Python and Pillow; one
@@ -266,6 +325,8 @@ contains nothing of the original game:
   the cursors are not made yet.
 * The interface theme and the weather look: the engine's own 16 colours and rain and frost veils written out in
   `tilepack.json`, ready to change.
+* 24 crops with their parameters and pictures (with `--no-tables` left out): the 16 a new world starts with, 8 to choose
+  from (4 of them orchards), the weather steered so that they can grow.
 * The template farm (with `--no-tables` left out): the item catalogue, made from the engine's own role tables.
 * The data tables (`--no-tables` leaves them out): synthetic climate (seasons and weather by class), a region map in
   gradients, a dirt-road cross in each town block, 80 message texts (the engine's own English words for the ids it
@@ -315,7 +376,7 @@ with none of its files, these remain:
 | The archive itself | `Megadata::Open` wants `MEGADATA.IDX/EEA`; `Gfx::Init` wants `egafont.fnt` | open from a pack alone; a font in the pack |
 | Palettes: `simfarm.pal`, `rainpal.pal`, `frostpal.pal`, `sftitle.pal`, `scenario.pal`, `prsnt480.pal` | a pack no longer needs any: the interface has its theme, tiles and pictures are RGB, the overview is RGB and the weather a veil. Only the archive's own indexed pictures still use them | nothing on the pack path |
 | Picture banks `alltiles.btl`, `wethgrnd.btl`, `wethsky.btl`; `cursors.til` | message box pictures (event ids pick a record), the Expert's faces, weather art | bank sets in `pictures`; cursors |
-| Crop files `CROPS/*.crp` | 16 crops: name, 70 parameters, 14 pictures, help card | a `crops` table; the pictures come from the pack |
+| Crop files `CROPS/*.crp` | (done: see Crops) | |
 | Help cards `cardN.hc` | the Farm Expert's scripted cards | a JSON card format |
 | Prebuilt farms `SCEN0..7.SSM` | `SCEN0.SSM` is also the farm a game opens in, and the others are the farms on the region map. (As the template for *new worlds* it is replaced: see Template farm) | start from a generated world; the region map's farms generated from their region |
 | Sounds `*.voc` and songs `*.xmi` | effects and music | a sound set in the pack |
@@ -326,6 +387,5 @@ with none of its files, these remain:
 1. Give the interface's hard-coded layout (window contents, the labels `PictureText.cpp` places) a home in the pack's
    JSON, so that a pack can move things; picture banks and cursors in packs.
 2. Weather as a tint or overlay for truecolour tiles; crop pictures in the pack (`crops.json`).
-3. The rest of the list above, in this order: the crop files, the starting farm (generated, and the region map's
-   farms), picture banks, the help cards, sounds, the archive itself; each with placeholder data in the shipped pack until the game runs with none of the
+3. The rest of the list above, in this order: the starting farm (generated, and the region map's farms), picture banks, the help cards, sounds, the archive itself; each with placeholder data in the shipped pack until the game runs with none of the
    original's files.

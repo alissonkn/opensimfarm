@@ -8,7 +8,7 @@ Every one of the 848 plain, 200 masked and 105 event tiles is made, in the PNG-s
 engine/TRUECOLOUR.md, and so are placeholder pictures for the interface (windows, buttons, gauges, sprites, the
 full-screen pictures), at 2 pixels per interface unit (--no-pictures leaves them out), and placeholder data tables
 (climate, region map, town layout, message texts, item texts, overview colours; --no-tables leaves them out) and the
-interface theme (16 RGB colours) and the weather look (a veil for rain and for frost), and the template farm (the item catalogue every new world starts from). The families the engine knows by name (ground, water, ditches, roads, fences, gates, trees,
+interface theme (16 RGB colours) and the weather look (a veil for rain and for frost), and the template farm (the item catalogue every new world starts from) and 24 crops with their pictures. The families the engine knows by name (ground, water, ditches, roads, fences, gates, trees,
 rocks, bridges, crop pictures, event grounds) are drawn as what they are, connected pieces with the right arms; every
 other tile is coloured by the tile family it belongs to. Each tile carries its number (--no-labels leaves them off),
 so the pack doubles as a map of what the engine uses where. Needs Pillow (pip install pillow).
@@ -87,8 +87,8 @@ CROP_ICON_A, CROP_ICON_B = 816, 832
 EVENT_GROUND = 483  # a 7 x 5 block
 HAY = 1020
 
-# 16 crop slots, a hue each
-CROP_COLOURS = [colorsys.hsv_to_rgb(i / 16.0, 0.75, 0.9) for i in range(16)]
+# 24 crops (16 slots, and the spare crops that can be chosen), a hue each
+CROP_COLOURS = [colorsys.hsv_to_rgb(i / 24.0, 0.75, 0.9) for i in range(24)]
 CROP_COLOURS = [tuple(int(x * 255) for x in c) for c in CROP_COLOURS]
 
 # a 3 x 5 pixel digit font for the labels
@@ -581,22 +581,40 @@ def build_pictures(out):
 # Written as the "tables" block of tilepack.json (engine/src/assets/PackTables.h describes each).
 
 def climate_tables():
-    """12 climate tables of 240 weeks (5 years of 48): seasons and weather by class 0 (mild) .. 3 (extreme)."""
+    """12 climate tables of 240 weeks (5 years of 48): seasons and weather by class 0 (dry, cool) .. 3 (wet, hot).
+
+    The soil's wetness is the one thing the weather tables must get right: the engine keeps an accumulator (a rain day
+    adds 8, a dry day takes about 1.4 off) and moves the wetness 0..12 by acc >> 3 whenever it passes 8 either way, so
+    rain classes 3 and up add 2 or more steps a week and the soil soaks to 12 for good. The rain class of each week is
+    therefore chosen by simulating that model and steering the wetness round a target for the climate class, with a
+    spring wet season and some luck, so that a crop's water range of about 3..21 (moisture is twice the wetness) is met
+    most weeks.
+    """
     rng = random.Random(1993)
     mean = [45, 55, 65, 78]            # degrees F
     swing = [22, 24, 26, 28]
-    wet = [(0, 2), (1, 3), (2, 5), (3, 7)]  # rain class range by class: the wetter the class, the more rain days
+    target = [4.0, 5.5, 7.0, 8.5]      # the wetness the rain steers round
     out = {"rain": [], "temperature": [], "wind": []}
     for cls in range(4):
         rain, temp, wind = [], [], []
+        wet, acc = 6.0, 0.0
         for week in range(240):
             season = math.sin((week % 48 - 12) / 48.0 * 2 * math.pi)  # warmest in week 36 (midsummer in a year from January)
             temp.append(int(round(mean[cls] + swing[cls] * season + rng.uniform(-4, 4))))
-            lo, hi = wet[cls]
-            # more rain in spring: the season term pushes the class up a little around week 12..20
-            bump = 1 if 8 <= week % 48 < 20 and cls > 0 else 0
-            rain.append(min(7, rng.randint(lo, hi) + bump))
-            wind.append(int(2 + cls * 3 + rng.uniform(0, 8)))
+            wetter = 0.8 * math.sin((week % 48 - 6) / 48.0 * 2 * math.pi)  # a wet spring, a drier late summer
+            want = (target[cls] + wetter - wet) * 0.45 + rng.uniform(-1.0, 1.0)
+            step = max(-2, min(3, int(round(want))))
+            days = {-2: 0, -1: rng.choice([0, 1]), 0: 1, 1: 2, 2: 3, 3: 4}[step]  # the rain class is the number of rain days
+            rain.append(days)
+            wind.append(int(2 + cls * 3 + rng.uniform(0, 6)))
+            # the engine's accumulator: a rain day adds 8; a dry day takes off 2, 1 or 1 (clear, mostly clear, cloudy) in a
+            # cool week (below 70 F), 1, 1 or 2 .. in a warm one: on average 1.25, 1.5 and 1.75 a day for weeks up to 70,
+            # up to 85 and warmer (Simulation::DrySky)
+            t = temp[-1]
+            acc += 8 * days - (7 - days) * (1.25 if t <= 70 else 1.5 if t <= 85 else 1.75)
+            if abs(acc) >= 8:
+                wet = max(0.0, min(12.0, wet + math.floor(acc / 8)))
+                acc = 0.0
         out["rain"].append(rain)
         out["temperature"].append(temp)
         out["wind"].append(wind)
@@ -680,19 +698,78 @@ def family_of(tile):
 # balance; the sizes are the number of consecutive tiles each building's picture takes (small silo 1, large silo 2 x 2,
 # small shed 3 x 2, large shed and small barn 3 x 3, large barn 4 x 3).
 MACHINES = [  # record = the machine's type; the tile is its upright picture's first (overlay 0x350.. + 848)
-    (0, "Tractor", 848, 12000, (1, 1)), (1, "Plow", 852, 4000, (1, 1)), (2, "Planter", 856, 6500, (1, 1)),
-    (3, "Sprayer", 868, 5200, (1, 1)), (4, "Harvester", 860, 16000, (1, 2)), (5, "Trailer", 876, 3000, (1, 2)),
-    (7, "Truck", 896, 9500, (1, 2)), (8, "Crop Duster", 1028, 22000, (1, 1)),
+    (0, "Tractor", 848, 6000, (1, 1)), (1, "Plow", 852, 1800, (1, 1)), (2, "Planter", 856, 2800, (1, 1)),
+    (3, "Sprayer", 868, 2200, (1, 1)), (4, "Harvester", 860, 7500, (1, 2)), (5, "Trailer", 876, 1400, (1, 2)),
+    (7, "Truck", 896, 4500, (1, 2)), (8, "Crop Duster", 1028, 12000, (1, 1)),
 ]
 BUILDINGS = [  # records 12..20, kind 0x40..0x48
-    ("Small Silo", 440, 800, (1, 1)), ("Large Silo", 441, 2200, (2, 2)), ("Small Shed", 445, 1500, (3, 2)),
-    ("Large Shed", 451, 3200, (3, 3)), ("Small Barn", 460, 2800, (3, 3)), ("Large Barn", 469, 5200, (4, 3)),
-    ("Water Pump", 120, 1800, (1, 1)), ("Windmill", 1010, 2400, (1, 1)), ("Water Tower", 481, 3000, (1, 1)),
+    ("Small Silo", 440, 500, (1, 1)), ("Large Silo", 441, 1400, (2, 2)), ("Small Shed", 445, 900, (3, 2)),
+    ("Large Shed", 451, 1900, (3, 3)), ("Small Barn", 460, 1600, (3, 3)), ("Large Barn", 469, 3000, (4, 3)),
+    ("Water Pump", 120, 1000, (1, 1)), ("Windmill", 1010, 1300, (1, 1)), ("Water Tower", 481, 1700, (1, 1)),
 ]
-ANIMALS = [("Horse", 946, 1200), ("Cow", 962, 900), ("Pig", 978, 400), ("Sheep", 994, 300)]  # records 45..48, kind 0xA0 + species
-SUPPLIES = [("Fertilizer", 915, 60), ("Pesticide", 914, 80), ("Herbicide", 913, 70), ("Fungicide", 912, 90)]  # records 82..85, kind 0xDC..
+ANIMALS = [("Horse", 946, 800), ("Cow", 962, 600), ("Pig", 978, 300), ("Sheep", 994, 200)]  # records 45..48, kind 0xA0 + species
+SUPPLIES = [("Fertilizer", 915, 40), ("Pesticide", 914, 50), ("Herbicide", 913, 45), ("Fungicide", 912, 55)]  # records 82..85, kind 0xDC..
 CROPS = ["Corn", "Wheat", "Barley", "Potatoes", "Oats", "Rice", "Sorghum", "Soybeans", "Cotton", "Onions", "Tomatoes", "Lettuce", "Carrots",
          "Strawberries", "Sugar", "Peanuts"]
+
+
+# ----------------------------------------------------------------------------------------------- crops
+# The crops (engine/src/game/PackCrops.h describes each parameter): the 16 a new world starts with, then 8 to choose from.
+# (file, name, temperature class, water class, weeks to harvest, yield, price, special). The numbers are placeholder
+# balance: yield x price / 10 is what a field is worth, a seed bag costs a quarter of seedBase.
+TEMP_CLASS = {"cool": (40, 50), "warm": (50, 100), "hot": (55, 130)}   # baseTemp F, weekly heat needed
+WATER_CLASS = {"dry": (3, 16), "mid": (5, 19), "wet": (8, 24)}        # moisture range (0..24)
+CROP_ROWS = [
+    ("corn.crp", "Corn", "warm", "mid", 18, 300, 300, ""), ("wheat.crp", "Wheat", "cool", "dry", 16, 250, 220, ""),
+    ("barley.crp", "Barley", "cool", "dry", 14, 240, 200, ""), ("potatoes.crp", "Potatoes", "cool", "mid", 15, 350, 180, ""),
+    ("oats.crp", "Oats", "cool", "mid", 13, 230, 160, ""), ("rice.crp", "Rice", "hot", "wet", 20, 330, 260, ""),
+    ("sorghum.crp", "Sorghum", "hot", "dry", 17, 260, 190, ""), ("soybeans.crp", "Soybeans", "warm", "mid", 16, 280, 280, ""),
+    ("cotton.crp", "Cotton", "hot", "mid", 22, 220, 420, ""), ("onions.crp", "Onions", "cool", "mid", 14, 300, 210, ""),
+    ("tomatoes.crp", "Tomatoes", "warm", "wet", 15, 360, 320, ""), ("lettuce.crp", "Lettuce", "cool", "wet", 9, 280, 170, ""),
+    ("carrots.crp", "Carrots", "cool", "mid", 12, 310, 200, ""), ("strawber.crp", "Strawberries", "warm", "wet", 12, 260, 480, "hand"),
+    ("sugar.crp", "Sugar Cane", "hot", "wet", 24, 400, 150, ""), ("peanuts.crp", "Peanuts", "warm", "dry", 18, 240, 330, ""),
+    ("gladiolu.crp", "Gladiolus", "cool", "mid", 12, 180, 450, "hand"), ("sweet.crp", "Sweet Corn", "warm", "mid", 14, 260, 280, ""),
+    ("tobacco.crp", "Tobacco", "hot", "mid", 20, 200, 520, "hand"), ("sunflowe.crp", "Sunflowers", "warm", "dry", 16, 240, 250, ""),
+    ("grapes.crp", "Grapes", "warm", "mid", 18, 220, 500, "orchard30"), ("oranges.crp", "Oranges", "hot", "mid", 20, 240, 440, "orchard40"),
+    ("almonds.crp", "Almonds", "warm", "dry", 20, 200, 560, "orchard34"), ("apples.crp", "Apples", "cool", "mid", 18, 260, 460, "orchard36"),
+]
+
+
+def crop_block(size, out):
+    """The crops block, and a strip of 14 pictures for each crop under out/crops."""
+    os.makedirs(os.path.join(out, "crops"), exist_ok=True)
+    crops = []
+    for i, (file, name, temp, water, weeks, yld, price, special) in enumerate(CROP_ROWS):
+        base_temp, heat = TEMP_CLASS[temp]
+        wmin, wmax = WATER_CLASS[water]
+        params = {"weeks": weeks, "stages": 8, "baseTemp": base_temp, "heat": heat, "yield": yld, "price": price,
+                  "seedBase": max(20, price // 3), "waterMin": wmin, "waterMax": wmax,
+                  "drainA": 3 + i % 3, "drainB": 2 + i % 4, "drainC": 2 + i % 2, "wetPenalty": 3 + i % 3, "dryPenalty": 3 + (i + 1) % 3}
+        if special.startswith("orchard"):
+            params.update({"perennial": True, "orchard": True, "handPicked": True, "harvestWeek": int(special[7:]), "regrowAge": 1})
+        elif special == "hand":
+            params["handPicked"] = True
+        # resistance is a threshold: each week a random 1..255 above it adds the excess (at most 64) to the crop's pest, weed
+        # or disease counter, and any resistance at all quarters what a spray changes; 0 is the fastest growth there is, so
+        # the crops get 120..230, hardier ones the more, delicate (hand-picked) ones the less
+        delicate = special == "hand"
+        for k, name_ in enumerate(("resistPests", "resistWeeds", "resistDisease")):
+            params[name_] = (110 if delicate else 150) + (i * 37 + k * 53) % 80
+        strip = Image.new("RGBA", (14 * size, size), (0, 0, 0, 0))
+        for k in range(8):
+            strip.paste(draw_crop_stage(size, i, k), (k * size, 0))
+        sign = draw_sign(size, i)
+        for q in range(4):
+            strip.paste(sign.crop(((q % 2) * size, (q // 2) * size, (q % 2 + 1) * size, (q // 2 + 1) * size)), ((8 + q) * size, 0))
+        strip.paste(draw_icon(size, i, (0xC8, 0xB0, 0x78)), (12 * size, 0))
+        strip.paste(draw_icon(size, i, (0x4C, 0xA0, 0x4C)), (13 * size, 0))
+        strip.save(os.path.join(out, "crops", file.replace(".crp", ".png")), optimize=True)
+        temp_word = {"cool": "Cool", "warm": "Warm", "hot": "Hot"}[temp]
+        rain_word = {"dry": "Low", "mid": "Medium", "wet": "High"}[water]
+        crops.append({"file": file, "name": name, "params": params, "art": "crops/" + file.replace(".crp", ".png"),
+                      "help": [f"{temp_word} season crop.", f"Rain: {rain_word}.", f"{weeks} weeks to grow."],
+                      "info": f"{name}~Temperature: {temp_word}~Rain: {rain_word}~Days: {weeks * 7}"})
+    return crops
 
 
 def template_block():
@@ -874,6 +951,7 @@ def main():
     meta["weather"] = WEATHER
     if not a.no_tables:
         meta["template"] = template_block()
+        meta["crops"] = crop_block(a.size, a.out)
     if not a.no_tables:
         meta["tables"] = build_tables()
     with open(os.path.join(a.out, "tilepack.json"), "w") as f:
