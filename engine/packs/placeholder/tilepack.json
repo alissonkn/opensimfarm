@@ -18,5 +18,141 @@
       "count": 105,
       "columns": 15
     }
+  },
+  "pictures": {
+    "scale": 2,
+    "single": {
+      "about.bmp": {
+        "file": "ui/about.png"
+      },
+      "airpwndo.bmp": {
+        "file": "ui/airpwndo.png"
+      },
+      "bankterm.bmp": {
+        "file": "ui/bankterm.png"
+      },
+      "buywndo.bmp": {
+        "file": "ui/buywndo.png"
+      },
+      "cashflow.bmp": {
+        "file": "ui/cashflow.png"
+      },
+      "choscrop.bmp": {
+        "file": "ui/choscrop.png"
+      },
+      "cntlbtnh.bmp": {
+        "file": "ui/cntlbtnh.png"
+      },
+      "evaluate.bmp": {
+        "file": "ui/evaluate.png"
+      },
+      "examine.bmp": {
+        "file": "ui/examine.png"
+      },
+      "farmburo.bmp": {
+        "file": "ui/farmburo.png"
+      },
+      "fdstatus.bmp": {
+        "file": "ui/fdstatus.png"
+      },
+      "filegenr.bmp": {
+        "file": "ui/filegenr.png"
+      },
+      "futures.bmp": {
+        "file": "ui/futures.png"
+      },
+      "mapwndo.bmp": {
+        "file": "ui/mapwndo.png"
+      },
+      "popup.bmp": {
+        "file": "ui/popup.png"
+      },
+      "sellwndo.bmp": {
+        "file": "ui/sellwndo.png"
+      },
+      "twnchoic.bmp": {
+        "file": "ui/twnchoic.png"
+      },
+      "weather.bmp": {
+        "file": "ui/weather.png"
+      },
+      "editeasy.lzs": {
+        "file": "ui/editeasy.png"
+      },
+      "sftitle.int": {
+        "file": "ui/sftitle.png"
+      },
+      "scenario.int": {
+        "file": "ui/scenario.png"
+      },
+      "prsnt480.int": {
+        "file": "ui/prsnt480.png"
+      },
+      "defworld.int": {
+        "file": "ui/defworld.png"
+      }
+    },
+    "sets": [
+      {
+        "key": "buttons.til${n}",
+        "file": "ui/buttons-faces.png",
+        "count": 18,
+        "columns": 6
+      },
+      {
+        "key": "fldgrph.til${n}",
+        "file": "ui/fldgrph-faces.png",
+        "count": 20,
+        "columns": 6
+      },
+      {
+        "key": "wethvane.til${n}",
+        "file": "ui/wethvane-faces.png",
+        "count": 2,
+        "columns": 2
+      },
+      {
+        "key": "airplane.spr@{n}",
+        "file": "ui/airplane-frames.png",
+        "count": 8,
+        "columns": 4
+      },
+      {
+        "key": "apshadow.spr@{n}",
+        "file": "ui/apshadow-frames.png",
+        "count": 8,
+        "columns": 4
+      },
+      {
+        "key": "tornado.spr@{n}",
+        "file": "ui/tornado-frames.png",
+        "count": 4,
+        "columns": 4
+      },
+      {
+        "key": "swarm.spr@{n}",
+        "file": "ui/swarm-frames.png",
+        "count": 4,
+        "columns": 4
+      },
+      {
+        "key": "cowman1.spr@{n}",
+        "file": "ui/cowman1-frames.png",
+        "count": 5,
+        "columns": 4
+      },
+      {
+        "key": "cowman2.spr@{n}",
+        "file": "ui/cowman2-frames.png",
+        "count": 5,
+        "columns": 4
+      },
+      {
+        "key": "cowman3.spr@{n}",
+        "file": "ui/cowman3-frames.png",
+        "count": 5,
+        "columns": 4
+      }
+    ]
   }
 }

@@ -5,7 +5,8 @@ drawn from nothing but the engine's own tile tables (nothing of the original gam
     python3 engine/tools/make_placeholder_pack.py [--size 32] [--out engine/packs/placeholder] [--no-labels]
 
 Every one of the 848 plain, 200 masked and 105 event tiles is made, in the PNG-sheet format of
-engine/TRUECOLOUR.md. The families the engine knows by name (ground, water, ditches, roads, fences, gates, trees,
+engine/TRUECOLOUR.md, and so are placeholder pictures for the interface (windows, buttons, gauges, sprites, the
+full-screen pictures), at 2 pixels per interface unit (--no-pictures leaves them out). The families the engine knows by name (ground, water, ditches, roads, fences, gates, trees,
 rocks, bridges, crop pictures, event grounds) are drawn as what they are, connected pieces with the right arms; every
 other tile is coloured by the tile family it belongs to. Each tile carries its number (--no-labels leaves them off),
 so the pack doubles as a map of what the engine uses where. Needs Pillow (pip install pillow).
@@ -16,7 +17,7 @@ import json
 import os
 import sys
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 
 PLAIN_TILES, MASKED_TILES, EVENT_TILES = 848, 200, 105
 PLAIN_COLS, MASKED_COLS, EVENT_COLS = 32, 20, 15
@@ -427,6 +428,149 @@ def label(img, text, size):
                             px[sc + (n * 4 + c) * sc + dx, sc + r * sc + dy] = (255, 255, 255, 255)
 
 
+# ----------------------------------------------------------------------------------------------- interface pictures
+# Sizes in interface units (the original's 640 x 480 screen), as the engine expects them (main.cpp ArchivePictureTest).
+WINDOWS = {
+    "about.bmp": (400, 224), "airpwndo.bmp": (256, 176), "bankterm.bmp": (288, 224), "buywndo.bmp": (256, 224),
+    "cashflow.bmp": (400, 224), "choscrop.bmp": (320, 224), "cntlbtnh.bmp": (640, 32), "evaluate.bmp": (352, 192),
+    "examine.bmp": (208, 208), "farmburo.bmp": (400, 224), "fdstatus.bmp": (336, 224), "filegenr.bmp": (208, 208),
+    "futures.bmp": (320, 208), "mapwndo.bmp": (288, 240), "popup.bmp": (256, 192), "sellwndo.bmp": (192, 256),
+    "twnchoic.bmp": (368, 224), "weather.bmp": (336, 192),
+}
+EDITEASY = (48, 208)  # editeasy.lzs: 24 x 24 icons, 2 across
+# face files: name, faces, logical size of a face, face names where the engine knows them (picture.h)
+BUTTON_FACES = ["OK", "BUY", "SELL", "CANCEL", "GOTO", "USE", "EXIT", "LOAD", "NEW", "USED", "YES", "NO", "SAVE", "NEXT", "PREV", "CLOSE", "TOP", "RATS"]
+FACE_FILES = [("buttons.til", 18, (48, 24), BUTTON_FACES), ("fldgrph.til", 20, (48, 24), None), ("wethvane.til", 2, (32, 32), None)]
+FULL_SCREENS = ["sftitle.int", "scenario.int", "prsnt480.int", "defworld.int"]
+SPRITES = [("airplane.spr", 8), ("apshadow.spr", 8), ("tornado.spr", 4), ("swarm.spr", 4), ("cowman1.spr", 5), ("cowman2.spr", 5), ("cowman3.spr", 5)]
+SPRITE_UNITS = 64
+PIC_SCALE = 2  # pixels per interface unit in the pictures made here
+
+
+def font(px):
+    try:
+        return ImageFont.load_default(size=px)  # Pillow 10.1+: a scalable default font
+    except TypeError:
+        return ImageFont.load_default()
+
+
+def text_centre(d, box, text, px, fill):
+    f = font(px)
+    x0, y0, x1, y1 = box
+    l, t, r, b = d.textbbox((0, 0), text, font=f)
+    d.text(((x0 + x1 - (r - l)) / 2 - l, (y0 + y1 - (b - t)) / 2 - t), text, fill=fill, font=f)
+
+
+def panel(w, h, name, tint):
+    """A window picture: a bevelled panel, its file name and size in a corner."""
+    img = Image.new("RGBA", (w * PIC_SCALE, h * PIC_SCALE), tint + (255,))
+    d = ImageDraw.Draw(img)
+    k = PIC_SCALE
+    d.rectangle([0, 0, w * k - 1, h * k - 1], outline=(0x30, 0x30, 0x30, 255), width=k)
+    d.line([(k, k), (w * k - 2 * k, k)], fill=(255, 255, 255, 255), width=k)
+    d.line([(k, k), (k, h * k - 2 * k)], fill=(255, 255, 255, 255), width=k)
+    d.line([(k, h * k - 2 * k), (w * k - 2 * k, h * k - 2 * k)], fill=(0x80, 0x80, 0x80, 255), width=k)
+    d.line([(w * k - 2 * k, k), (w * k - 2 * k, h * k - 2 * k)], fill=(0x80, 0x80, 0x80, 255), width=k)
+    if h >= 64:
+        text_centre(d, (0, 4 * k, w * k, 20 * k), f"{name}  {w} x {h}", 9 * k, (0x20, 0x20, 0x20, 255))
+    return img, d
+
+
+def toolbar():
+    img, d = panel(640, 32, "cntlbtnh.bmp", (0xC0, 0xC0, 0xC8))
+    k = PIC_SCALE
+    for x in range(0, 640, 32):  # ticks every 32 units, numbered: where the interface cuts the bar
+        d.line([(x * k, 0), (x * k, 32 * k)], fill=(0x70, 0x70, 0x80, 255), width=1)
+        d.text((x * k + 2, 2), str(x), fill=(0x30, 0x30, 0x30, 255), font=font(7 * k))
+    return img
+
+
+def editeasy():
+    w, h = EDITEASY
+    k = PIC_SCALE
+    img = Image.new("RGBA", (w * k, h * k), (0xC0, 0xC0, 0xC0, 255))
+    d = ImageDraw.Draw(img)
+    for i in range(16):
+        x, y = (i % 2) * 24 * k, (i // 2) * 24 * k
+        d.rectangle([x + k, y + k, x + 23 * k, y + 23 * k], fill=band_colour(i * 7, 0.4, 0.9) + (255,), outline=(0x30, 0x30, 0x30, 255), width=k)
+        text_centre(d, (x, y, x + 24 * k, y + 24 * k), str(i), 9 * k, (0x20, 0x20, 0x20, 255))
+    return img
+
+
+def face(w, h, text, hue):
+    img = Image.new("RGBA", (w * PIC_SCALE, h * PIC_SCALE), band_colour(hue * 11, 0.3, 0.95) + (255,))
+    d = ImageDraw.Draw(img)
+    k = PIC_SCALE
+    d.rectangle([0, 0, w * k - 1, h * k - 1], outline=(0x30, 0x30, 0x30, 255), width=k)
+    d.line([(k, k), (w * k - 2 * k, k)], fill=(255, 255, 255, 255), width=k)
+    d.line([(k, k), (k, h * k - 2 * k)], fill=(255, 255, 255, 255), width=k)
+    text_centre(d, (0, 0, w * k, h * k), text, (9 if h <= 24 else 10) * k, (0x20, 0x20, 0x20, 255))
+    return img
+
+
+def full_screen(name, hue):
+    w, h, k = 640, 480, PIC_SCALE
+    img = Image.new("RGBA", (w * k, h * k))
+    px = img.load()
+    top, bottom = band_colour(hue * 13, 0.45, 0.55), band_colour(hue * 13 + 5, 0.5, 0.25)
+    for y in range(h * k):
+        c = lerp(top, bottom, y / (h * k - 1))
+        for x in range(w * k):
+            px[x, y] = c + (255,)
+    d = ImageDraw.Draw(img)
+    text_centre(d, (0, 0, w * k, h * k), f"{name}  {w} x {h}", 24 * k, (255, 255, 255, 255))
+    return img
+
+
+def sprite_frame(n, frame, hue):
+    u, k = SPRITE_UNITS, PIC_SCALE
+    p = Painter(u * k, u * k, (0, 0, 0, 0))
+    c = band_colour(hue * 17, 0.6, 0.9)
+    with p.group():
+        p.ellipse(u * k * 0.12, u * k * 0.5, u * k * 0.88, u * k * 0.92, (0, 0, 0, 70))
+    p.ellipse(u * k * 0.14, u * k * 0.14, u * k * 0.86, u * k * 0.8, c + (255,), shade(c, 0.55) + (255,), u * k * 0.035)
+    img = p.finish()
+    d = ImageDraw.Draw(img)
+    text_centre(d, (0, 0, u * k, u * k * 0.9), f"{frame}", 16 * k, (0x20, 0x20, 0x20, 255))
+    return img
+
+
+def grid(images, columns):
+    cw, ch = images[0].size
+    rows = (len(images) + columns - 1) // columns
+    out = Image.new("RGBA", (cw * columns, ch * rows), (0, 0, 0, 0))
+    for i, im in enumerate(images):
+        out.paste(im, ((i % columns) * cw, (i // columns) * ch))
+    return out
+
+
+def build_pictures(out):
+    """Writes the interface pictures under out/ui and returns the manifest's "pictures" block."""
+    ui = os.path.join(out, "ui")
+    os.makedirs(ui, exist_ok=True)
+    single, sets = {}, []
+    for i, (name, (w, h)) in enumerate(sorted(WINDOWS.items())):
+        img = toolbar() if name == "cntlbtnh.bmp" else panel(w, h, name, lerp((0xC8, 0xC8, 0xC8), band_colour(i * 5, 0.25, 0.92), 0.5))[0]
+        img.save(os.path.join(ui, name.replace(".bmp", ".png")), optimize=True)
+        single[name] = {"file": "ui/" + name.replace(".bmp", ".png")}
+    editeasy().save(os.path.join(ui, "editeasy.png"), optimize=True)
+    single["editeasy.lzs"] = {"file": "ui/editeasy.png"}
+    for i, name in enumerate(FULL_SCREENS):
+        full_screen(name, i).save(os.path.join(ui, name.replace(".int", ".png")), optimize=True)
+        single[name] = {"file": "ui/" + name.replace(".int", ".png")}
+    for fi, (name, count, (w, h), names) in enumerate(FACE_FILES):
+        faces = [face(w, h, names[i] if names else str(i), i + fi * 3) for i in range(count)]
+        png = "ui/" + name.replace(".til", "-faces.png")
+        columns = 6 if count > 6 else count
+        grid(faces, columns).save(os.path.join(out, png), optimize=True)
+        sets.append({"key": name + "${n}", "file": png, "count": count, "columns": columns})
+    for si, (name, frames) in enumerate(SPRITES):
+        png = "ui/" + name.replace(".spr", "-frames.png")
+        grid([sprite_frame(name, f, si) for f in range(frames)], min(frames, 4)).save(os.path.join(out, png), optimize=True)
+        sets.append({"key": name + "@{n}", "file": png, "count": frames, "columns": min(frames, 4)})
+    return {"scale": PIC_SCALE, "single": single, "sets": sets}
+
+
 # ----------------------------------------------------------------------------------------------- the pack
 
 def sheet(tiles, cols, size):
@@ -478,6 +622,7 @@ def main():
     ap.add_argument("--size", type=int, default=32, help="pixels a tile, 8..128 (default 32)")
     ap.add_argument("--out", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "packs", "placeholder"))
     ap.add_argument("--no-labels", action="store_true", help="leave the tile numbers off")
+    ap.add_argument("--no-pictures", action="store_true", help="make the tiles only, no interface pictures")
     a = ap.parse_args()
     if not 8 <= a.size <= 128:
         sys.exit("--size must be from 8 to 128")
@@ -496,6 +641,8 @@ def main():
             "events": {"file": "events.png", "count": EVENT_TILES, "columns": EVENT_COLS},
         },
     }
+    if not a.no_pictures:
+        meta["pictures"] = build_pictures(a.out)
     with open(os.path.join(a.out, "tilepack.json"), "w") as f:
         json.dump(meta, f, indent=2)
         f.write("\n")
