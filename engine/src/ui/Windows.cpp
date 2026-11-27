@@ -149,11 +149,7 @@ public:
         // their own icon; alphabetical, eight rows, a scroll bar on the right
         const Rect area = ListArea();
         g.Fill(area.x, area.y, area.w, area.h, kLightGrey);
-        const auto& pal = g.Pal();
-        auto argb = [&](int v) {
-            const auto& p = pal[static_cast<size_t>(v & 15)];
-            return 0xFF000000u | (static_cast<uint32_t>(p[0]) << 16) | (static_cast<uint32_t>(p[1]) << 8) | p[2];
-        };
+        auto argb = [&](int v) { return g.Argb16(v); };
         _top = std::clamp(_top, 0, std::max(0, static_cast<int>(_list.size()) - kRows));
         for (int r = 0; r < kRows && _top + r < static_cast<int>(_list.size()); ++r)
         {
@@ -563,10 +559,9 @@ public:
             viewCol = std::clamp(static_cast<int>(vx + vw / 2) / 8, 0, P - 1);
             viewRow = std::clamp(static_cast<int>(vy + vh / 2) / 8, 0, P - 1);
         }
-        const Palette& pal = g.Pal();
         std::vector<uint32_t> px(192 * 192);
         for (size_t i = 0; i < px.size(); ++i)
-            px[i] = 0xFF000000u | (pal[ix[i]][0] << 16) | (pal[ix[i]][1] << 8) | pal[ix[i]][2];
+            px[i] = g.Argb16(ix[i]);
         g.DrawPixels(px, 192, 192, 72, 0, 192, 192);
 
         // property mode: the plot grid in yellow, twelve lines each way from the map's top-left corner, over the

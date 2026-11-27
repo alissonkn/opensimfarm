@@ -4,6 +4,7 @@
 #include "assets/Graphics.h"
 #include "assets/Picture.h"
 #include "assets/PicturePack.h"
+#include "assets/Theme.h"
 
 #include <SDL.h>
 
@@ -76,9 +77,25 @@ public:
     void ClearClip() { SDL_RenderSetClipRect(_r, nullptr); }
     const Megadata* Mega() const { return _mega; }
     const Palette& Pal() const { return _pal; }
-    // the RGB of one of the engine's interface colours (Colour): for the Windows edition the Windows colour that
-    // stands for it
-    const std::array<uint8_t, 3>& Ui(int c) const { return _pal[_ui[static_cast<size_t>(c & 15)]]; }
+    // the RGB of one of the engine's interface colours (Colour): the theme's when a pack gave one, else for the
+    // original the palette entry (for the Windows edition the Windows colour that stands for it)
+    const std::array<uint8_t, 3>& Ui(int c) const { return _hasTheme ? _theme[static_cast<size_t>(c & 15)] : _pal[_ui[static_cast<size_t>(c & 15)]]; }
+    // Colour number i (0..15) as opaque ARGB, for pictures drawn pixel by pixel from colour numbers (the crop icons, the
+    // overview map): the theme's colour, else the palette's own entry i
+    uint32_t Argb16(int i) const
+    {
+        const auto& p = _hasTheme ? _theme[static_cast<size_t>(i & 15)] : _pal[static_cast<size_t>(i & 15)];
+        return 0xFF000000u | (static_cast<uint32_t>(p[0]) << 16) | (static_cast<uint32_t>(p[1]) << 8) | p[2];
+    }
+    // The interface's colours as plain RGB (assets/Theme.h) from now on, in place of the palette's (null: the palette
+    // again). The theme does not change with the weather, as the palette does
+    void SetTheme(const Theme* theme)
+    {
+        _hasTheme = theme != nullptr;
+        if (theme)
+            _theme = *theme;
+    }
+    bool HasTheme() const { return _hasTheme; }
     // the play palette: 0 = simfarm.pal, 1 = rainpal.pal, 2 = frostpal.pal (they differ only in colour 7). Switching
     // remakes the tile atlas and the cached pictures, as the original reprograms the whole screen's palette
     void SetPlayPalette(int which);
@@ -161,6 +178,8 @@ private:
     const Megadata* _mega = nullptr;
     Palette _pal{};
     std::array<uint8_t, 16> _ui{}; // interface colour -> palette index (the same for the DOS edition)
+    Theme _theme{};                // the pack's theme, when _hasTheme
+    bool _hasTheme = false;
     int _playPalette = 0;
     TileSheet _plain;             // the plain tiles of the atlas (kept to remake it with another palette)
     TileSheet _maskedSheet;       // the masked tiles (kept to remake their atlas at another detail)

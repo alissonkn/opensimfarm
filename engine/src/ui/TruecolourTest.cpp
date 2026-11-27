@@ -5,6 +5,7 @@
 #include "assets/Megadata.h"
 #include "assets/PicturePack.h"
 #include "assets/Png.h"
+#include "assets/Theme.h"
 #include "assets/SaveGame.h"
 #include "assets/TilePack.h"
 #include "core/Json.h"
@@ -616,6 +617,126 @@ int TruecolourSelfTest()
             g.DrawPicture("buywndo.bmp", 10, 20);
             SDL_RenderPresent(t.renderer);
             check(Near(t.At(18, 30), green), "without the pack its pictures are gone");
+        }
+        std::error_code ec;
+        std::filesystem::remove_all(dir, ec);
+    }
+
+    // ---------------------------------------------------------------- the interface theme
+    std::printf("-- the interface theme\n");
+    {
+        std::array<uint8_t, 3> c{};
+        check(ParseColourText("#fff", c) && c == std::array<uint8_t, 3>({ 255, 255, 255 }) && ParseColourText("#FfA0b1", c) && c == std::array<uint8_t, 3>({ 0xFF, 0xA0, 0xB1 }) &&
+                  ParseColourText("#123", c) && c == std::array<uint8_t, 3>({ 0x11, 0x22, 0x33 }),
+              "colours: #rgb and #rrggbb, any case ('#123' is #112233)");
+        bool rejected = true;
+        for (const char* bad : { "", "#", "#12", "#12345", "#1234567", "123456", "#gggggg", "#12 456", "rgb(1,2,3)", "#ffff" })
+            rejected = rejected && !ParseColourText(bad, c);
+        check(rejected, "colours: rejects an empty text, a wrong length, a missing '#', non-hex digits and CSS functions");
+
+        Theme t;
+        bool present = true;
+        std::string e;
+        check(ParseTheme("{ \"format\": 1 }", t, present, e) && !present && t == DefaultTheme(), "no theme block: the default theme, not present");
+        check(ParseTheme("{ \"format\": 1, \"theme\": { \"white\": \"#fefefe\", \"darkGreen\": \"#102030\" } }", t, present, e) && present && t[15] == std::array<uint8_t, 3>({ 0xFE, 0xFE, 0xFE }) &&
+                  t[9] == std::array<uint8_t, 3>({ 0x10, 0x20, 0x30 }) && t[0] == DefaultTheme()[0] && t[12] == DefaultTheme()[12],
+              "a partial theme: the named colours change, the others stay the engine's own");
+        std::string all = "{ \"format\": 1, \"theme\": {";
+        for (int i = 0; i < 16; ++i)
+        {
+            char hex[8];
+            std::snprintf(hex, sizeof hex, "#%02x%02x%02x", i * 16, 255 - i * 16, i * 7 + 40);
+            all += std::string(i ? "," : "") + "\"" + kThemeColourNames[i] + "\":\"" + hex + "\"";
+        }
+        all += "} }";
+        bool named = ParseTheme(all, t, present, e) && present;
+        for (int i = 0; i < 16 && named; ++i)
+            named = t[static_cast<size_t>(i)] == std::array<uint8_t, 3>({ static_cast<uint8_t>(i * 16), static_cast<uint8_t>(255 - i * 16), static_cast<uint8_t>(i * 7 + 40) });
+        check(named, "all 16 names map to their colour numbers (black 0 .. white 15, colour11 between brown and lightGrey)");
+        auto badTheme = [&](const std::string& body, const std::string& why) {
+            Theme x;
+            bool p = true;
+            std::string er;
+            const bool r = !ParseTheme("{ \"format\": 1, \"theme\": " + body + " }", x, p, er) && !er.empty() && !p;
+            check(r, "rejects " + why + (r ? " (" + er + ")" : ""));
+        };
+        badTheme("5", "a theme that is not an object");
+        badTheme("{ \"purple\": \"#800080\" }", "a colour name the interface does not have");
+        badTheme("{ \"White\": \"#ffffff\" }", "a name in the wrong case");
+        badTheme("{ \"white\": 255 }", "a colour that is not text");
+        badTheme("{ \"white\": \"white\" }", "a colour name instead of hex");
+        badTheme("{ \"white\": \"#ffff\" }", "a colour of 4 digits");
+        check(!ParseTheme("{ \"theme\": {} }", t, present, e), "a manifest without \"format\": 1 is rejected");
+
+        const std::string dir = (std::filesystem::temp_directory_path() / "osf_tilepacktest4").string();
+        // a rain palette: every colour 10 (of 63) except colour 7, which is blue, as rainpal.pal recolours it
+        std::vector<uint8_t> rainPal(48, 10);
+        rainPal[21] = 0;
+        rainPal[22] = 0;
+        rainPal[23] = 63;
+        MakeFakeArchive(dir, { { "rainpal.pal", rainPal } });
+        Megadata mega;
+        if (!mega.Open(dir, e))
+            check(false, "the fake archive opens: " + e);
+        else
+        {
+            MapGraphics gfx;
+            for (int i = 0; i < 16; ++i)
+                gfx.palette[static_cast<size_t>(i)] = { static_cast<uint8_t>(i * 16), static_cast<uint8_t>(i * 3), static_cast<uint8_t>(255 - i * 16) };
+            gfx.plain.count = 848;
+            gfx.plain.pixels.assign(848 * 256, 0);
+            gfx.masked.count = 200;
+            gfx.masked.pixels.assign(200 * 256, kSeeThrough);
+            Target target(200, 100);
+            Gfx g;
+            check(g.Init(target.renderer, mega, gfx) && !g.HasTheme(), "the interface starts without a theme");
+            auto rgb = [](const std::array<uint8_t, 3>& v) { return 0xFF000000u | (static_cast<uint32_t>(v[0]) << 16) | (static_cast<uint32_t>(v[1]) << 8) | v[2]; };
+            bool palette = true;
+            for (int i = 0; i < 16; ++i)
+            {
+                target.Clear(0, 0, 0);
+                g.Fill(10, 10, 4, 4, i);
+                SDL_RenderPresent(target.renderer);
+                palette = palette && target.At(11, 11) == rgb(gfx.palette[static_cast<size_t>(i)]) && g.Argb16(i) == rgb(gfx.palette[static_cast<size_t>(i)]);
+            }
+            check(palette, "without a theme every colour number is the palette's entry (the original's way, unchanged)");
+            ParseTheme(all, t, present, e);
+            g.SetTheme(&t);
+            check(g.HasTheme(), "a theme is set");
+            for (const int scale : { 1, 2 })
+            {
+                g.SetScale(scale);
+                bool fills = true, frames = true;
+                for (int i = 0; i < 16; ++i)
+                {
+                    target.Clear(0, 0, 0);
+                    g.Fill(10, 10, 6, 6, i);
+                    g.Frame(30, 10, 8, 8, i);
+                    SDL_RenderPresent(target.renderer);
+                    fills = fills && target.At(12 * scale, 12 * scale) == rgb(t[static_cast<size_t>(i)]) && g.Argb16(i) == rgb(t[static_cast<size_t>(i)]) && g.Ui(i) == t[static_cast<size_t>(i)];
+                    frames = frames && target.At(30 * scale, 14 * scale) == rgb(t[static_cast<size_t>(i)]) && target.At(34 * scale, 10 * scale) == rgb(t[static_cast<size_t>(i)]);
+                }
+                check(fills && frames, "scale " + std::to_string(scale) + ": Fill, Frame, Ui and Argb16 give each colour number its theme colour");
+            }
+            g.SetScale(1);
+            target.Clear(0, 0, 0);
+            g.Line(50, 20, 70, 20, 5);
+            g.Bevel(80, 30, 20, 20, true); // raised: white top and left, grey bottom and right
+            SDL_RenderPresent(target.renderer);
+            check(target.At(60, 20) == rgb(t[5]) && target.At(80, 40) == rgb(t[15]) && target.At(99, 40) == rgb(t[13]), "Line and Bevel use the theme (Bevel's white 15 and grey 13)");
+            g.SetPlayPalette(1); // a rainy day: the palette's colour 7 turns blue; the theme is not the palette
+            target.Clear(0, 0, 0);
+            g.Fill(10, 10, 4, 4, 7);
+            SDL_RenderPresent(target.renderer);
+            check(g.PlayPalette() == 1 && target.At(11, 11) == rgb(t[7]) && g.Argb16(7) == rgb(t[7]),
+                  "the theme does not change with the weather (colour 7, tan, which the rain palette recolours)");
+            g.SetTheme(nullptr);
+            target.Clear(0, 0, 0);
+            g.Fill(10, 10, 4, 4, 7);
+            g.Fill(20, 10, 4, 4, 3);
+            SDL_RenderPresent(target.renderer);
+            check(!g.HasTheme() && target.At(11, 11) == 0xFF0000FFu && target.At(21, 11) == 0xFF282828u && g.Argb16(7) == 0xFF0000FFu,
+                  "without the theme the rain palette does recolour it (colour 7 blue, the others 10 of 63), and the palette is back");
         }
         std::error_code ec;
         std::filesystem::remove_all(dir, ec);

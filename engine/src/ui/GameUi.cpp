@@ -994,11 +994,7 @@ void GameUi::DrawPalette()
         _g.Fill(b.x, b.y, b.w, b.h, kLightGrey);
         _g.Frame(b.x, b.y, b.w, b.h, kBlack);
         _g.Text(b.x + 16, b.y + 4, _popup == 1 ? Tr("Plant Field") : Tr("Spray Field"), kBlack);
-        const auto& pal = _g.Pal();
-        auto argb = [&](int v) {
-            const auto& p = pal[static_cast<size_t>(v & 15)];
-            return 0xFF000000u | (static_cast<uint32_t>(p[0]) << 16) | (static_cast<uint32_t>(p[1]) << 8) | p[2];
-        };
+        auto argb = [&](int v) { return _g.Argb16(v); };
         for (int i = 0; i < PopupCount(); ++i)
         {
             const Rect r = PopupRow(i);

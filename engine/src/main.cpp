@@ -18,6 +18,7 @@
 #include "assets/Megadata.h"
 #include "assets/PackTables.h"
 #include "assets/PicturePack.h"
+#include "assets/Theme.h"
 #include "assets/TilePack.h"
 #include "ui/TablesTest.h"
 #include "ui/TruecolourTest.h"
@@ -2655,6 +2656,8 @@ static std::optional<std::string> AskPlayerForGameFolder(std::string problem, co
 
 // the pictures of the tile pack in use (OPENSIMFARM_TILEPACK), kept for as long as the interface draws from it
 static PicturePack g_picturePack;
+static Theme g_theme; // its interface colours, when it has a theme
+static bool g_hasTheme = false;
 
 int main(int argc, char** argv)
 {
@@ -3720,6 +3723,15 @@ int main(int argc, char** argv)
                 }
                 else if (g_picturePack.Size())
                     std::fprintf(stderr, "tile pack %s: %zu pictures\n", pack, g_picturePack.Size());
+                bool hasTheme = false;
+                g_hasTheme = false;
+                if (!LoadTheme(pack, g_theme, hasTheme, packError))
+                    std::fprintf(stderr, "tile pack %s: theme not used: %s\n", pack, packError.c_str());
+                else if (hasTheme)
+                {
+                    g_hasTheme = true;
+                    std::fprintf(stderr, "tile pack %s: interface theme\n", pack);
+                }
                 TableBlobs tables;
                 if (!LoadPackTables(pack, tables, packError))
                     std::fprintf(stderr, "tile pack %s: tables not used: %s\n", pack, packError.c_str());
@@ -3851,6 +3863,8 @@ int main(int argc, char** argv)
     }
     if (g_picturePack.Size())
         gfxUi.SetPicturePack(&g_picturePack);
+    if (g_hasTheme)
+        gfxUi.SetTheme(&g_theme);
     // interface settings of the last session (settings.txt in the settings folder: key=value lines)
     std::map<std::string, int> settings;
     for (const auto& [key, value] : ReadSettingsFile())

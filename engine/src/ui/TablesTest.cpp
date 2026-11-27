@@ -5,6 +5,7 @@
 #include "assets/Megadata.h"
 #include "assets/PackTables.h"
 #include "assets/TableFormats.h"
+#include "assets/Theme.h"
 #include "core/Json.h"
 #include "game/Editing.h"
 #include "game/GameState.h"
@@ -505,6 +506,11 @@ int TablesSelfTest(const char* packFolder)
             check(ev.size() > 79 * 8 && e26[1].find("There is no airport") != std::string::npos, "  80 event texts, the engine's own words for the ids it raises");
             const auto it = ItemLines(DecodeTextLines(pack["itemtext.dat"], true), 102);
             check(pack["itemtext.dat"].size() == 103 * 128 && it[0].find("Item 102") == 0, "  103 item texts");
+            Theme theme;
+            bool hasTheme = false;
+            check(LoadTheme(packFolder, theme, hasTheme, e) && hasTheme && theme[12] == std::array<uint8_t, 3>({ 0xC4, 0xC4, 0xC4 }) && theme[15] == std::array<uint8_t, 3>({ 0xFF, 0xFF, 0xFF }) &&
+                      theme[0] == std::array<uint8_t, 3>({ 0, 0, 0 }),
+                  "  the interface theme: 16 colours, light grey panels, black and white");
             check(pack["far_mapc.mbm"].size() == 1920 && OverviewIndex(pack["far_mapc.mbm"], 40, 0, 0) == 6 && OverviewIndex(pack["far_mapc.mbm"], 20, 1, 1) == 10,
                   "  the overview colours by family: water blue, ground brown");
         }
