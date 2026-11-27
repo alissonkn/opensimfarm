@@ -303,6 +303,30 @@ def draw_plain(t, size, labels):
             p.ellipse(size * 0.1, size * 0.1, size * 0.9, size * 0.9, (0x20, 0x20, 0x20, 200))
         p.line([(size * 0.2, size * 0.3), (size * 0.8, size * 0.7)], (0x70, 0x70, 0x78, 255), size * 0.05)
         p.line([(size * 0.25, size * 0.75), (size * 0.7, size * 0.25)], (0x90, 0x60, 0x40, 255), size * 0.05)
+    elif t in (0, 1, 2, 75, 76, 118, 119):
+        # the window title bar (GameUi::DrawTitleBar): wood grain 1 / dimmed 118, the right end 2 / 119, the left end
+        # without a close box 75 / 76, and with the round close box 0
+        active = t in (0, 1, 2, 75)
+        wood = (0x8A, 0x58, 0x34) if active else (0x70, 0x68, 0x62)
+        p.rect(0, 0, size, size, wood + (255,))
+        for k in range(5):
+            y = size * (0.14 + 0.19 * k)
+            p.line([(0, y), (size, y + size * 0.02 * (k % 2 - 0.5))], shade(wood, 0.82) + (255,), size * 0.025)
+        p.rect(0, 0, size, size * 0.07, shade(wood, 1.3) + (255,))
+        p.rect(0, size * 0.93, size, size, shade(wood, 0.6) + (255,))
+        if t in (2, 119):  # the notched end
+            p.rect(size * 0.88, 0, size, size, shade(wood, 0.6) + (255,))
+            p.polygon([(size * 0.7, 0), (size * 0.88, size * 0.5), (size * 0.7, size)], shade(wood, 0.7) + (255,))
+        if t in (75, 76):
+            p.rect(0, 0, size * 0.08, size, shade(wood, 0.6) + (255,))
+        if t == 0:  # the close box: a round grey button with a cross
+            p.rect(0, 0, size * 0.06, size, shade(wood, 0.6) + (255,))
+            with p.group():
+                p.ellipse(size * 0.17, size * 0.2, size * 0.9, size * 0.96, (0, 0, 0, 90))
+            p.ellipse(size * 0.12, size * 0.14, size * 0.86, size * 0.88, (0xC4, 0xC4, 0xC4, 255), (0, 0, 0, 255), size * 0.04)
+            p.ellipse(size * 0.2, size * 0.2, size * 0.58, size * 0.5, (0xF0, 0xF0, 0xF0, 200))
+            for a, b in (((0.32, 0.32), (0.66, 0.7)), ((0.66, 0.32), (0.32, 0.7))):
+                p.line([(size * a[0], size * a[1]), (size * b[0], size * b[1])], (0x30, 0x30, 0x30, 255), size * 0.07)
     elif t in (12, 36):
         # a field's own soil: bare (36, as the crop pictures' background) and plowed (12, with deep furrows)
         p.rect(0, 0, size, size, (0x6A, 0x4A, 0x32, 255) if t == 36 else (0x5C, 0x3E, 0x2A, 255))

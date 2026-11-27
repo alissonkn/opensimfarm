@@ -31,7 +31,12 @@ int Dist2(int x0, int y0, int x1, int y1) { return (x0 - x1) * (x0 - x1) + (y0 -
 
 int Machines::TileFor(int type, int heading, bool loaded)
 {
-    const int h = (heading & 7) / 2;
+    int h = (heading & 7) / 2;
+    // A two-cell machine is laid out along y only at headings 0 and 4, and along x at every other heading (Stamp). The
+    // pictures at headings 1 and 5 would be the up and down ones laid side by side and look broken (the machine
+    // splits in two), so on the diagonals it takes the picture that faces along x: east for 1 to 3, west for 5 to 7.
+    if (Cells(type) == 2 && (heading & 1))
+        h = (heading & 7) < 4 ? 1 : 3;
     switch (type)
     {
     case kTractor: return 848 + h;

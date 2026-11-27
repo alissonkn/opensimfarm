@@ -9,6 +9,8 @@
 150 expect machines 0
 160 click 16 31       # the BUY button of the toolbar
 175 expect open 0     # the BUY window
+177 click 139 105     # the round close box at the title's left: closes the window, and BUY opens again below
+178 click 16 31
 190 click 313 307     # its BUY button: a tractor
 210 click 660 420     # a spot on the farm
 230 expect cash 34000
