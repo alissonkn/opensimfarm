@@ -383,7 +383,7 @@ def barn(w, h, s):
     return c.done()
 
 
-def pump(s):
+def pump(s, frame=0):
     c = Cv(1, 1, s)
     _ground(c, 1, 1)
     c.shadow(0.15, 0.6, 0.95, 0.98, 60)
@@ -392,8 +392,8 @@ def pump(s):
     c.rect(0.3, 0.42, 0.7, 0.48, (0xB0, 0xB6, 0xBE))
     c.line([(0.5, 0.42), (0.5, 0.14)], (0x6C, 0x72, 0x7A), 0.07)
     c.line([(0.5, 0.14), (0.78, 0.2), (0.78, 0.34)], (0x6C, 0x72, 0x7A), 0.06)
-    c.line([(0.5, 0.2), (0.28, 0.12)], (0xA0, 0x40, 0x30), 0.05)
-    c.ellipse(0.74, 0.34, 0.82, 0.46, (0x60, 0xB0, 0xF0))
+    c.line([(0.5, 0.2), (0.28, 0.12 if frame == 0 else 0.3)], (0xA0, 0x40, 0x30), 0.05)  # the handle up, then down
+    c.ellipse(0.74, 0.34 if frame == 0 else 0.4, 0.82, 0.46 if frame == 0 else 0.56, (0x60, 0xB0, 0xF0))
     return c.done()
 
 
@@ -1087,4 +1087,54 @@ def civic(kind, s, n=3):
     if kind not in ("hall", "bank", "market", "diner", "dealer", "depot"):
         for wx in (0.3, 1.5):
             c.rect(wx, 1.2, wx + 0.28, 1.5, trim); c.rect(wx + 0.03, 1.23, wx + 0.25, 1.47, GLASS)
+    return c.done()
+
+
+def fair_piece(k, s):
+    """The fair's pieces 526 .. 529, on the plaza: a striped tent, a balloon stall, a food stall and a prize booth."""
+    c = Cv(1, 1, s)
+    c.rect(0, 0, 1, 1, (0xB8, 0xB4, 0xA8))
+    c.shadow(0.1, 0.65, 0.95, 0.98, 60)
+    if k == 0:  # tent
+        c.rect(0.12, 0.45, 0.88, 0.9, (0xF4, 0xF0, 0xE8))
+        for i in range(4):
+            c.rect(0.12 + 0.19 * i, 0.45, 0.12 + 0.19 * (i + 1), 0.9, (0xD0, 0x30, 0x30) if i % 2 == 0 else (0xF4, 0xF0, 0xE8))
+        c.poly([(0.05, 0.48), (0.5, 0.08), (0.95, 0.48)], (0xD0, 0x30, 0x30))
+        c.rect(0.4, 0.62, 0.6, 0.9, (0x30, 0x20, 0x20))
+    elif k == 1:  # balloons
+        c.line([(0.5, 0.95), (0.5, 0.5)], (0x60, 0x60, 0x60), 0.03)
+        for x, y, col in ((0.3, 0.3, (0xE0, 0x30, 0x30)), (0.55, 0.22, (0xF0, 0xD0, 0x30)), (0.72, 0.38, (0x30, 0x80, 0xE0)), (0.42, 0.45, (0x50, 0xB0, 0x40))):
+            c.line([(x, y + 0.1), (0.5, 0.55)], (0x60, 0x60, 0x60), 0.01)
+            c.ellipse(x - 0.12, y - 0.14, x + 0.12, y + 0.12, col)
+            c.ellipse(x - 0.06, y - 0.1, x - 0.01, y - 0.04, (255, 255, 255, 160))
+    elif k == 2:  # food stall
+        c.rect(0.12, 0.45, 0.88, 0.9, (0xD8, 0x9C, 0x58))
+        for i in range(6):
+            c.rect(0.12 + 0.13 * i, 0.3, 0.12 + 0.13 * (i + 1), 0.5, (0xF0, 0xC0, 0x30) if i % 2 == 0 else (0xFF, 0xFF, 0xFF))
+        c.rect(0.2, 0.58, 0.8, 0.72, (0x70, 0x4A, 0x28))
+        c.ellipse(0.3, 0.52, 0.42, 0.62, (0xE0, 0x60, 0x30)); c.ellipse(0.55, 0.52, 0.67, 0.62, (0xF0, 0xD0, 0x40))
+    else:  # prize booth with a flag
+        c.rect(0.15, 0.4, 0.85, 0.9, (0x34, 0x68, 0xC0))
+        c.rect(0.15, 0.4, 0.85, 0.52, (0xF0, 0xD0, 0x30))
+        c.rect(0.25, 0.58, 0.75, 0.78, (0xF0, 0xF0, 0xF4))
+        c.line([(0.5, 0.4), (0.5, 0.08)], (0x60, 0x60, 0x60), 0.03)
+        c.poly([(0.5, 0.08), (0.78, 0.17), (0.5, 0.26)], (0xD0, 0x30, 0x30))
+    return c.done()
+
+
+def crop_sign(s, name):
+    """A crop's sign, two tiles square: a post and a board that shows the same picture as the crop's icon, the ripe plant."""
+    c = Cv(2, 2, s)
+    c.rect(0, 0, 2, 2, ground(8))
+    c.shadow(0.3, 1.5, 1.8, 1.98, 60)
+    c.rect(0.9, 1.1, 1.1, 1.95, (0x6B, 0x42, 0x1F))
+    c.rect(0.12, 0.1, 1.88, 1.3, (0x22, 0x22, 0x22))
+    c.rect(0.2, 0.18, 1.8, 1.22, (0xF4, 0xEC, 0xD0))
+    c.rect(0.2, 0.9, 1.8, 1.22, (0x8A, 0x62, 0x3C))
+    c.z, c.ox, c.oy = 2.5, 1.0 - 0.5 * 2.5, 1.1 - 0.82 * 2.5
+    plant(c, name, 0.5, 0.82, 1.0, 7)
+    c.z, c.ox, c.oy = 1.0, 0.0, 0.0
+    # the board's frame goes over the plant's edges
+    for box in ((0.12, 0.1, 1.88, 0.18), (0.12, 1.22, 1.88, 1.3), (0.12, 0.1, 0.2, 1.3), (1.8, 0.1, 1.88, 1.3)):
+        c.rect(*box, (0x22, 0x22, 0x22))
     return c.done()

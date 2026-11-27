@@ -74,6 +74,8 @@ def shade(c, f):
 PIECE_ARMS = [
     "NS", "EW", "NE", "SE", "NES", "NW", "NEW", "SW", "NSW", "ESW", "NESW",
 ]
+# water tile pair -> the sides that are land (WorldGen.cpp Reshore's table: bit 1 left, 2 below, 4 right, 8 above)
+SHORE_MASK = {55: 0, 51: 1, 47: 2, 49: 3, 43: 4, 57: 5, 45: 6, 65: 7, 39: 8, 53: 9, 59: 10, 67: 11, 41: 12, 61: 13, 63: 14}
 # tile families (game/Editing.cpp)
 GROUND = (15, 16)
 WATER = (39, 31)
@@ -229,21 +231,23 @@ def draw_plain(t, size, labels):
     if f(GROUND):
         draw_ground(p, size, t - GROUND[0], seed)
     elif f(WATER):
+        # WorldGen.cpp Reshore: a water cell's picture is SHORE[mask] or the next id (the two frames the ambient animation
+        # swaps), the mask giving the sides that are land: 1 left, 2 below, 4 right, 8 above; 55 (and 56) is open water
         i = t - WATER[0]
-        interior = i == 16
-        base = (0x2B, 0x6C, 0xB5) if interior or i > 16 else (0x3A, 0x7F, 0xC9)
-        p.rect(0, 0, size, size, base + (255,))
-        if not interior and i <= 15:  # shore pieces: a sandy rim, the lower bits of i say which sides
-            sand = (0xD8, 0xC0, 0x8A, 255)
-            w = size * 0.22
-            if i & 1: p.rect(0, 0, size, w, sand)
-            if i & 2: p.rect(size - w, 0, size, size, sand)
-            if i & 4: p.rect(0, size - w, size, size, sand)
-            if i & 8: p.rect(0, 0, w, size, sand)
+        mask = SHORE_MASK.get(WATER[0] + (i & ~1), 0)
+        frame = i & 1
+        p.rect(0, 0, size, size, (0x3A, 0x7F, 0xC9, 255))
+        sand = (0xD8, 0xC0, 0x8A, 255)
+        w = size * 0.24
+        if mask & 8: p.rect(0, 0, size, w, sand)
+        if mask & 4: p.rect(size - w, 0, size, size, sand)
+        if mask & 2: p.rect(0, size - w, size, size, sand)
+        if mask & 1: p.rect(0, 0, w, size, sand)
         with p.group():
             for k in range(3):
-                y = size * (0.25 + 0.25 * k)
-                p.line([(size * 0.15, y), (size * 0.35, y - size * 0.04), (size * 0.55, y), (size * 0.75, y - size * 0.04)], (255, 255, 255, 90), size * 0.03)
+                y = size * (0.28 + 0.22 * k) + frame * size * 0.05
+                dx = size * 0.08 * frame
+                p.line([(size * 0.2 + dx, y), (size * 0.38 + dx, y - size * 0.04), (size * 0.56 + dx, y), (size * 0.74 + dx, y - size * 0.04)], (255, 255, 255, 90), size * 0.03)
     elif f(DITCH_EMPTY) or f(DITCH_FULL):
         draw_ground(p, size, 8, seed)
         wet = f(DITCH_FULL)
@@ -257,32 +261,54 @@ def draw_plain(t, size, labels):
         draw_ground(p, size, 8, seed)
         draw_arms(p, size, PIECE_ARMS[t - FENCE[0]], "fence", seed)
     elif f(GATE) or t in (192, 193):
+        # Editing.cpp: 188 / 189 in a vertical fence (closed / open), 190 / 191 in a horizontal one; 192 / 193 are the
+        # broken pieces (Animals.cpp passes 189, 191, 192, 193)
         draw_ground(p, size, 8, seed)
-        horizontal = (t - GATE[0]) % 2 == 0
-        c = size / 2.0
-        a, b = ((0, c), (size, c)) if horizontal else ((c, 0), (c, size))
-        p.line([a, b], (0x8B, 0x5A, 0x2B, 255), size * 0.07)
-        open_gate = t == GATE[0] + 2 or t == GATE[0] + 3
+        horizontal = t in (190, 191, 193)
+        open_gate = t in (189, 191)
         broken = t in (192, 193)
+        c = size / 2.0
+        a, b = ((size * 0.04, c), (size * 0.96, c)) if horizontal else ((c, size * 0.04), (c, size * 0.96))
+        post = (0x4A, 0x2E, 0x14, 255)
+        rail = (0xC8, 0x9B, 0x5A, 255)
+        edge = (0x4A, 0x2E, 0x14, 255)
+
+        def bar(pts, w):  # a plank with a dark edge
+            p.line(pts, edge, w + size * 0.04)
+            p.line(pts, rail, w)
+
+        for e in (a, b):
+            p.ellipse(e[0] - size * 0.09, e[1] - size * 0.09, e[0] + size * 0.09, e[1] + size * 0.09, post)
         if broken:
-            p.line([a, ((a[0] + b[0]) / 2 - size * 0.05, (a[1] + b[1]) / 2 - size * 0.05)], (0x8B, 0x5A, 0x2B, 255), size * 0.07)
-        elif open_gate:
-            p.line([(c, c), (c + size * 0.3, c - size * 0.3)], (0xC8, 0x9B, 0x5A, 255), size * 0.06)
-        else:
-            p.line([(size * 0.25, c - size * 0.12), (size * 0.75, c + size * 0.12)] if horizontal else [(c - size * 0.12, size * 0.25), (c + size * 0.12, size * 0.75)], (0xC8, 0x9B, 0x5A, 255), size * 0.05)
+            bar([a, ((a[0] + c) / 2, (a[1] + c) / 2 + size * 0.12)], size * 0.08)
+            bar([b, ((b[0] + c) / 2 + size * 0.06, (b[1] + c) / 2 - size * 0.12)], size * 0.06)
+        elif open_gate:  # the leaf swung out from its hinge, square to the fence, the gap open
+            tip = (a[0] + size * 0.04, a[1] - size * 0.36) if horizontal else (a[0] + size * 0.36, a[1] + size * 0.04)
+            bar([a, tip], size * 0.09)
+        else:  # closed: two rails across the gap and a brace
+            off = size * 0.1
+            for d in (-off, off):
+                bar([(a[0], a[1] + d), (b[0], b[1] + d)] if horizontal else [(a[0] + d, a[1]), (b[0] + d, b[1])], size * 0.07)
+            bar([(size * 0.2, c + off), (size * 0.8, c - off)] if horizontal else [(c - off, size * 0.2), (c + off, size * 0.8)], size * 0.05)
     elif f(VALVE):
+        # Editing.cpp: 122 / 123 horizontal open / closed, 124 / 125 vertical open / closed
         draw_ground(p, size, 8, seed)
-        draw_arms(p, size, PIECE_ARMS[(t - VALVE[0]) % 2], "ditch", seed, (t - VALVE[0]) >= 2)
-        p.ellipse(size * 0.38, size * 0.38, size * 0.62, size * 0.62, (0xC0, 0x30, 0x30, 255), (255, 255, 255, 255), size * 0.03)
+        vertical = (t - VALVE[0]) >= 2
+        closed = (t - VALVE[0]) & 1
+        draw_arms(p, size, "NS" if vertical else "EW", "ditch", seed, not closed)
+        c = size / 2.0
+        if closed:  # a board across the channel and a red wheel
+            p.rect(size * 0.3, size * 0.1, size * 0.7, size * 0.9, (0x9C, 0x6B, 0x3A, 255)) if not vertical else p.rect(size * 0.1, size * 0.3, size * 0.9, size * 0.7, (0x9C, 0x6B, 0x3A, 255))
+        p.ellipse(size * 0.36, size * 0.36, size * 0.64, size * 0.64, (0xC0, 0x30, 0x30, 255) if closed else (0x3C, 0xA0, 0x48, 255), (255, 255, 255, 255), size * 0.03)
+        p.line([(c - size * 0.1, c), (c + size * 0.1, c)], (255, 255, 255, 255), size * 0.03)
     elif f(BRIDGE):
+        # a road bridge, placed as 172 whichever way the road runs (Editing.cpp): a plank deck over water with rails all round
         p.rect(0, 0, size, size, (0x3A, 0x7F, 0xC9, 255))
-        horizontal = (t - BRIDGE[0]) == 0
-        if horizontal:
-            p.rect(0, size * 0.2, size, size * 0.8, (0x9C, 0x6B, 0x3A, 255))
-            for k in range(1, 6): p.line([(size * k / 6, size * 0.2), (size * k / 6, size * 0.8)], (0x6B, 0x42, 0x1F, 255), size * 0.03)
-        else:
-            p.rect(size * 0.2, 0, size * 0.8, size, (0x9C, 0x6B, 0x3A, 255))
-            for k in range(1, 6): p.line([(size * 0.2, size * k / 6), (size * 0.8, size * k / 6)], (0x6B, 0x42, 0x1F, 255), size * 0.03)
+        p.rect(size * 0.14, size * 0.14, size * 0.86, size * 0.86, (0x9C, 0x6B, 0x3A, 255))
+        for k in range(1, 6):
+            p.line([(size * 0.14, size * (0.14 + 0.72 * k / 6)), (size * 0.86, size * (0.14 + 0.72 * k / 6))], (0x6B, 0x42, 0x1F, 255), size * 0.025)
+        for x, y in ((0.12, 0.12), (0.88, 0.12), (0.12, 0.88), (0.88, 0.88)):
+            p.ellipse(size * (x - 0.07), size * (y - 0.07), size * (x + 0.07), size * (y + 0.07), (0x50, 0x34, 0x1A, 255))
     elif f(TROUGH):
         draw_ground(p, size, 8, seed)
         p.rect(size * 0.15, size * 0.35, size * 0.85, size * 0.65, (0x7A, 0x7C, 0x80, 255))
@@ -363,24 +389,7 @@ def draw_crop_stage(size, slot, stage):
 
 def draw_sign(size, slot):
     """A crop's sign: 2 x 2 tiles, returned as one 2 size x 2 size picture to be cut."""
-    s = size * 2
-    p = Painter(s, s, ground_colour(8) + (255,))  # (the plain sheet is opaque: the sign stands on ground)
-    col = CROP_COLOURS[slot]
-    p.rect(s * 0.46, s * 0.55, s * 0.54, s * 0.98, (0x6B, 0x42, 0x1F, 255))
-    p.rect(s * 0.1, s * 0.12, s * 0.9, s * 0.62, (0xE8, 0xD0, 0x9A, 255))
-    p.rect(s * 0.14, s * 0.16, s * 0.86, s * 0.58, col + (255,))
-    # the slot number in big digits
-    digits = str(slot + 1)
-    sc = max(1, s // 14)
-    tw = len(digits) * 4 * sc - sc
-    x0, y0 = s * 0.5 - tw / 2.0, s * 0.37 - 2.5 * sc
-    for n, ch in enumerate(digits):
-        bits = DIGITS[ch]
-        for r in range(5):
-            for c in range(3):
-                if bits[r * 3 + c] == "1":
-                    p.rect(x0 + (n * 4 + c) * sc, y0 + r * sc, x0 + (n * 4 + c + 1) * sc, y0 + (r + 1) * sc, (255, 255, 255, 255))
-    return p.finish()
+    return art.crop_sign(size, CROP_ROWS[slot][1])
 
 
 def draw_icon(size, slot, frame):
@@ -1459,8 +1468,10 @@ def build(size, labels):
         pic = art.house(tier, size)
         for k, off in enumerate((0, 1, 40, 41)):
             plain[b + off] = pic.crop(((k % 2) * size, (k // 2) * size, (k % 2 + 1) * size, (k // 2 + 1) * size))
-    for k in range(11):
+    for k in range(8):
         plain[518 + k] = art.yard(k, size)
+    for k in range(4):  # the fair's stalls (Simulation.cpp AnimateStalls shows 526 .. 529 on the event ground in October)
+        plain[526 + k] = art.fair_piece(k, size)
     pc = art.Cv(1, 1, size); art.lawn(pc, 1, 1, 9); plain[79] = pc.done()
     # the problem markers a field shows beside its sign: eight 2 x 2 pictures, tiles 603 .. 634
     for i, kind in enumerate(("pests", "wet", "toxic", "dry", "weeds", "disease", "wilt", "hungry")):
@@ -1491,7 +1502,7 @@ def build(size, labels):
         for dy in range(n):
             for dx in range(n):
                 plain[base + 40 * dy + dx] = pic.crop((dx * size, dy * size, (dx + 1) * size, (dy + 1) * size))
-    plain[120] = art.pump(size)
+    plain[120], plain[121] = art.pump(size, 0), art.pump(size, 1)  # the two frames the ambient animation swaps
     plain[481] = art.water_tower(size)
     plain[0x95] = art.water_tower(size, broken=True)
     plain[0xD9] = art.floor(size)  # inside a building: the floor a stored item lies on
