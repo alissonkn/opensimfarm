@@ -660,7 +660,7 @@ def draw_layout(d, k, items):
 
 
 def panel(w, h, name, tint, items=()):
-    """A window picture: a bevelled panel, its file name and size in a corner, and the engine's marks."""
+    """A window picture: a bevelled panel and the engine's marks."""
     img = Image.new("RGBA", (w * PIC_SCALE, h * PIC_SCALE), tint + (255,))
     d = ImageDraw.Draw(img)
     k = PIC_SCALE
@@ -669,8 +669,6 @@ def panel(w, h, name, tint, items=()):
     d.line([(k, k), (k, h * k - 2 * k)], fill=(255, 255, 255, 255), width=k)
     d.line([(k, h * k - 2 * k), (w * k - 2 * k, h * k - 2 * k)], fill=(0x80, 0x80, 0x80, 255), width=k)
     d.line([(w * k - 2 * k, k), (w * k - 2 * k, h * k - 2 * k)], fill=(0x80, 0x80, 0x80, 255), width=k)
-    if h >= 64 and not items:
-        text_centre(d, (0, 4 * k, w * k, 20 * k), f"{name}  {w} x {h}", 9 * k, (0x20, 0x20, 0x20, 255))
     draw_layout(d, k, items)
     if name == "buywndo.bmp":
         # the two small pictures the editor's PLANT and SPRAY buttons are cut from (16 x 16 at 16, 42 and 18 x 18 at 15, 131):
@@ -1268,6 +1266,30 @@ DESCRIPTIONS = {
 }
 
 
+# What Examine says about the tiles that are no item: (first tile, last tile, name, words), by the tile a family starts at.
+TERRAIN_TEXTS = [
+    (15, 30, "Bare Ground", "Open ground. Wetter soil looks darker."), (31, 70, "Water", "A pond or a river. Crops and machines cannot go here."),
+    (71, 74, "Airport", "Where the crop duster lands."), (87, 108, "Ditch", "Carries water to the fields. It is dark when empty, blue when full."),
+    (109, 127, "Valve", "Opens and closes a ditch."), (128, 146, "Tree", "A tree. It gives shade and shelter."),
+    (147, 160, "Road", "A road. Machines drive best on roads."), (161, 171, "Dirt Road", "A cheap road of packed dirt."),
+    (172, 174, "Bridge", "Lets you cross water."), (175, 176, "Water Trough", "Animals drink here. Fill it with water."),
+    (177, 187, "Fence", "Keeps animals in and strangers out."), (188, 199, "Gate", "A gate in a fence."),
+    (200, 216, "Weather", "A picture of the weather."), (217, 217, "Floor", "The floor inside a building."),
+    (232, 251, "Town", "Part of the town, where all sorts of things go on."), (252, 321, "House", "A home in the town."),
+    (322, 439, "Town Building", "A building in the town centre."), (440, 481, "Farm Building", "A building of the farm."),
+    (482, 534, "Town Square", "The place where the town holds its events."), (535, 538, "Rocks", "Rocks. They must be cleared with a bulldozer."),
+    (539, 687, "Sign", "A sign that tells you about the field."), (688, 847, "Crop", "A crop growing in a field."),
+    (848, 1047, "Thing", "Something on the farm."),
+]
+
+
+def terrain_text(start):
+    for lo, hi, name, words in TERRAIN_TEXTS:
+        if lo <= start <= hi:
+            return name, words
+    return "Scenery", "Part of the farm."
+
+
 def item_texts():
     """Item help texts by the id the engine looks them up with: the item's tile family (see template_block)."""
     items = {}
@@ -1279,6 +1301,9 @@ def item_texts():
         items[family_of(tile)] = (name, DESCRIPTIONS[name])
     for c, name in enumerate(CROPS):
         items[18 + c] = (name, "A crop to grow.")
+    for f, start in enumerate(FAMILY_START):  # every other family the Examine tool can land on: what the tile is
+        if f not in items:
+            items[f] = terrain_text(start)
     return [{"id": i, "name": n, "description": d} for i, (n, d) in sorted(items.items())]
 
 

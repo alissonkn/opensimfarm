@@ -777,6 +777,10 @@ int TablesSelfTest(const char* packFolder)
             check(pack["itemtext.dat"].size() % 128 == 0 && pack["itemtext.dat"].size() >= 104 * 128 && ItemLines(itemLines, 6)[0].find("Small Silo") == 0 &&
                       ItemLines(itemLines, 40)[0].find("Tractor") == 0 && ItemLines(itemLines, 18)[0].find("Corn") == 0 && ItemLines(itemLines, 103)[0].find("Water Tower") == 0,
                   "  the item texts, by tile family (the id the catalogue gives them): buildings, machines, crops");
+            bool everyFamily = pack["itemtext.dat"].size() >= 148 * 128;
+            for (int f = 0; f < 148 && everyFamily; ++f)
+                everyFamily = !ItemLines(itemLines, f)[0].empty() && ItemLines(itemLines, f)[0].find('~') == std::string::npos;
+            check(everyFamily, "  every tile family has a name for the Examine card (ground, water, roads, trees, ... not only the items)");
             TableBlobs cards;
             bool cardsOk = LoadPackCards(packFolder, cards, e) && cards.size() == 6 && cards.count("card1.hc");
             for (const auto& [name, bytes] : cards)

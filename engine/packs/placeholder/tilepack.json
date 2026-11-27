@@ -2484,6 +2484,36 @@
     ],
     "items": [
       {
+        "id": 0,
+        "name": "Bare Ground",
+        "description": "Open ground. Wetter soil looks darker."
+      },
+      {
+        "id": 1,
+        "name": "Water",
+        "description": "A pond or a river. Crops and machines cannot go here."
+      },
+      {
+        "id": 2,
+        "name": "Ditch",
+        "description": "Carries water to the fields. It is dark when empty, blue when full."
+      },
+      {
+        "id": 3,
+        "name": "Town",
+        "description": "Part of the town, where all sorts of things go on."
+      },
+      {
+        "id": 4,
+        "name": "Road",
+        "description": "A road. Machines drive best on roads."
+      },
+      {
+        "id": 5,
+        "name": "Dirt Road",
+        "description": "A cheap road of packed dirt."
+      },
+      {
         "id": 6,
         "name": "Small Silo",
         "description": "Holds a little grain."
@@ -2512,6 +2542,36 @@
         "id": 11,
         "name": "Large Barn",
         "description": "Stores much seed and spray."
+      },
+      {
+        "id": 12,
+        "name": "Town Square",
+        "description": "The place where the town holds its events."
+      },
+      {
+        "id": 13,
+        "name": "House",
+        "description": "A home in the town."
+      },
+      {
+        "id": 14,
+        "name": "House",
+        "description": "A home in the town."
+      },
+      {
+        "id": 15,
+        "name": "Town Square",
+        "description": "The place where the town holds its events."
+      },
+      {
+        "id": 16,
+        "name": "House",
+        "description": "A home in the town."
+      },
+      {
+        "id": 17,
+        "name": "House",
+        "description": "A home in the town."
       },
       {
         "id": 18,
@@ -2614,6 +2674,16 @@
         "description": "Eats hay and grazes."
       },
       {
+        "id": 38,
+        "name": "Valve",
+        "description": "Opens and closes a ditch."
+      },
+      {
+        "id": 39,
+        "name": "Valve",
+        "description": "Opens and closes a ditch."
+      },
+      {
         "id": 40,
         "name": "Tractor",
         "description": "Pulls the plow and other tools."
@@ -2624,9 +2694,44 @@
         "description": "Turns the soil before planting."
       },
       {
+        "id": 42,
+        "name": "Thing",
+        "description": "Something on the farm."
+      },
+      {
+        "id": 43,
+        "name": "Thing",
+        "description": "Something on the farm."
+      },
+      {
         "id": 44,
         "name": "Planter",
         "description": "Sows seed in rows."
+      },
+      {
+        "id": 45,
+        "name": "Thing",
+        "description": "Something on the farm."
+      },
+      {
+        "id": 46,
+        "name": "Thing",
+        "description": "Something on the farm."
+      },
+      {
+        "id": 47,
+        "name": "Thing",
+        "description": "Something on the farm."
+      },
+      {
+        "id": 48,
+        "name": "Thing",
+        "description": "Something on the farm."
+      },
+      {
+        "id": 49,
+        "name": "Thing",
+        "description": "Something on the farm."
       },
       {
         "id": 50,
@@ -2644,9 +2749,39 @@
         "description": "Cuts and gathers the crop."
       },
       {
+        "id": 53,
+        "name": "Thing",
+        "description": "Something on the farm."
+      },
+      {
         "id": 54,
         "name": "Trailer",
         "description": "Hauls the harvest."
+      },
+      {
+        "id": 55,
+        "name": "Thing",
+        "description": "Something on the farm."
+      },
+      {
+        "id": 56,
+        "name": "Valve",
+        "description": "Opens and closes a ditch."
+      },
+      {
+        "id": 57,
+        "name": "Town Square",
+        "description": "The place where the town holds its events."
+      },
+      {
+        "id": 58,
+        "name": "Scenery",
+        "description": "Part of the farm."
+      },
+      {
+        "id": 59,
+        "name": "Scenery",
+        "description": "Part of the farm."
       },
       {
         "id": 60,
@@ -2659,9 +2794,64 @@
         "description": "Draws water for ditches."
       },
       {
+        "id": 62,
+        "name": "Tree",
+        "description": "A tree. It gives shade and shelter."
+      },
+      {
+        "id": 63,
+        "name": "Tree",
+        "description": "A tree. It gives shade and shelter."
+      },
+      {
+        "id": 64,
+        "name": "Tree",
+        "description": "A tree. It gives shade and shelter."
+      },
+      {
+        "id": 65,
+        "name": "Tree",
+        "description": "A tree. It gives shade and shelter."
+      },
+      {
+        "id": 66,
+        "name": "Scenery",
+        "description": "Part of the farm."
+      },
+      {
+        "id": 67,
+        "name": "Scenery",
+        "description": "Part of the farm."
+      },
+      {
+        "id": 68,
+        "name": "Scenery",
+        "description": "Part of the farm."
+      },
+      {
+        "id": 69,
+        "name": "Scenery",
+        "description": "Part of the farm."
+      },
+      {
+        "id": 70,
+        "name": "Town Square",
+        "description": "The place where the town holds its events."
+      },
+      {
+        "id": 71,
+        "name": "Thing",
+        "description": "Something on the farm."
+      },
+      {
         "id": 72,
         "name": "Truck",
         "description": "Carries goods to town."
+      },
+      {
+        "id": 73,
+        "name": "House",
+        "description": "A home in the town."
       },
       {
         "id": 74,
@@ -2679,14 +2869,359 @@
         "description": "Kills weeds."
       },
       {
+        "id": 77,
+        "name": "Thing",
+        "description": "Something on the farm."
+      },
+      {
+        "id": 78,
+        "name": "Fence",
+        "description": "Keeps animals in and strangers out."
+      },
+      {
+        "id": 79,
+        "name": "Water Trough",
+        "description": "Animals drink here. Fill it with water."
+      },
+      {
+        "id": 80,
+        "name": "Gate",
+        "description": "A gate in a fence."
+      },
+      {
+        "id": 81,
+        "name": "Thing",
+        "description": "Something on the farm."
+      },
+      {
         "id": 82,
         "name": "Crop Duster",
         "description": "A plane that sprays fields."
       },
       {
+        "id": 83,
+        "name": "Ditch",
+        "description": "Carries water to the fields. It is dark when empty, blue when full."
+      },
+      {
+        "id": 84,
+        "name": "Ditch",
+        "description": "Carries water to the fields. It is dark when empty, blue when full."
+      },
+      {
+        "id": 85,
+        "name": "Sign",
+        "description": "A sign that tells you about the field."
+      },
+      {
+        "id": 86,
+        "name": "Town",
+        "description": "Part of the town, where all sorts of things go on."
+      },
+      {
+        "id": 87,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 88,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 89,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 90,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 91,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 92,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 93,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 94,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 95,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 96,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 97,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 98,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 99,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 100,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 101,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 102,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
         "id": 103,
         "name": "Water Tower",
         "description": "Stores water for ditches."
+      },
+      {
+        "id": 104,
+        "name": "Thing",
+        "description": "Something on the farm."
+      },
+      {
+        "id": 105,
+        "name": "Sign",
+        "description": "A sign that tells you about the field."
+      },
+      {
+        "id": 106,
+        "name": "Thing",
+        "description": "Something on the farm."
+      },
+      {
+        "id": 107,
+        "name": "Thing",
+        "description": "Something on the farm."
+      },
+      {
+        "id": 108,
+        "name": "Water",
+        "description": "A pond or a river. Crops and machines cannot go here."
+      },
+      {
+        "id": 109,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 110,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 111,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 112,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 113,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 114,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 115,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 116,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 117,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 118,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 119,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 120,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 121,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 122,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 123,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 124,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 125,
+        "name": "Thing",
+        "description": "Something on the farm."
+      },
+      {
+        "id": 126,
+        "name": "Thing",
+        "description": "Something on the farm."
+      },
+      {
+        "id": 127,
+        "name": "Thing",
+        "description": "Something on the farm."
+      },
+      {
+        "id": 128,
+        "name": "Bridge",
+        "description": "Lets you cross water."
+      },
+      {
+        "id": 129,
+        "name": "Valve",
+        "description": "Opens and closes a ditch."
+      },
+      {
+        "id": 130,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 131,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 132,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 133,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 134,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 135,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 136,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 137,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 138,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 139,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 140,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 141,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 142,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 143,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 144,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 145,
+        "name": "Rocks",
+        "description": "Rocks. They must be cleared with a bulldozer."
+      },
+      {
+        "id": 146,
+        "name": "Scenery",
+        "description": "Part of the farm."
+      },
+      {
+        "id": 147,
+        "name": "Town Square",
+        "description": "The place where the town holds its events."
       }
     ],
     "overview": {

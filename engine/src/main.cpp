@@ -2670,7 +2670,7 @@ static WeatherLook g_weatherLook = DefaultWeatherLook(); // how rain and frost l
 
 // Test aid: OPENSIMFARM_SCRIPT=file runs a script of input against the running program, so that a game can be played and
 // photographed without a person or a display. A line is `FRAME COMMAND ARGS` (frames count the main loop's passes); `#`
-// starts a comment. Commands: click X Y, rclick X Y, move X Y (window pixels), key NAME (SDL key names: Return, Escape, F1,
+// starts a comment. Commands: click X Y, rclick X Y, press X Y and release X Y (the left button down, up: for the Examine tool), move X Y (window pixels), key NAME (SDL key names: Return, Escape, F1,
 // Space, a ...), shot FILE (the next frame is saved as a bitmap), quit, and expectations that fail the run (a message on
 // stderr and exit code 1) when the game is not as said: expect cash N, expect game | start (in a game, or still on the start
 // screens), expect machines N | structures N | animals N | fields N (also fields_atleast N, machines_atleast N, structures_atleast N),
@@ -2706,7 +2706,7 @@ struct InputScript
             Command c;
             if (!(in >> c.frame >> c.name))
                 continue;
-            if (c.name == "click" || c.name == "rclick" || c.name == "move")
+            if (c.name == "click" || c.name == "rclick" || c.name == "move" || c.name == "press" || c.name == "release")
                 in >> c.x >> c.y;
             else if (c.name == "expect")
                 in >> c.arg >> c.value;
@@ -2726,7 +2726,7 @@ struct InputScript
         {
             const Command& c = commands[next++];
             const Uint32 id = window ? SDL_GetWindowID(window) : 0;
-            if (c.name == "click" || c.name == "rclick" || c.name == "move")
+            if (c.name == "click" || c.name == "rclick" || c.name == "move" || c.name == "press" || c.name == "release")
             {
                 if (window)
                     SDL_WarpMouseInWindow(window, c.x, c.y);
@@ -2738,9 +2738,14 @@ struct InputScript
                 SDL_PushEvent(&e);
                 if (c.name != "move")
                 {
-                    const Uint8 button = c.name == "click" ? SDL_BUTTON_LEFT : SDL_BUTTON_RIGHT;
+                    const Uint8 button = c.name == "rclick" ? SDL_BUTTON_RIGHT : SDL_BUTTON_LEFT;
+                    // press: only the button going down (for the Examine tool, which shows its card while the button is held),
+                    // release: only coming up
+                    const bool down = c.name != "release", up = c.name != "press";
                     for (const Uint32 type : { static_cast<Uint32>(SDL_MOUSEBUTTONDOWN), static_cast<Uint32>(SDL_MOUSEBUTTONUP) })
                     {
+                        if ((type == SDL_MOUSEBUTTONDOWN && !down) || (type == SDL_MOUSEBUTTONUP && !up))
+                            continue;
                         SDL_Event b{};
                         b.type = type;
                         b.button.windowID = id;
@@ -4495,6 +4500,8 @@ int main(int argc, char** argv)
     Uint64 lastFolderCheck = SDL_GetTicks64();
     bool folderLostAsked = false;
     auto checkGameFolder = [&] {
+        if (packOnly) // a pack alone has no SimFarm folder to lose (the "folder" is the pack, which holds no MEGADATA.IDX)
+            return;
         if (SDL_GetTicks64() - lastFolderCheck < 2000)
             return;
         lastFolderCheck = SDL_GetTicks64();
