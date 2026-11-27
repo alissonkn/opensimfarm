@@ -27,7 +27,8 @@ namespace osf {
 //     },
 //     "townLayout": { "blocks": [ B x 15 ] },   B = 8 rows of 8 tile ids; block t is plot template type t
 //     "events":  [ { "id": 61, "title": "...", "lines": [ "...", ... ] } ],    message boxes' texts by event id
-//     "items":   [ { "id": 5, "name": "...", "description": "..." } ],         item help texts by item id
+//     "items":   [ { "id": 5, "name": "...", "description": "..." } ],         item help texts by id: an item's tile
+//                                                                              family, as the catalogue (game/Template.h) gives it
 //     "overview": {                   the overview map's colours: a tile's 2 x 2 block is "#rrggbb" for all four pixels,
 //       "default": "#3f9f3f",             or 4 colours (row by row); a tile takes the default, then the ranges in order,
 //       "ranges":  [ { "from": 15, "to": 30, "colours": "#80502a" } ],     then its own entry

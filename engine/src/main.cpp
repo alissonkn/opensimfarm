@@ -20,8 +20,10 @@
 #include "assets/PicturePack.h"
 #include "assets/Theme.h"
 #include "assets/Weather.h"
+#include "game/Template.h"
 #include "assets/TilePack.h"
 #include "ui/TablesTest.h"
+#include "ui/TemplateTest.h"
 #include "ui/TruecolourTest.h"
 #include "assets/Picture.h"
 #include "core/Lang.h"
@@ -2702,6 +2704,8 @@ int main(int argc, char** argv)
     }
     if (argc > 1 && std::strcmp(argv[1], "--touchtest") == 0)
         return TouchSelfTest() ? 1 : 0; // the touch gestures (no game folder needed)
+    if (argc > 1 && std::strcmp(argv[1], "--templatetest") == 0)
+        return TemplateSelfTest(argc > 2 ? argv[2] : nullptr); // the template farm, no game files needed
     if (argc > 1 && std::strcmp(argv[1], "--tablestest") == 0)
         return TablesSelfTest(argc > 2 ? argv[2] : nullptr); // the data tables as JSON, no game files needed
     if (argc > 3 && std::strcmp(argv[1], "--packpreview") == 0)
@@ -3742,6 +3746,15 @@ int main(int argc, char** argv)
                 }
                 else if (hasWeather)
                     std::fprintf(stderr, "tile pack %s: weather\n", pack);
+                std::vector<uint8_t> templateFarm;
+                bool hasTemplate = false;
+                if (!LoadPackTemplate(pack, templateFarm, hasTemplate, packError))
+                    std::fprintf(stderr, "tile pack %s: template farm not used: %s\n", pack, packError.c_str());
+                else if (hasTemplate)
+                {
+                    mega.Override(kTemplateEntry, templateFarm);
+                    std::fprintf(stderr, "tile pack %s: template farm\n", pack);
+                }
                 TableBlobs tables;
                 if (!LoadPackTables(pack, tables, packError))
                     std::fprintf(stderr, "tile pack %s: tables not used: %s\n", pack, packError.c_str());
@@ -3755,9 +3768,9 @@ int main(int argc, char** argv)
         if (ok)
         {
             GameState probe;
-            const auto scen = FindFileNoCase(*gameDir, "SCEN0.SSM");
-            ok = scen && probe.Load(*gameDir, *scen, err);
-            if (!ok && !scen)
+            const bool has = HasTemplate(mega, *gameDir); // (a pack's template farm, else SCEN0.SSM)
+            ok = has && LoadTemplateState(mega, *gameDir, probe, err);
+            if (!has)
                 err = Tr("SCEN0.SSM is missing.");
         }
         else if (err.empty())

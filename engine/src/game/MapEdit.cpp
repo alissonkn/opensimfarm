@@ -3,6 +3,7 @@
 #include "game/MapEdit.h"
 
 #include "assets/Megadata.h"
+#include "game/Template.h"
 #include "core/Paths.h"
 
 #include <algorithm>
@@ -156,7 +157,7 @@ int MapEditSelfTest(const std::string& gameDir)
     Megadata mega;
     std::string err;
     GameState tmpl;
-    if (!mega.Open(gameDir, err) || !tmpl.Load(gameDir, FindFileNoCase(gameDir, "SCEN0.SSM").value_or(""), err))
+    if (!mega.Open(gameDir, err) || !LoadTemplateState(mega, gameDir, tmpl, err))
     {
         std::printf("FAIL the game files: %s\n", err.c_str());
         return 1;

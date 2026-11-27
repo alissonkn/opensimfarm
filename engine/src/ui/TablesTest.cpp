@@ -606,8 +606,10 @@ int TablesSelfTest(const char* packFolder)
             const auto ev = DecodeTextLines(pack["events.dat"]);
             const auto e26 = EventLines(ev, 26);
             check(ev.size() > 79 * 8 && e26[1].find("There is no airport") != std::string::npos, "  80 event texts, the engine's own words for the ids it raises");
-            const auto it = ItemLines(DecodeTextLines(pack["itemtext.dat"], true), 102);
-            check(pack["itemtext.dat"].size() == 103 * 128 && it[0].find("Item 102") == 0, "  103 item texts");
+            const auto itemLines = DecodeTextLines(pack["itemtext.dat"], true);
+            check(pack["itemtext.dat"].size() % 128 == 0 && pack["itemtext.dat"].size() >= 104 * 128 && ItemLines(itemLines, 6)[0].find("Small Silo") == 0 &&
+                      ItemLines(itemLines, 40)[0].find("Tractor") == 0 && ItemLines(itemLines, 18)[0].find("Corn") == 0 && ItemLines(itemLines, 103)[0].find("Water Tower") == 0,
+                  "  the item texts, by tile family (the id the catalogue gives them): buildings, machines, crops");
             Theme theme;
             bool hasTheme = false;
             check(LoadTheme(packFolder, theme, hasTheme, e) && hasTheme && theme[12] == std::array<uint8_t, 3>({ 0xC4, 0xC4, 0xC4 }) && theme[15] == std::array<uint8_t, 3>({ 0xFF, 0xFF, 0xFF }) &&

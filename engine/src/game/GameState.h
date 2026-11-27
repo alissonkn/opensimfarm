@@ -102,6 +102,8 @@ struct GameState
     int CatalogPrice(int rec) const { return Rd16(catalog, static_cast<size_t>(rec) * 18 + 6); }
     void SetCatalogOwn(int rec, int v) { Wr16(catalog, static_cast<size_t>(rec) * 18 + 4, v); }
     void SetCatalogPrice(int rec, int v) { Wr16(catalog, static_cast<size_t>(rec) * 18 + 6, v); }
+    // one byte of a catalogue record (offset 0..17), 0 outside the table
+    int CatalogByteAt(int rec, int off) const { return Rd8(catalog, static_cast<size_t>(rec) * 18 + static_cast<size_t>(off)); }
     static constexpr int kCropRecord0 = 21;
     int MarketPrice(int crop) const { return CatalogPrice(kCropRecord0 + crop); }
     void SetMarketPrice(int crop, int v) { SetCatalogPrice(kCropRecord0 + crop, v); }
@@ -122,7 +124,16 @@ struct GameState
     void SetScheduleCode(int row, int field, int v) { Wr16(timeline, (static_cast<size_t>(row) * 98 + (field - 1)) * 2, v); }
 
     bool Load(const std::string& gameDir, const std::string& path, std::string& error, bool resetPrices = true);
+    // the same from the bytes of a file already read (`label` names it in an error): how a pack's template farm, which
+    // is made in memory, is read
+    bool LoadBytes(const std::string& gameDir, std::vector<uint8_t> bytes, const std::string& label, std::string& error, bool resetPrices = true);
     bool Save(const std::string& path, std::string& error) const;
+    // the bytes Save writes
+    bool Serialize(std::vector<uint8_t>& out, std::string& error) const;
+    // the scalar tail: its fields in file order. TailBytes is its size; TailFieldSize the size in bytes of a named
+    // scalar (0 when there is none)
+    static size_t TailBytes();
+    static int TailFieldSize(const std::string& name);
     void StoreScalarsToTail();
     void FixEventGroundTable(); // the event-ground table as (x, y) pairs (repairs saves of engine versions up to 0.5.2)
 };

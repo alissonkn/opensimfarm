@@ -55,15 +55,36 @@ const std::vector<std::pair<const char*, int>>& TailLayout()
 
 } // namespace
 
+size_t GameState::TailBytes()
+{
+    size_t n = 0;
+    for (const auto& [name, size] : TailLayout())
+        n += static_cast<size_t>(size);
+    return n;
+}
+
+int GameState::TailFieldSize(const std::string& name)
+{
+    for (const auto& [field, size] : TailLayout())
+        if (name == field)
+            return size;
+    return 0;
+}
+
 bool GameState::Load(const std::string& gameDir, const std::string& path, std::string& error, bool resetPrices)
 {
     std::ifstream f(path, std::ios::binary);
     std::vector<uint8_t> d((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+    return LoadBytes(gameDir, std::move(d), path, error, resetPrices);
+}
+
+bool GameState::LoadBytes(const std::string& gameDir, std::vector<uint8_t> d, const std::string& label, std::string& error, bool resetPrices)
+{
     size_t body = 0;
     const int mapSize = SaveFileMapSize(d, body);
     if (!mapSize)
     {
-        error = "not a SimFarm save or prebuilt farm: " + path;
+        error = "not a SimFarm save or prebuilt farm: " + label;
         return false;
     }
     d.resize(body); // the signature is not part of the game
@@ -210,9 +231,19 @@ void GameState::StoreScalarsToTail()
 
 bool GameState::Save(const std::string& path, std::string& error) const
 {
+    std::vector<uint8_t> d;
+    if (!Serialize(d, error))
+        return false;
+    std::ofstream out(path, std::ios::binary);
+    out.write(reinterpret_cast<const char*>(d.data()), static_cast<std::streamsize>(d.size()));
+    return static_cast<bool>(out);
+}
+
+bool GameState::Serialize(std::vector<uint8_t>& d, std::string& error) const
+{
     GameState copy = *this;
     copy.StoreScalarsToTail();
-    std::vector<uint8_t> d;
+    d.clear();
     d.reserve(SaveBodySize(world.size) + kSaveSignatureSize);
     auto put = [&](const std::vector<uint8_t>& v) { d.insert(d.end(), v.begin(), v.end()); };
     auto put16 = [&](int v) { d.push_back(static_cast<uint8_t>(v & 0xFF)); d.push_back(static_cast<uint8_t>((v >> 8) & 0xFF)); };
@@ -248,9 +279,7 @@ bool GameState::Save(const std::string& path, std::string& error) const
         return false;
     }
     AppendSaveSignature(d, world.size); // OpenSimFarm's mark; the original ignores it
-    std::ofstream out(path, std::ios::binary);
-    out.write(reinterpret_cast<const char*>(d.data()), static_cast<std::streamsize>(d.size()));
-    return static_cast<bool>(out);
+    return true;
 }
 
 } // namespace osf

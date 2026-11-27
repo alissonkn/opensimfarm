@@ -4,6 +4,7 @@
 
 #include "assets/TableFormats.h"
 #include "assets/Megadata.h"
+#include "game/Template.h"
 #include "core/Lang.h"
 #include "core/Paths.h"
 #include "game/GameState.h"
@@ -226,7 +227,7 @@ void StartScreen::Generate(bool byButton)
     const Megadata* mega = _g.Mega();
     if (!mega)
         return;
-    if (!_template.Load(_gameDir, FindFileNoCase(_gameDir, "SCEN0.SSM").value_or(""), _note))
+    if (!LoadTemplateState(*mega, _gameDir, _template, _note)) // (a pack's template farm, else SCEN0.SSM)
         return;
     _opt.seed = static_cast<unsigned>(SDL_GetTicks()) * 2654435761u + 7u;
     std::string err;
