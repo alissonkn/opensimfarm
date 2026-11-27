@@ -92,6 +92,28 @@ void Reshore(World& w, int x0, int y0, int x1, int y1, const std::function<int()
         }
 }
 
+bool GeneratePrebuiltFarm(int n, const std::string& gameDir, const Megadata& mega, const GameState& tmpl, GameState& out, std::string& error)
+{
+    n = std::clamp(n, 0, 7);
+    const auto grids = DecodeScenarioGrids(mega.Read("scenario.odt"));
+    auto cls = [&](const char* name) {
+        const auto it = grids.find(name);
+        const int gx = kPrebuiltFarmGx[n], gy = kPrebuiltFarmGy[n];
+        if (it == grids.end() || gy >= static_cast<int>(it->second.size()) || gx >= static_cast<int>(it->second[static_cast<size_t>(gy)].size()))
+            return 1;
+        return std::clamp(it->second[static_cast<size_t>(gy)][static_cast<size_t>(gx)] - 'a', 0, 3);
+    };
+    WorldOptions opt;
+    opt.rain = cls("rain data");
+    opt.temperature = cls("temp data");
+    opt.wind = cls("wind data");
+    opt.seed = 4001u + 97u * static_cast<unsigned>(n);
+    opt.river = n % 3 == 0;
+    opt.lake = n % 3 == 1;
+    opt.wetness = 2; // as Use This Region
+    return GenerateWorld(gameDir, mega, tmpl, opt, out, error);
+}
+
 bool GenerateWorld(const std::string& gameDir, const Megadata& mega, const GameState& tmpl, const WorldOptions& opt, GameState& s, std::string& error)
 {
     WorldSites sites;

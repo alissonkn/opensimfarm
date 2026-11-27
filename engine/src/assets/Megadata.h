@@ -14,6 +14,8 @@ class Megadata
 {
 public:
     bool Open(const std::string& gameDir, std::string& error);
+    // An archive with nothing in it, for playing with a pack alone: whatever the pack gives is laid in with Override
+    void OpenEmpty();
     bool Has(const std::string& name) const;
     // Returns the resource bytes, or an empty vector when missing. Names are matched case-insensitively.
     std::vector<uint8_t> Read(const std::string& name) const;

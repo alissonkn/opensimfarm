@@ -19,6 +19,11 @@ constexpr int kModernFontCellH = 8 + kModernFontAbove + kModernFontBelow;
 // the font used when the player has not chosen one
 constexpr int kDefaultFont = 1;
 
+// The game's own 8 x 8 font made from a built-in one (Press Start 2P, which is drawn on an 8 x 8 grid), for a game with no
+// archive to read egafont.fnt from: ASCII 32..126, a glyph a byte a row, the leftmost pixel the high bit. False if the
+// font cannot be read.
+bool BuiltinFont8(Font8& out);
+
 // how many fonts are on offer (font 0 is the game's own), and each one's name
 int FontCount();
 const char* FontName(int font);

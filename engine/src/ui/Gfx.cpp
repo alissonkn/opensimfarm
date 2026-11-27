@@ -338,7 +338,8 @@ bool Gfx::Init(SDL_Renderer* r, const Megadata& mega, const MapGraphics& map)
         for (int i = 0; i < 16; ++i)
             _ui[static_cast<size_t>(i)] = static_cast<uint8_t>(map16[static_cast<size_t>(i)] & 15);
 
-    if (!DecodeFont(mega.Read("egafont.fnt"), _font8))
+    // the game's own font from the archive; with no egafont.fnt in it (a game played with a pack alone) a built-in one
+    if (!DecodeFont(mega.Read("egafont.fnt"), _font8) && (mega.Has("egafont.fnt") || !BuiltinFont8(_font8)))
         return false;
     PrepareFont(_font8);
     MakeFont();

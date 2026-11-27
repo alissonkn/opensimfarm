@@ -76,6 +76,13 @@ bool Megadata::Open(const std::string& gameDir, std::string& error)
     return true;
 }
 
+void Megadata::OpenEmpty()
+{
+    _data.clear();
+    _entries.clear();
+    _windows = false;
+}
+
 void Megadata::Override(const std::string& name, const std::vector<uint8_t>& bytes)
 {
     _entries[Lower(name)] = { static_cast<uint32_t>(_data.size()), static_cast<uint32_t>(bytes.size()) };

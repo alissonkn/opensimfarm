@@ -57,6 +57,35 @@ bool GameGlyph(int c) { return c <= 0x20 || c == '^' || c == 0x7F || (c >= 0x80 
 
 } // namespace
 
+bool BuiltinFont8(Font8& out)
+{
+    const BuiltinFont* file = Builtin(4); // Press Start 2P
+    stbtt_fontinfo font;
+    if (!file || file->size == 0 || !stbtt_InitFont(&font, file->data, stbtt_GetFontOffsetForIndex(file->data, 0)))
+        return false;
+    const float scale = stbtt_ScaleForMappingEmToPixels(&font, 8.0f);
+    int ascent = 0, descent = 0, gap = 0;
+    stbtt_GetFontVMetrics(&font, &ascent, &descent, &gap);
+    const int baseline = static_cast<int>(std::lround(ascent * scale)); // rows above the baseline in the 8 x 8 cell
+    out = Font8();
+    for (int code = 32; code < 127; ++code)
+    {
+        int w = 0, h = 0, xo = 0, yo = 0;
+        unsigned char* bitmap = stbtt_GetCodepointBitmap(&font, scale, scale, code, &w, &h, &xo, &yo);
+        if (!bitmap)
+            continue;
+        for (int y = 0; y < h; ++y)
+            for (int x = 0; x < w; ++x)
+            {
+                const int cx = xo + x, cy = baseline + yo + y;
+                if (cx >= 0 && cx < 8 && cy >= 0 && cy < 8 && bitmap[y * w + x] >= 128)
+                    out.glyphs[static_cast<size_t>(code)][static_cast<size_t>(cy)] |= static_cast<uint8_t>(0x80 >> cx);
+            }
+        stbtt_FreeBitmap(bitmap, nullptr);
+    }
+    return true;
+}
+
 int FontCount() { return kOfferedCount; }
 
 const char* FontName(int f) { return f >= 0 && f < kOfferedCount ? kOffered[f].name : ""; }

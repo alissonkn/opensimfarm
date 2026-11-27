@@ -93,6 +93,46 @@ size the screen needs: a picture with more pixels than the screen can show is sh
   (`PictureText.cpp`) are not painted over it; a pack's pictures carry their own words.
 * A bad manifest is rejected whole (nothing of it is used).
 
+## Playing with a pack alone
+
+```
+opensimfarm --pack engine/packs/placeholder            # a new game with none of SimFarm's files
+opensimfarm --pack engine/packs/placeholder my.sfm     # or a saved game
+```
+
+`--pack FOLDER` starts the game from a pack and nothing else: no game folder is searched for or remembered, the archive
+is empty (`Megadata::OpenEmpty`), and the pack gives the tiles, pictures, theme, weather, crops, template farm and data
+tables (`ApplyPack` in `main.cpp`, the one place a pack is laid over the archive). The pack's folder stands in for the game
+folder. What the pack does not give is made by the engine:
+
+* the interface's 8 x 8 font, rasterised from the built-in Press Start 2P (`BuiltinFont8`); the default font is a modern
+  one anyway;
+* the first farm, a new world from the template (`GenerateWorld`), and the region screen's eight prebuilt farms
+  (`GeneratePrebuiltFarm`): farm *n* is a world with the climate of its cell of the region map and a fixed seed, so it is
+  the same farm every time (some have a river, some a lake). "Play this region", "Make your own" and "Open a saved game"
+  work as they do with the original's files.
+
+`OPENSIMFARM_TILEPACK=folder` still lays a pack over a SimFarm folder (tiles, pictures, ... replaced one by one).
+
+For looking at the game without a display or a person, two test aids (they need `SDL_VIDEODRIVER=dummy`):
+
+* `OPENSIMFARM_SHOT=file.bmp[:frames]` saves the frame after that many frames (default 30) and ends the program;
+* `OPENSIMFARM_SCRIPT=file` runs a script of input. A line is `FRAME COMMAND ARGS` (frames count the main loop's passes):
+  `click X Y`, `rclick X Y`, `move X Y` (window pixels), `key NAME` (SDL key names), `shot FILE`, `quit`.
+
+```
+20 click 500 300      # the intro
+50 click 500 300      # the title
+75 click 282 366      # PLAY THIS REGION
+150 shot /tmp/farm.bmp
+160 quit x
+```
+
+The placeholder pictures show the buttons and words where the engine expects them because the generator reads the
+engine's own layout from its source: the labels and covers of `PictureText.cpp` and `StartScreen.cpp` (a place and the
+word), the start screens' button rectangles, and each window's `CloseButton()` (`make_placeholder_pack.py`,
+`source_layout`). A picture the pack leaves out is drawn from the archive, or not at all.
+
 ## Trying a pack
 
 ```

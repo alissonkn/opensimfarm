@@ -2665,19 +2665,211 @@ static Theme g_theme; // its interface colours, when it has a theme
 static bool g_hasTheme = false;
 static WeatherLook g_weatherLook = DefaultWeatherLook(); // how rain and frost look on its map
 
+// Test aid: OPENSIMFARM_SCRIPT=file runs a script of input against the running program, so that a game can be played and
+// photographed without a person or a display. A line is `FRAME COMMAND ARGS` (frames count the main loop's passes); `#`
+// starts a comment. Commands: click X Y, rclick X Y, move X Y (window pixels), key NAME (SDL key names: Return, Escape, F1,
+// Space, a ...), shot FILE (the next frame is saved as a bitmap), quit.
+struct InputScript
+{
+    struct Command
+    {
+        int frame = 0;
+        std::string name, arg;
+        int x = 0, y = 0;
+    };
+    std::vector<Command> commands;
+    size_t next = 0;
+    int frame = 0;
+    std::string pendingShot;
+    bool pendingQuit = false;
+
+    InputScript()
+    {
+        const char* path = std::getenv("OPENSIMFARM_SCRIPT");
+        if (!path || !*path)
+            return;
+        std::ifstream f(path);
+        std::string line;
+        while (std::getline(f, line))
+        {
+            if (const size_t hash = line.find('#'); hash != std::string::npos)
+                line.erase(hash);
+            std::istringstream in(line);
+            Command c;
+            if (!(in >> c.frame >> c.name))
+                continue;
+            if (c.name == "click" || c.name == "rclick" || c.name == "move")
+                in >> c.x >> c.y;
+            else
+                in >> c.arg;
+            commands.push_back(c);
+        }
+        std::stable_sort(commands.begin(), commands.end(), [](const Command& a, const Command& b) { return a.frame < b.frame; });
+    }
+    bool Active() const { return !commands.empty(); }
+    // runs what is due at this pass of the loop
+    void Poll(SDL_Window* window)
+    {
+        ++frame;
+        while (next < commands.size() && commands[next].frame <= frame)
+        {
+            const Command& c = commands[next++];
+            const Uint32 id = window ? SDL_GetWindowID(window) : 0;
+            if (c.name == "click" || c.name == "rclick" || c.name == "move")
+            {
+                if (window)
+                    SDL_WarpMouseInWindow(window, c.x, c.y);
+                SDL_Event e{};
+                e.type = SDL_MOUSEMOTION;
+                e.motion.windowID = id;
+                e.motion.x = c.x;
+                e.motion.y = c.y;
+                SDL_PushEvent(&e);
+                if (c.name != "move")
+                {
+                    const Uint8 button = c.name == "click" ? SDL_BUTTON_LEFT : SDL_BUTTON_RIGHT;
+                    for (const Uint32 type : { static_cast<Uint32>(SDL_MOUSEBUTTONDOWN), static_cast<Uint32>(SDL_MOUSEBUTTONUP) })
+                    {
+                        SDL_Event b{};
+                        b.type = type;
+                        b.button.windowID = id;
+                        b.button.button = button;
+                        b.button.state = type == SDL_MOUSEBUTTONDOWN ? SDL_PRESSED : SDL_RELEASED;
+                        b.button.clicks = 1;
+                        b.button.x = c.x;
+                        b.button.y = c.y;
+                        SDL_PushEvent(&b);
+                    }
+                }
+            }
+            else if (c.name == "key")
+            {
+                const SDL_Keycode sym = SDL_GetKeyFromName(c.arg.c_str());
+                for (const Uint32 type : { static_cast<Uint32>(SDL_KEYDOWN), static_cast<Uint32>(SDL_KEYUP) })
+                {
+                    SDL_Event k{};
+                    k.type = type;
+                    k.key.windowID = id;
+                    k.key.state = type == SDL_KEYDOWN ? SDL_PRESSED : SDL_RELEASED;
+                    k.key.keysym.sym = sym;
+                    k.key.keysym.scancode = SDL_GetScancodeFromKey(sym);
+                    SDL_PushEvent(&k);
+                }
+            }
+            else if (c.name == "shot")
+                pendingShot = c.arg;
+            else if (c.name == "quit")
+                pendingQuit = true;
+        }
+    }
+};
+
+// saves the renderer's current frame as a bitmap
+static void SaveFrame(SDL_Renderer* renderer, const std::string& path)
+{
+    int w = 0, h = 0;
+    SDL_GetRendererOutputSize(renderer, &w, &h);
+    if (SDL_Surface* surf = SDL_CreateRGBSurfaceWithFormat(0, w, h, 32, SDL_PIXELFORMAT_ARGB8888))
+    {
+        if (SDL_RenderReadPixels(renderer, nullptr, SDL_PIXELFORMAT_ARGB8888, surf->pixels, surf->pitch) == 0)
+            SDL_SaveBMP(surf, path.c_str());
+        SDL_FreeSurface(surf);
+    }
+}
+
+// Lays a tile pack's parts over the archive `mega` and the map graphics `gfx`: its tiles, pictures, theme, weather, crops,
+// template farm and tables (each only when the pack has it; a part that is wrong is reported on stderr and left out).
+// With `tilesRequired` (a game played with the pack alone) a pack without tile sheets is an error.
+static bool ApplyPack(const std::string& pack, Megadata& mega, MapGraphics& gfx, bool tilesRequired, std::string& error)
+{
+    std::string packError;
+    bool tiles = false;
+    g_picturePack = PicturePack();
+    if (!LoadTilePack(pack, gfx, packError, &tiles))
+        std::fprintf(stderr, "tile pack %s: tiles not used: %s\n", pack.c_str(), packError.c_str());
+    else if (tiles)
+        std::fprintf(stderr, "tile pack %s: %d px tiles\n", pack.c_str(), gfx.plain.size);
+    if (!LoadPicturePack(pack, g_picturePack, packError))
+    {
+        std::fprintf(stderr, "tile pack %s: pictures not used: %s\n", pack.c_str(), packError.c_str());
+        g_picturePack = PicturePack();
+    }
+    else if (g_picturePack.Size())
+        std::fprintf(stderr, "tile pack %s: %zu pictures\n", pack.c_str(), g_picturePack.Size());
+    bool hasTheme = false;
+    g_hasTheme = false;
+    if (!LoadTheme(pack, g_theme, hasTheme, packError))
+        std::fprintf(stderr, "tile pack %s: theme not used: %s\n", pack.c_str(), packError.c_str());
+    else if (hasTheme)
+    {
+        g_hasTheme = true;
+        std::fprintf(stderr, "tile pack %s: interface theme\n", pack.c_str());
+    }
+    bool hasWeather = false;
+    if (!LoadWeatherLook(pack, g_weatherLook, hasWeather, packError))
+    {
+        std::fprintf(stderr, "tile pack %s: weather not used: %s\n", pack.c_str(), packError.c_str());
+        g_weatherLook = DefaultWeatherLook();
+    }
+    else if (hasWeather)
+        std::fprintf(stderr, "tile pack %s: weather\n", pack.c_str());
+    SetPackCrops({});
+    {
+        std::vector<CropDef> packCrops;
+        bool hasCrops = false;
+        if (!LoadPackCrops(pack, packCrops, hasCrops, packError))
+            std::fprintf(stderr, "tile pack %s: crops not used: %s\n", pack.c_str(), packError.c_str());
+        else if (hasCrops)
+        {
+            std::fprintf(stderr, "tile pack %s: %zu crops\n", pack.c_str(), packCrops.size());
+            SetPackCrops(std::move(packCrops));
+        }
+    }
+    std::vector<uint8_t> templateFarm;
+    bool hasTemplate = false;
+    if (!LoadPackTemplate(pack, templateFarm, hasTemplate, packError))
+        std::fprintf(stderr, "tile pack %s: template farm not used: %s\n", pack.c_str(), packError.c_str());
+    else if (hasTemplate)
+    {
+        mega.Override(kTemplateEntry, templateFarm);
+        std::fprintf(stderr, "tile pack %s: template farm\n", pack.c_str());
+    }
+    TableBlobs tables;
+    if (!LoadPackTables(pack, tables, packError))
+        std::fprintf(stderr, "tile pack %s: tables not used: %s\n", pack.c_str(), packError.c_str());
+    else if (!tables.empty())
+    {
+        for (const auto& [name, bytes] : tables)
+            mega.Override(name, bytes);
+        std::fprintf(stderr, "tile pack %s: %zu tables\n", pack.c_str(), tables.size());
+    }
+    if (tilesRequired && !tiles)
+    {
+        error = "the pack " + pack + " has no tile sheets (\"sheets\" in tilepack.json)";
+        return false;
+    }
+    return true;
+}
+
 int main(int argc, char** argv)
 {
     // --reconfigure (anywhere on the line): the player chooses the SimFarm folder again before the game starts; it is
     // taken out of the arguments, so the rest reads as usual (a farm or save may follow)
     bool reconfigure = false;
+    // --pack FOLDER (anywhere on the line): play with a tile pack alone, with none of SimFarm's files (a farm or save may
+    // follow); also taken out of the arguments
+    std::string packDir;
     std::vector<char*> args;
     for (int i = 0; i < argc; ++i)
     {
         if (i > 0 && std::strcmp(argv[i], "--reconfigure") == 0)
             reconfigure = true;
+        else if (i > 0 && std::strcmp(argv[i], "--pack") == 0 && i + 1 < argc)
+            packDir = argv[++i];
         else
             args.push_back(argv[i]);
     }
+    const bool packOnly = !packDir.empty();
     args.push_back(nullptr);
     argc = static_cast<int>(args.size()) - 1;
     argv = args.data();
@@ -3630,7 +3822,7 @@ int main(int argc, char** argv)
 #endif
     std::optional<std::string> gameDir;
 #ifndef __EMSCRIPTEN__
-    if (reconfigure)
+    if (reconfigure && !packOnly)
     {
         // the folder box at once; a farm or save given without a folder stays the farm (after the chosen folder)
         if (argc > 1 && !IsGameDirectory(argv[1]) && !IsSetupDisc(argv[1]))
@@ -3657,6 +3849,8 @@ int main(int argc, char** argv)
         }
     }
 #endif
+    if (packOnly)
+        gameDir = packDir; // (the pack's folder stands in for the game folder: it holds no SimFarm files)
     if (!gameDir)
         gameDir = ResolveGameDirectory(argc, argv);
     if (!gameDir)
@@ -3714,72 +3908,20 @@ int main(int argc, char** argv)
         mega = Megadata();
         gfx = MapGraphics();
         err.clear();
-        bool ok = mega.Open(*gameDir, err) && LoadMapGraphics(mega, gfx);
-        // a tile pack (OPENSIMFARM_TILEPACK=folder, a development aid): its truecolour tiles replace the archive's
-        if (ok)
+        bool ok;
+        if (packOnly)
+        {
+            mega.OpenEmpty(); // nothing of SimFarm's: the pack gives everything
+            ok = ApplyPack(packDir, mega, gfx, true, err);
+        }
+        else
+            ok = mega.Open(*gameDir, err) && LoadMapGraphics(mega, gfx);
+        // a tile pack over the archive (OPENSIMFARM_TILEPACK=folder, a development aid)
+        if (ok && !packOnly)
             if (const char* pack = std::getenv("OPENSIMFARM_TILEPACK"); pack && *pack)
             {
                 std::string packError;
-                bool tiles = false;
-                g_picturePack = PicturePack();
-                if (!LoadTilePack(pack, gfx, packError, &tiles))
-                    std::fprintf(stderr, "tile pack %s: tiles not used: %s\n", pack, packError.c_str());
-                else if (tiles)
-                    std::fprintf(stderr, "tile pack %s: %d px tiles\n", pack, gfx.plain.size);
-                if (!LoadPicturePack(pack, g_picturePack, packError))
-                {
-                    std::fprintf(stderr, "tile pack %s: pictures not used: %s\n", pack, packError.c_str());
-                    g_picturePack = PicturePack();
-                }
-                else if (g_picturePack.Size())
-                    std::fprintf(stderr, "tile pack %s: %zu pictures\n", pack, g_picturePack.Size());
-                bool hasTheme = false;
-                g_hasTheme = false;
-                if (!LoadTheme(pack, g_theme, hasTheme, packError))
-                    std::fprintf(stderr, "tile pack %s: theme not used: %s\n", pack, packError.c_str());
-                else if (hasTheme)
-                {
-                    g_hasTheme = true;
-                    std::fprintf(stderr, "tile pack %s: interface theme\n", pack);
-                }
-                bool hasWeather = false;
-                if (!LoadWeatherLook(pack, g_weatherLook, hasWeather, packError))
-                {
-                    std::fprintf(stderr, "tile pack %s: weather not used: %s\n", pack, packError.c_str());
-                    g_weatherLook = DefaultWeatherLook();
-                }
-                else if (hasWeather)
-                    std::fprintf(stderr, "tile pack %s: weather\n", pack);
-                SetPackCrops({});
-                {
-                    std::vector<CropDef> packCrops;
-                    bool hasCrops = false;
-                    if (!LoadPackCrops(pack, packCrops, hasCrops, packError))
-                        std::fprintf(stderr, "tile pack %s: crops not used: %s\n", pack, packError.c_str());
-                    else if (hasCrops)
-                    {
-                        std::fprintf(stderr, "tile pack %s: %zu crops\n", pack, packCrops.size());
-                        SetPackCrops(std::move(packCrops));
-                    }
-                }
-                std::vector<uint8_t> templateFarm;
-                bool hasTemplate = false;
-                if (!LoadPackTemplate(pack, templateFarm, hasTemplate, packError))
-                    std::fprintf(stderr, "tile pack %s: template farm not used: %s\n", pack, packError.c_str());
-                else if (hasTemplate)
-                {
-                    mega.Override(kTemplateEntry, templateFarm);
-                    std::fprintf(stderr, "tile pack %s: template farm\n", pack);
-                }
-                TableBlobs tables;
-                if (!LoadPackTables(pack, tables, packError))
-                    std::fprintf(stderr, "tile pack %s: tables not used: %s\n", pack, packError.c_str());
-                else if (!tables.empty())
-                {
-                    for (const auto& [name, bytes] : tables)
-                        mega.Override(name, bytes);
-                    std::fprintf(stderr, "tile pack %s: %zu tables\n", pack, tables.size());
-                }
+                ApplyPack(pack, mega, gfx, false, packError);
             }
         if (ok)
         {
@@ -3793,17 +3935,38 @@ int main(int argc, char** argv)
             err = Tr("The tile sheets or palette are missing from MEGADATA.EEA.");
         if (ok)
             break;
+        if (packOnly)
+        {
+            Fatal("The pack " + packDir + " cannot be played:\n" + err);
+            SDL_Quit();
+            return 1;
+        }
         problem = TrF("The SimFarm folder\n{0}\ncannot be used: {1}", *gameDir, err);
         failed.push_back(*gameDir);
         gameDir.reset();
     }
-    if (*gameDir != RememberedGameDirectory())
+    if (!packOnly && *gameDir != RememberedGameDirectory())
         RememberGameDirectory(*gameDir); // a folder found, chosen or given is remembered once it works
 
     auto state = std::make_unique<GameState>();
     std::string cropArtSig; // the crop files whose pictures are in the tile textures
-    std::string farmName = argc > 2 ? argv[2] : "SCEN0.SSM";
-    if (!state->Load(*gameDir, ResolveFarm(*gameDir, farmName), err))
+    std::string farmName = packOnly ? (argc > 1 ? argv[1] : "") : argc > 2 ? argv[2] : "SCEN0.SSM";
+    if (packOnly && farmName.empty())
+    {
+        // no farm given: a new world from the pack's template farm, as the design screen makes one
+        GameState tmpl;
+        WorldOptions opt;
+        opt.seed = static_cast<unsigned>(SDL_GetTicks()) * 2654435761u + 7u;
+        if (const char* fixed = std::getenv("OSF_WORLDSEED"))
+            opt.seed = static_cast<unsigned>(std::atoi(fixed));
+        if (!LoadTemplateState(mega, *gameDir, tmpl, err) || !GenerateWorld(*gameDir, mega, tmpl, opt, *state, err))
+        {
+            Fatal("Could not make the first farm\n" + err);
+            SDL_Quit();
+            return 1;
+        }
+    }
+    else if (!state->Load(*gameDir, ResolveFarm(*gameDir, farmName), err))
     {
         Fatal("Could not load the farm " + farmName + "\n" + err);
         SDL_Quit();
@@ -3975,6 +4138,7 @@ int main(int argc, char** argv)
     }
 
     bool running = true;
+    InputScript script; // (OPENSIMFARM_SCRIPT: test input)
     // without a farm on the command line the game starts at the Select-a-Region screen
     bool atStart = argc <= 2;
     StartScreen start(gfxUi, *gameDir);
@@ -3988,7 +4152,14 @@ int main(int argc, char** argv)
     auto loadFarm = [&](const std::string& name, bool announce = false) {
         auto next = std::make_unique<GameState>();
         const std::string path = ResolveFarm(*gameDir, name);
-        if (path.empty() || !next->Load(*gameDir, path, err))
+        // a prebuilt farm of the region screen with no SCEN file (a game played with a pack alone): made from its region
+        bool made = false;
+        if (path.empty() && packOnly && name.size() == 9 && name.compare(0, 4, "SCEN") == 0 && name[4] >= '0' && name[4] <= '7' && name.compare(5, 4, ".SSM") == 0)
+        {
+            GameState tmpl;
+            made = LoadTemplateState(mega, *gameDir, tmpl, err) && GeneratePrebuiltFarm(name[4] - '0', *gameDir, mega, tmpl, *next, err);
+        }
+        if (!made && (path.empty() || !next->Load(*gameDir, path, err)))
         {
             ui.ShowMessage(TrF("Could not load {0}", name));
             return;
@@ -4130,6 +4301,38 @@ int main(int argc, char** argv)
             band(bo + inner.w, 0, line, inner.h + line, 255);
             SDL_RenderCopy(renderer, frameTex, nullptr, &inner);
         }
+        // test aid (OPENSIMFARM_SHOT=file.bmp[:frames]): the frame after that many frames (default 30) saved as a bitmap, and
+        // the program ends; with OPENSIMFARM_SHOT_EVERY=N also every N frames before that, as file-0001.bmp ...
+        static const char* const shotEnv = std::getenv("OPENSIMFARM_SHOT");
+        if (shotEnv && *shotEnv)
+        {
+            static const std::string shotSpec = shotEnv;
+            static const size_t colon = shotSpec.rfind(':');
+            static const std::string shotPath = colon != std::string::npos && colon > 1 ? shotSpec.substr(0, colon) : shotSpec;
+            static const int shotAt = colon != std::string::npos && colon > 1 ? std::max(1, std::atoi(shotSpec.c_str() + colon + 1)) : 30;
+            static const int shotEvery = std::getenv("OPENSIMFARM_SHOT_EVERY") ? std::max(1, std::atoi(std::getenv("OPENSIMFARM_SHOT_EVERY"))) : 0;
+            static int shotFrame = 0;
+            ++shotFrame;
+            auto save = [&](const std::string& path) { SaveFrame(renderer, path); };
+            if (shotEvery && shotFrame < shotAt && shotFrame % shotEvery == 0)
+            {
+                char num[16];
+                std::snprintf(num, sizeof num, "-%04d", shotFrame);
+                save(shotPath.substr(0, shotPath.rfind('.')) + num + shotPath.substr(shotPath.rfind('.')));
+            }
+            if (shotFrame >= shotAt)
+            {
+                save(shotPath);
+                running = false;
+            }
+        }
+        if (!script.pendingShot.empty())
+        {
+            SaveFrame(renderer, script.pendingShot);
+            script.pendingShot.clear();
+        }
+        if (script.pendingQuit)
+            running = false;
         SDL_RenderPresent(renderer);
 #ifdef __EMSCRIPTEN__
         WaitForNextFrame();
@@ -4303,6 +4506,7 @@ int main(int argc, char** argv)
         }
 #endif
         checkGameFolder();
+        script.Poll(window);
         if (atStart)
         {
             const std::string song = ui.RadioSong("amain.xmi");

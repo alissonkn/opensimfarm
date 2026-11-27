@@ -467,8 +467,129 @@ def text_centre(d, box, text, px, fill):
     d.text(((x0 + x1 - (r - l)) / 2 - l, (y0 + y1 - (b - t)) / 2 - t), text, fill=fill, font=f)
 
 
-def panel(w, h, name, tint):
-    """A window picture: a bevelled panel, its file name and size in a corner."""
+# ---- what the engine says is where in each picture
+# The interface paints its own marks over the pictures (and covers the pictures' words when a translation is shown), so its
+# source holds each picture's layout: the labels of PictureText.cpp (a picture, a place, the word), the start screens'
+# covers (a place, the word) and button rectangles, and each window's close button. Reading them lets a placeholder
+# picture show the words and buttons where the engine expects them.
+SRC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src")
+
+
+def read_src(*parts):
+    path = os.path.join(SRC, *parts)
+    if not os.path.exists(path):
+        return ""
+    with open(path, encoding="utf-8", errors="replace") as f:
+        return f.read()
+
+
+STRING = r'((?:[^"\\]|\\.)*)'
+LABEL_RE = re.compile(r'\{ "([a-z0-9_]+\.[a-z]+)", (\d+), (\d+), (\d+), N_\("' + STRING + r'"\), (-?\d+), (\d+), (\d+), (\d+), (\d+), (\d+) \}')
+COVER_RE = re.compile(r'\{ (\d+), (\d+), (\d+), (\d+), N_\("' + STRING + r'"\), (\d+), (\d+), (true|false) \}')
+RECT_RE = re.compile(r'\b(k[A-Z][A-Za-z]*)\{ (\d+), (\d+), (\d+), (\d+) \}')
+WINDOW_RE = re.compile(r'\w+\(\) : Window\(\w+, N_\("[^"]*"\), "([a-z0-9_.]+)", (\d+), (\d+)\)')
+CLOSE_RE = re.compile(r'CloseButton\(\) const override \{ return \{ (\d+), (\d+), (\d+), (\d+) \}; \}')
+
+
+def unescape(t):
+    return t.replace("\\n", "\n").replace('\\"', '"')
+
+
+def source_layout():
+    """picture file -> [item]; an item is a dict: kind label | button | gauge, x, y, w, h, text, align, lines, lh, wrap."""
+    layout = {}
+
+    def add(pic, **item):
+        layout.setdefault(pic, []).append(item)
+
+    for m in LABEL_RE.finditer(read_src("ui", "PictureText.cpp")):
+        pic, x, y, room, text, bg, ink, align, lines, lh, wrap = m.groups()
+        kind = "label"
+        text = unescape(text)
+        for prefix, k in (("small button:", "button"), ("button:", "button"), ("gauge:", "gauge")):
+            if text.startswith(prefix):
+                text, kind = text[len(prefix):], k
+        add(pic, kind=kind, x=int(x), y=int(y), w=int(room), h=8, text=text, align=int(align), lines=int(lines), lh=int(lh), wrap=int(wrap))
+    windows = read_src("ui", "Windows.cpp")
+    found = list(WINDOW_RE.finditer(windows))
+    for i, m in enumerate(found):
+        segment = windows[m.end(): found[i + 1].start() if i + 1 < len(found) else len(windows)]
+        c = CLOSE_RE.search(segment)
+        if c and m.group(1):
+            x, y, w, h = (int(v) for v in c.groups())
+            add(m.group(1), kind="button", x=x, y=y, w=w, h=h, text="CLOSE", align=1, lines=1, lh=8, wrap=0, exact=True)
+    return layout
+
+
+def start_layout():
+    """The start screens: named rectangles, and the covers (the words the pictures carry and where)."""
+    text = read_src("ui", "StartScreen.cpp")
+    rects = {m.group(1): tuple(int(v) for v in m.groups()[1:]) for m in RECT_RE.finditer(text)}
+
+    def covers(first, last):
+        a, b = text.find(first), text.find(last)
+        body = text[a:b] if a >= 0 and b > a else ""
+        return [dict(x=int(m[0]), y=int(m[1]), w=int(m[2]), h=int(m[3]), text=unescape(m[4]), cx=int(m[5]), ty=int(m[6]), big=m[7] == "true")
+                for m in COVER_RE.findall(body)]
+    return {"rects": rects, "region": covers("void StartScreen::DrawTranslatedRegion", "void StartScreen::DrawTranslatedDesign"),
+            "design": covers("void StartScreen::DrawTranslatedDesign", "// ---------------------------------------------------------------- the phone layout")}
+
+
+INK = (0x20, 0x20, 0x20, 255)
+
+
+def face_rect(d, x, y, w, h, k, fill=(0xC4, 0xC4, 0xC4, 255)):
+    """A raised button face: black outline, white top and left, grey bottom and right."""
+    d.rectangle([x * k, y * k, (x + w) * k - 1, (y + h) * k - 1], fill=fill, outline=(0, 0, 0, 255), width=k)
+    d.line([((x + 1) * k, (y + 1) * k), ((x + w - 2) * k, (y + 1) * k)], fill=(255, 255, 255, 255), width=k)
+    d.line([((x + 1) * k, (y + 1) * k), ((x + 1) * k, (y + h - 2) * k)], fill=(255, 255, 255, 255), width=k)
+    d.line([((x + 1) * k, (y + h - 2) * k), ((x + w - 2) * k, (y + h - 2) * k)], fill=(0x86, 0x86, 0x86, 255), width=k)
+    d.line([((x + w - 2) * k, (y + 1) * k), ((x + w - 2) * k, (y + h - 2) * k)], fill=(0x86, 0x86, 0x86, 255), width=k)
+
+
+def put_text(d, k, text, x, y, w, align=0, px=8, fill=INK, lh=None):
+    """Text (lines split at \\n) with its top at y, in a box w wide from x; align 0 left, 1 centre, 2 right."""
+    f = font(px * k)
+    for n, line in enumerate(text.split("\n")):
+        l, t, r, b = d.textbbox((0, 0), line, font=f)
+        tx = x * k if align == 0 else (x + w) * k - (r - l) if align == 2 else (x + w / 2.0) * k - (r - l) / 2.0
+        d.text((tx - l, (y + n * (lh or px + 1)) * k - t), line, fill=fill, font=f)
+
+
+def wrap_words(d, k, text, w, px=8):
+    f = font(px * k)
+    lines, cur = [], ""
+    for word in text.split():
+        trial = (cur + " " + word).strip()
+        if cur and d.textlength(trial, font=f) > w * k:
+            lines.append(cur)
+            cur = word
+        else:
+            cur = trial
+    if cur:
+        lines.append(cur)
+    return "\n".join(lines)
+
+
+def draw_layout(d, k, items):
+    """The engine's marks for a picture: button faces and the words it expects."""
+    for it in items:
+        if it["kind"] == "button":
+            if it.get("exact"):
+                bx, by, bw, bh = it["x"], it["y"], it["w"], it["h"]
+            else:  # the label sits inside its button
+                bx, by, bw, bh = it["x"] - 4, it["y"] - 6, it["w"] + 8, 20
+            face_rect(d, bx, by, bw, bh, k)
+            put_text(d, k, it["text"], bx, by + (bh - 8) // 2, bw, 1)
+        elif it["kind"] == "gauge":
+            put_text(d, k, it["text"], it["x"], it["y"], it["w"], 1, px=7)
+        else:
+            text = wrap_words(d, k, it["text"], it["w"]) if it["wrap"] > 0 else it["text"]
+            put_text(d, k, text, it["x"], it["y"], it["w"], it["align"], lh=it["lh"] if it["lines"] > 1 or it["wrap"] > 0 else None)
+
+
+def panel(w, h, name, tint, items=()):
+    """A window picture: a bevelled panel, its file name and size in a corner, and the engine's marks."""
     img = Image.new("RGBA", (w * PIC_SCALE, h * PIC_SCALE), tint + (255,))
     d = ImageDraw.Draw(img)
     k = PIC_SCALE
@@ -477,17 +598,26 @@ def panel(w, h, name, tint):
     d.line([(k, k), (k, h * k - 2 * k)], fill=(255, 255, 255, 255), width=k)
     d.line([(k, h * k - 2 * k), (w * k - 2 * k, h * k - 2 * k)], fill=(0x80, 0x80, 0x80, 255), width=k)
     d.line([(w * k - 2 * k, k), (w * k - 2 * k, h * k - 2 * k)], fill=(0x80, 0x80, 0x80, 255), width=k)
-    if h >= 64:
+    if h >= 64 and not items:
         text_centre(d, (0, 4 * k, w * k, 20 * k), f"{name}  {w} x {h}", 9 * k, (0x20, 0x20, 0x20, 255))
+    draw_layout(d, k, items)
     return img, d
 
 
 def toolbar():
-    img, d = panel(640, 32, "cntlbtnh.bmp", (0xC0, 0xC0, 0xC8))
+    """cntlbtnh.bmp, 640 x 32 units. The interface cuts it into parts (GameUi::DrawToolbar): 8 buttons of 32 (BUY, SELL,
+    EVALUATION, MAP, WEATHER, BALANCE SHEET, BANK at x 0..192, the unused EDIT at 224, MARKET VALUE at 256), the forecast
+    box at 304..379 (the three days' sky tiles go in it; 380..399 is the plain grey the bar is stretched with), and the
+    date and funds panel at 400..639. A black line runs along the top."""
     k = PIC_SCALE
-    for x in range(0, 640, 32):  # ticks every 32 units, numbered: where the interface cuts the bar
-        d.line([(x * k, 0), (x * k, 32 * k)], fill=(0x70, 0x70, 0x80, 255), width=1)
-        d.text((x * k + 2, 2), str(x), fill=(0x30, 0x30, 0x30, 255), font=font(7 * k))
+    img = Image.new("RGBA", (640 * k, 32 * k), (0xC4, 0xC4, 0xC4, 255))
+    d = ImageDraw.Draw(img)
+    d.rectangle([0, 0, 640 * k - 1, k - 1], fill=(0, 0, 0, 255))  # the black line under the menu bar
+    for x, label in ((0, "BUY"), (32, "SELL"), (64, "EVAL"), (96, "MAP"), (128, "WTHR"), (160, "BAL"), (192, "BANK"), (224, "EDIT"), (256, "MKT")):
+        face_rect(d, x + 1, 2, 30, 28, k, fill=(0xD0, 0xD0, 0xD0, 255) if label != "EDIT" else (0xB0, 0xB0, 0xB0, 255))
+        put_text(d, k, label, x + 1, 12, 30, 1, px=7)
+    d.rectangle([304 * k, 2 * k, 379 * k, 30 * k - 1], fill=(0xF0, 0xF4, 0xFF, 255), outline=(0, 0, 0, 255), width=k)  # the forecast box
+    d.rectangle([404 * k, 2 * k, 636 * k, 30 * k - 1], fill=(0xE4, 0xE4, 0xE4, 255), outline=(0, 0, 0, 255), width=k)  # the date and funds
     return img
 
 
@@ -514,7 +644,55 @@ def face(w, h, text, hue):
     return img
 
 
-def full_screen(name, hue):
+def centre_cover(d, k, c, fill=(255, 255, 255, 255)):
+    """A cover of the start screens: its words centred on cx, the top at ty; a title is twice the size."""
+    px = 16 if c["big"] else 8
+    put_text(d, k, c["text"], c["cx"] - 160, c["ty"], 320, 1, px=px, fill=fill, lh=px + 2)
+
+
+def start_picture(name, hue, kind):
+    """scenario.int (the region screen) and defworld.int (the design screen): the full-screen picture with the engine's buttons,
+    sliders' tracks and words in the places its code expects."""
+    img = full_screen_base(name, hue)
+    k = PIC_SCALE
+    d = ImageDraw.Draw(img)
+    st = start_layout()
+    R = st["rects"]
+    if kind == "region":
+        mx, my, mw, mh = R.get("kMap", (248, 39, 290, 290))
+        grids = region_grids()
+        for gy in range(18):
+            for gx in range(18):
+                rain, temp = "abcd".index(grids["rain"][gy][gx]), "abcd".index(grids["temperature"][gy][gx])
+                col = lerp(lerp((0xC8, 0xB0, 0x78), (0x3C, 0x9A, 0x4A), rain / 3.0), (0xE8, 0xE0, 0xA0), temp / 6.0)
+                d.rectangle([(mx + gx * mw // 18) * k, (my + gy * mh // 18) * k, (mx + (gx + 1) * mw // 18) * k - 1, (my + (gy + 1) * mh // 18) * k - 1], fill=col + (255,))
+        d.rectangle([mx * k, my * k, (mx + mw) * k - 1, (my + mh) * k - 1], outline=(0, 0, 0, 255), width=k)
+        for y in (101, 149, 197):  # the climate sliders' tracks (the engine fills them from the left)
+            d.rectangle([120 * k, y * k, 216 * k - 1, (y + 10) * k - 1], fill=(0x20, 0x20, 0x20, 255), outline=(0, 0, 0, 255), width=k)
+        faces = ["kUseRegion", "kDesign", "kLoad", "kQuit"]
+        covers = st["region"]
+    else:
+        for y in (105, 163, 222):  # the sliders' tracks, 80 x 10 at x 160 (the engine draws them whole)
+            d.rectangle([160 * k, y * k, 240 * k - 1, (y + 10) * k - 1], fill=(0, 0, 0, 255))
+        px, py, pw, ph = R.get("kPreview", (264, 72, 192, 192))
+        d.rectangle([px * k, py * k, (px + pw) * k - 1, (py + ph) * k - 1], fill=(0x18, 0x18, 0x18, 255), outline=(0, 0, 0, 255), width=k)
+        faces = ["kRainDown", "kRainUp", "kTempDown", "kTempUp", "kWindDown", "kWindUp", "kRiver", "kLake", "kGenerate", "kPlay"]
+        covers = st["design"]
+    for name_ in faces:
+        if name_ in R:
+            x, y, w, h = R[name_]
+            face_rect(d, x, y, w, h, k)
+            if name_.endswith("Down") or name_.endswith("Up"):
+                put_text(d, k, "<" if name_.endswith("Down") else ">", x, y + 4, w, 1)
+    on_button = [R[n] for n in faces if n in R]
+    for c in covers:
+        # words that fall on a button are dark on its grey face; the rest are white on the picture
+        on = any(x <= c["cx"] < x + w and y <= c["ty"] < y + h for x, y, w, h in on_button)
+        centre_cover(d, k, c, INK if on else (255, 255, 255, 255))
+    return img
+
+
+def full_screen_base(name, hue):
     w, h, k = 640, 480, PIC_SCALE
     img = Image.new("RGBA", (w * k, h * k))
     px = img.load()
@@ -523,8 +701,13 @@ def full_screen(name, hue):
         c = lerp(top, bottom, y / (h * k - 1))
         for x in range(w * k):
             px[x, y] = c + (255,)
+    return img
+
+
+def full_screen(name, hue):
+    img = full_screen_base(name, hue)
     d = ImageDraw.Draw(img)
-    text_centre(d, (0, 0, w * k, h * k), f"{name}  {w} x {h}", 24 * k, (255, 255, 255, 255))
+    text_centre(d, (0, 0, 640 * PIC_SCALE, 480 * PIC_SCALE), f"{name}  640 x 480", 24 * PIC_SCALE, (255, 255, 255, 255))
     return img
 
 
@@ -555,14 +738,16 @@ def build_pictures(out):
     ui = os.path.join(out, "ui")
     os.makedirs(ui, exist_ok=True)
     single, sets = {}, []
+    layout = source_layout()
     for i, (name, (w, h)) in enumerate(sorted(WINDOWS.items())):
-        img = toolbar() if name == "cntlbtnh.bmp" else panel(w, h, name, lerp((0xC8, 0xC8, 0xC8), band_colour(i * 5, 0.25, 0.92), 0.5))[0]
+        img = toolbar() if name == "cntlbtnh.bmp" else panel(w, h, name, lerp((0xC8, 0xC8, 0xC8), band_colour(i * 5, 0.25, 0.92), 0.5), layout.get(name, []))[0]
         img.save(os.path.join(ui, name.replace(".bmp", ".png")), optimize=True)
         single[name] = {"file": "ui/" + name.replace(".bmp", ".png")}
     editeasy().save(os.path.join(ui, "editeasy.png"), optimize=True)
     single["editeasy.lzs"] = {"file": "ui/editeasy.png"}
     for i, name in enumerate(FULL_SCREENS):
-        full_screen(name, i).save(os.path.join(ui, name.replace(".int", ".png")), optimize=True)
+        img = start_picture(name, i, "region") if name == "scenario.int" else start_picture(name, i, "design") if name == "defworld.int" else full_screen(name, i)
+        img.save(os.path.join(ui, name.replace(".int", ".png")), optimize=True)
         single[name] = {"file": "ui/" + name.replace(".int", ".png")}
     for fi, (name, count, (w, h), names) in enumerate(FACE_FILES):
         faces = [face(w, h, names[i] if names else str(i), i + fi * 3) for i in range(count)]

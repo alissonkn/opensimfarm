@@ -32,7 +32,8 @@ constexpr Button kEditButton{ 329, 342, 150, 22 }; // and its right edge (479)
 constexpr Button kLanguageButton{ 200, 350, 240, 20 };
 constexpr int kLanguageRowH = 14;
 // the eight prebuilt farms on the region map: 17x17 boxes at (248 + 16 gx, 40 + 16 gy)
-constexpr int kFarmGx[8] = { 0, 1, 1, 3, 9, 11, 13, 15 }, kFarmGy[8] = { 8, 11, 3, 6, 7, 6, 11, 8 };
+const int (&kFarmGx)[8] = kPrebuiltFarmGx; // (game/WorldGen.h: also where a pack's prebuilt farms take their climate)
+const int (&kFarmGy)[8] = kPrebuiltFarmGy;
 } // namespace
 
 StartScreen::StartScreen(Gfx& g, const std::string& gameDir) : _g(g), _gameDir(gameDir)

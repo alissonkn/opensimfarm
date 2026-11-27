@@ -13,6 +13,7 @@
 #include "core/Json.h"
 #include "ui/Gfx.h"
 #include "ui/MapView.h"
+#include "ui/ModernFont.h"
 
 #include <SDL.h>
 
@@ -844,6 +845,37 @@ int TruecolourSelfTest()
             check(Near(t.At(5, 5), blend(PlainColour(0), rain), 3) && Near(t.At(99, 99), blend(PlainColour(3 * 8 + 3), rain), 3) && t.At(150, 150) == 0xFF00FF00u,
                   label + "a view smaller than the world: veiled to its edge, nothing beyond");
         }
+    }
+
+    // ---------------------------------------------------------------- the built-in 8 x 8 font
+    std::printf("-- the built-in font\n");
+    {
+        Font8 f;
+        check(BuiltinFont8(f), "the built-in font is made");
+        auto ink = [&](int c) {
+            int n = 0;
+            for (int r = 0; r < 8; ++r)
+                n += __builtin_popcount(f.glyphs[static_cast<size_t>(c)][static_cast<size_t>(r)]);
+            return n;
+        };
+        bool letters = true, distinct = true;
+        for (int c = '!'; c <= '~'; ++c)
+            letters = letters && ink(c) >= 1;
+        for (int a = 'A'; a <= 'Z'; ++a)
+            for (int b = a + 1; b <= 'Z'; ++b)
+                distinct = distinct && f.glyphs[static_cast<size_t>(a)] != f.glyphs[static_cast<size_t>(b)];
+        check(ink(' ') == 0 && letters && ink('A') >= 10 && ink('W') >= 14 && ink('.') <= 6 && ink('.') >= 1, "  the space is blank, every printable character has ink, a capital has 10 or more pixels, a full stop few");
+        check(distinct && f.glyphs['A'] != f.glyphs['a'] && ink(0x80) == 0, "  the 26 capitals all differ, upper and lower case differ, and codes beyond ASCII are left blank");
+        if (std::getenv("OSF_FONTART"))
+            for (const char* text : { "SimFarm 0123", "Hay & Corn." })
+                for (int r = 0; r < 8; ++r)
+                {
+                    std::string line;
+                    for (const char* c = text; *c; ++c)
+                        for (int x = 0; x < 8; ++x)
+                            line += (f.glyphs[static_cast<size_t>(*c)][static_cast<size_t>(r)] & (0x80 >> x)) ? '#' : '.';
+                    std::printf("       %s\n", line.c_str());
+                }
     }
 
     // ---------------------------------------------------------------- the original (indexed) tiles still draw as before
