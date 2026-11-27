@@ -77,11 +77,14 @@ add_executable(opensimfarm
     src/core/DiscImage.cpp
     src/core/InstallDisc.cpp
     src/core/Lang.cpp
+    src/core/Json.cpp
     ${OSF_LANG_CPP}
     ${OSF_MUSIC_CPP}
     ${OSF_FONT_CPP}
     src/assets/Megadata.cpp
     src/assets/Graphics.cpp
+    src/assets/TilePack.cpp
+    src/ui/TruecolourTest.cpp
     src/assets/Picture.cpp
     src/assets/WindowsEdition.cpp
     src/assets/SaveGame.cpp

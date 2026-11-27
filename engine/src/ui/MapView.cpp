@@ -14,13 +14,22 @@ namespace osf {
 
 SDL_Texture* MapView::BuildAtlas(SDL_Renderer* renderer, const TileSheet& sheet, const Palette& pal, bool seeThrough)
 {
+    const int cell = sheet.TrueColour() ? sheet.size : 16; // a cell of the atlas, in pixels
     const int rows = (sheet.count + kAtlasColumns - 1) / kAtlasColumns;
-    const int w = kAtlasColumns * 16, h = rows * 16;
+    const int w = kAtlasColumns * cell, h = rows * cell;
     std::vector<uint32_t> rgba(static_cast<size_t>(w) * h, 0);
     for (int t = 0; t < sheet.count; ++t)
     {
+        const int ox = (t % kAtlasColumns) * cell, oy = (t / kAtlasColumns) * cell;
+        if (sheet.TrueColour())
+        {
+            const uint32_t* px = sheet.TileArgb(t);
+            for (int y = 0; y < cell; ++y)
+                for (int x = 0; x < cell; ++x)
+                    rgba[static_cast<size_t>(oy + y) * w + ox + x] = seeThrough ? px[y * cell + x] : (px[y * cell + x] | 0xFF000000u);
+            continue;
+        }
         const uint8_t* px = sheet.Tile(t);
-        const int ox = (t % kAtlasColumns) * 16, oy = (t / kAtlasColumns) * 16;
         for (int y = 0; y < 16; ++y)
             for (int x = 0; x < 16; ++x)
             {
@@ -34,6 +43,8 @@ SDL_Texture* MapView::BuildAtlas(SDL_Renderer* renderer, const TileSheet& sheet,
         return nullptr;
     SDL_UpdateTexture(tex, nullptr, rgba.data(), w * 4);
     SDL_SetTextureBlendMode(tex, seeThrough ? SDL_BLENDMODE_BLEND : SDL_BLENDMODE_NONE);
+    if (sheet.TrueColour())
+        SDL_SetTextureScaleMode(tex, SDL_ScaleModeLinear); // hi-res art shrinks smoothly (Draw prefers the exact-size atlases)
     return tex;
 }
 
@@ -46,7 +57,7 @@ SDL_Texture* MapView::BuildSmoothAtlas(SDL_Renderer* renderer, const TileSheet& 
     std::vector<uint32_t> argb(static_cast<size_t>(w) * h, 0);
     for (int t = 0; t < sheet.count; ++t)
     {
-        const std::vector<uint32_t> px = SmoothTile(sheet.Tile(t), pal, seeThrough, size);
+        const std::vector<uint32_t> px = SheetTileArgb(sheet, t, pal, seeThrough, size, true);
         const int ox = (t % kAtlasColumns) * size, oy = (t / kAtlasColumns) * size;
         for (int y = 0; y < size; ++y)
             std::copy_n(&px[static_cast<size_t>(y) * size], size, &argb[static_cast<size_t>(oy + y) * w + ox]);
@@ -113,14 +124,21 @@ void MapView::UpdateSmooth(SDL_Texture* Smooth::*which, const TileSheet& oldShee
     for (int i = 0; i < 16; ++i)
         colour[i] = oldPal[static_cast<size_t>(i)] != pal[static_cast<size_t>(i)];
     std::vector<int> redo;
-    const bool same = oldSheet.count == sheet.count && oldSheet.pixels.size() == sheet.pixels.size();
+    const bool same = oldSheet.count == sheet.count && oldSheet.size == sheet.size && oldSheet.pixels.size() == sheet.pixels.size() &&
+                      oldSheet.argb.size() == sheet.argb.size();
     for (int t = 0; t < sheet.count && same; ++t)
     {
-        const uint8_t* a = oldSheet.Tile(t);
-        const uint8_t* b = sheet.Tile(t);
-        bool changed = std::memcmp(a, b, 256) != 0;
-        for (int k = 0; k < 256 && !changed; ++k)
-            changed = colour[b[k] & 15];
+        bool changed;
+        if (sheet.TrueColour()) // (a truecolour tile does not depend on the palette)
+            changed = std::memcmp(oldSheet.TileArgb(t), sheet.TileArgb(t), static_cast<size_t>(sheet.size) * sheet.size * 4) != 0;
+        else
+        {
+            const uint8_t* a = oldSheet.Tile(t);
+            const uint8_t* b = sheet.Tile(t);
+            changed = std::memcmp(a, b, 256) != 0;
+            for (int k = 0; k < 256 && !changed; ++k)
+                changed = colour[b[k] & 15];
+        }
         if (changed)
             redo.push_back(t);
     }
@@ -137,7 +155,7 @@ void MapView::UpdateSmooth(SDL_Texture* Smooth::*which, const TileSheet& oldShee
         }
         for (const int t : redo)
         {
-            const std::vector<uint32_t> px = SmoothTile(sheet.Tile(t), pal, false, size);
+            const std::vector<uint32_t> px = SheetTileArgb(sheet, t, pal, false, size, true);
             const SDL_Rect r{ (t % kAtlasColumns) * size, (t / kAtlasColumns) * size, size, size };
             SDL_UpdateTexture(tex, &r, px.data(), size * 4);
         }
@@ -348,7 +366,10 @@ void MapView::Draw(SDL_Renderer* renderer, int width, int height)
         }
     }
     const Smooth* sm = nullptr;
-    if (_modern && size > 0)
+    // truecolour tiles are always drawn from the atlases made for the size on screen (the art is far larger than a
+    // cell and would shimmer if the renderer shrank it); the movers' glides are Modern Render's own
+    const bool trueColour = _src.plain.TrueColour();
+    if ((_modern || trueColour) && size > 0)
     {
         auto it = _smooth.find(atlasSize);
         if (it == _smooth.end())
@@ -362,9 +383,10 @@ void MapView::Draw(SDL_Renderer* renderer, int width, int height)
             s.events = BuildSmoothAtlas(renderer, _src.events, _src.palette, false, atlasSize);
         if (s.plain && s.masked)
             sm = &s;
-        TrackMovers(now);
+        if (_modern)
+            TrackMovers(now);
     }
-    const int cellPx = sm ? atlasSize : 16;
+    const int cellPx = sm ? atlasSize : trueColour ? _src.plain.size : 16;
     SDL_Texture* const plainTex = sm ? sm->plain : _plain;
     SDL_Texture* const maskedTex = sm ? sm->masked : _masked;
     SDL_Texture* const eventTex = sm ? sm->events : _events;

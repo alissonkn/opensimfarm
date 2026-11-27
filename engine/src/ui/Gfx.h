@@ -6,6 +6,7 @@
 
 #include <SDL.h>
 
+#include <algorithm>
 #include <map>
 #include <string>
 #include <vector>
@@ -41,7 +42,12 @@ public:
     bool SetPlainTiles(const TileSheet& plain);   // (re)build the plain tile atlas, e.g. after crop pictures changed
     ~Gfx();
 
-    void SetScale(int s) { _scale = s < 1 ? 1 : s; }
+    void SetScale(int s)
+    {
+        _scale = s < 1 ? 1 : s;
+        if (_plain.TrueColour() && TrueTileDetail() != _tileDetail)
+            RemakeTiles(); // truecolour tiles are made at the size they are drawn at
+    }
     int Scale() const { return _scale; }
     // Modern Render for the interface: every picture (windows, buttons, icons, tiles, sprites, full screens, the
     // font) is kept at `detail` texels per interface pixel, upscaled with the pixel-art scaler (ui/PixelArt.h), except
@@ -129,6 +135,12 @@ private:
     SDL_Texture* MakeTexture(const Picture& p, int transparent, const Palette* pal = nullptr, int cell = 0, bool upscale = true);
     void MakeFont();
     void MakeMasked();
+    // Truecolour tile sheets (a tile pack) are resampled to 16 * _tileDetail pixels a tile, the size they are drawn at
+    // (an indexed sheet is upscaled by _detail like every other picture; _tileDetail is then _detail)
+    int TrueTileDetail() const { return std::clamp(std::max(_detail, _scale), 1, 4); }
+    void RemakeTiles();
+    SDL_Texture* MakeArgbTexture(const std::vector<uint32_t>& argb, int w, int h, bool blend);
+    SDL_Rect TileSrc(int index) const; // tile `index` of an atlas (plain or masked) in texture pixels
     SDL_Rect Src(int x, int y, int w, int h) const { return SDL_Rect{ x * _detail, y * _detail, w * _detail, h * _detail }; }
     SDL_Rect R(int x, int y, int w, int h) const { return SDL_Rect{ x * _scale, y * _scale, w * _scale, h * _scale }; }
 
@@ -142,6 +154,7 @@ private:
     Font8 _font8;                 // the font with its added letters (kept likewise)
     int _detail = 1;
     int _scale = 1;
+    int _tileDetail = 1;            // texels per interface pixel in the tile atlases (see TrueTileDetail)
     SDL_Texture* _font = nullptr;   // 16x16 glyph grid, white with alpha
     int _fontChoice = 1;                     // Options > Advanced (ui/ModernFont.h)
     int _fontAtlasDetail = 0;                // the pixels per unit the atlases below were made at

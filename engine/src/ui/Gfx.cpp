@@ -101,9 +101,31 @@ void Gfx::SetDetail(int detail)
             SDL_DestroyTexture(t);
     _pictures.clear();
     MakeFont();
-    MakeMasked();
+    RemakeTiles(); // (the plain tiles first: they set the detail the masked ones are made at)
+}
+
+void Gfx::RemakeTiles()
+{
     const TileSheet plain = _plain;
     SetPlainTiles(plain);
+    MakeMasked();
+}
+
+SDL_Texture* Gfx::MakeArgbTexture(const std::vector<uint32_t>& argb, int w, int h, bool blend)
+{
+    SDL_Texture* t = SDL_CreateTexture(_r, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, w, h);
+    if (!t)
+        return nullptr;
+    SDL_UpdateTexture(t, nullptr, argb.data(), w * 4);
+    SDL_SetTextureBlendMode(t, blend ? SDL_BLENDMODE_BLEND : SDL_BLENDMODE_NONE);
+    SDL_SetTextureScaleMode(t, _tileDetail > 1 ? SDL_ScaleModeLinear : SDL_ScaleModeNearest);
+    return t;
+}
+
+SDL_Rect Gfx::TileSrc(int index) const
+{
+    const int cell = 16 * _tileDetail;
+    return SDL_Rect{ (index % kTileColumns) * cell, (index / kTileColumns) * cell, cell, cell };
 }
 
 void Gfx::MakeFont()
@@ -127,6 +149,22 @@ void Gfx::MakeFont()
 
 void Gfx::MakeMasked()
 {
+    if (_maskedSheet.TrueColour())
+    {
+        const int cell = 16 * _tileDetail, cols = kTileColumns, rows = (_maskedSheet.count + cols - 1) / cols;
+        std::vector<uint32_t> argb(static_cast<size_t>(cols) * cell * rows * cell, 0);
+        for (int t = 0; t < _maskedSheet.count; ++t)
+        {
+            const std::vector<uint32_t> px = SheetTileArgb(_maskedSheet, t, _pal, true, cell, false);
+            for (int y = 0; y < cell; ++y)
+                std::copy_n(&px[static_cast<size_t>(y) * cell], cell,
+                            &argb[static_cast<size_t>((t / cols) * cell + y) * cols * cell + (t % cols) * cell]);
+        }
+        if (_masked)
+            SDL_DestroyTexture(_masked);
+        _masked = MakeArgbTexture(argb, cols * cell, rows * cell, true);
+        return;
+    }
     Picture masked;
     masked.w = kTileColumns * 16;
     masked.h = (_maskedSheet.count + kTileColumns - 1) / kTileColumns * 16;
@@ -292,6 +330,7 @@ void Gfx::PrepareFont(Font8& font)
 bool Gfx::Init(SDL_Renderer* r, const Megadata& mega, const MapGraphics& map)
 {
     _r = r;
+    _tileDetail = _detail;
     _mega = &mega;
     _pal = map.palette;
     // for the Windows edition the engine's interface colours are drawn as the Windows colours its pictures show
@@ -321,6 +360,32 @@ bool Gfx::SetPlainTiles(const TileSheet& plain)
 {
     // plain tiles (icons used by the interface live in the same sheet as the map tiles)
     _plain = plain;
+    _tileDetail = plain.TrueColour() ? TrueTileDetail() : _detail;
+    if (plain.TrueColour())
+    {
+        const int cell = 16 * _tileDetail, cols = kTileColumns, rows = (plain.count + cols - 1) / cols;
+        std::vector<uint32_t> argb(static_cast<size_t>(cols) * cell * rows * cell, 0);
+        _tileColour.resize(plain.count);
+        for (int t = 0; t < plain.count; ++t)
+        {
+            const std::vector<uint32_t> px = SheetTileArgb(plain, t, _pal, false, cell, false);
+            for (int y = 0; y < cell; ++y)
+                std::copy_n(&px[static_cast<size_t>(y) * cell], cell,
+                            &argb[static_cast<size_t>((t / cols) * cell + y) * cols * cell + (t % cols) * cell]);
+            // the tile's average colour (from the art itself, not the resampled copy)
+            const uint32_t* a = plain.TileArgb(t);
+            uint64_t sum[3] = { 0, 0, 0 };
+            const size_t n = static_cast<size_t>(plain.size) * plain.size;
+            for (size_t i = 0; i < n; ++i)
+                for (int k = 0; k < 3; ++k)
+                    sum[k] += (a[i] >> (16 - 8 * k)) & 0xFF;
+            _tileColour[t] = 0xFF000000u | static_cast<uint32_t>((sum[0] / n) << 16) | static_cast<uint32_t>((sum[1] / n) << 8) | static_cast<uint32_t>(sum[2] / n);
+        }
+        if (_tiles)
+            SDL_DestroyTexture(_tiles);
+        _tiles = MakeArgbTexture(argb, cols * cell, rows * cell, false);
+        return _tiles != nullptr;
+    }
     Picture atlas;
     atlas.w = kTileColumns * 16;
     atlas.h = (plain.count + kTileColumns - 1) / kTileColumns * 16;
@@ -361,6 +426,8 @@ void Gfx::SetPlayPalette(int which)
         if (t)
             SDL_DestroyTexture(t);
     _pictures.clear();
+    if (_plain.TrueColour())
+        return; // (the tile pack's colours are its own: no palette to remake them with)
     const TileSheet plain = _plain;
     SetPlainTiles(plain);
 }
@@ -546,14 +613,14 @@ void Gfx::DrawButton(int face, int x, int y)
 
 void Gfx::DrawTile(int id, int x, int y, int size)
 {
-    const SDL_Rect src = Src((id % kTileColumns) * 16, (id / kTileColumns) * 16, 16, 16);
+    const SDL_Rect src = TileSrc(id);
     const SDL_Rect dst = R(x, y, size, size);
     SDL_RenderCopy(_r, _tiles, &src, &dst);
 }
 
 void Gfx::DrawTileAt(int id, const SDL_Rect& dst)
 {
-    const SDL_Rect src = Src((id % kTileColumns) * 16, (id / kTileColumns) * 16, 16, 16);
+    const SDL_Rect src = TileSrc(id);
     SDL_RenderCopy(_r, _tiles, &src, &dst);
 }
 
@@ -565,7 +632,7 @@ void Gfx::DrawAnyTile(int id, int x, int y, int size)
         return;
     }
     const int m = id - 848;
-    const SDL_Rect src = Src((m % kTileColumns) * 16, (m / kTileColumns) * 16, 16, 16);
+    const SDL_Rect src = TileSrc(m);
     const SDL_Rect dst = R(x, y, size, size);
     SDL_RenderCopy(_r, _masked, &src, &dst);
 }

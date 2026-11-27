@@ -46,8 +46,8 @@ TileSheet DecodeTiles16(const std::vector<uint8_t>& data, int maxTiles)
 
 bool ApplyCropArt(TileSheet& sheet, int slot, const std::vector<uint8_t>& art)
 {
-    if (art.size() < 14 * 128 || slot < 0 || slot >= 16 || sheet.count < 848)
-        return false;
+    if (art.size() < 14 * 128 || slot < 0 || slot >= 16 || sheet.count < 848 || sheet.TrueColour())
+        return false; // (a tile pack brings its own crop pictures)
     const TileSheet t = DecodeTiles16(art, 14);
     for (int k = 0; k < 14; ++k)
     {

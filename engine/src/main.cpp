@@ -16,6 +16,8 @@
 #include "assets/Graphics.h"
 #include "audio/Sound.h"
 #include "assets/Megadata.h"
+#include "assets/TilePack.h"
+#include "ui/TruecolourTest.h"
 #include "assets/Picture.h"
 #include "core/Lang.h"
 #include "ui/LangTest.h"
@@ -2689,6 +2691,10 @@ int main(int argc, char** argv)
     }
     if (argc > 1 && std::strcmp(argv[1], "--touchtest") == 0)
         return TouchSelfTest() ? 1 : 0; // the touch gestures (no game folder needed)
+    if (argc > 3 && std::strcmp(argv[1], "--packpreview") == 0)
+        return PackPreview(argv[2], argv[3]); // a tile pack drawn by the map view into two .bmp files
+    if (argc > 1 && std::strcmp(argv[1], "--tilepacktest") == 0)
+        return TruecolourSelfTest(); // truecolour tile packs, no game files needed
     if (argc > 1 && std::strcmp(argv[1], "--graphicstest") == 0)
     {
         // Modern Render in memory: the tile smoothing on the player's tiles and the glide tracking, nothing written
@@ -3688,6 +3694,16 @@ int main(int argc, char** argv)
         gfx = MapGraphics();
         err.clear();
         bool ok = mega.Open(*gameDir, err) && LoadMapGraphics(mega, gfx);
+        // a tile pack (OPENSIMFARM_TILEPACK=folder, a development aid): its truecolour tiles replace the archive's
+        if (ok)
+            if (const char* pack = std::getenv("OPENSIMFARM_TILEPACK"); pack && *pack)
+            {
+                std::string packError;
+                if (LoadTilePack(pack, gfx, packError))
+                    std::fprintf(stderr, "tile pack %s: %d px tiles\n", pack, gfx.plain.size);
+                else
+                    std::fprintf(stderr, "tile pack %s not used: %s\n", pack, packError.c_str());
+            }
         if (ok)
         {
             GameState probe;
@@ -4466,16 +4482,20 @@ int main(int argc, char** argv)
             if (sig != cropArtSig)
             {
                 cropArtSig = sig;
-                MapGraphics patched = gfx;
-                static const char* const palNames[3] = { "simfarm.pal", "rainpal.pal", "frostpal.pal" };
-                const std::vector<uint8_t> pal = mega.Read(palNames[playPalette]);
-                if (pal.size() >= 48)
-                    patched.palette = LoadPalette(pal);
-                for (int i = 0; i < static_cast<int>(state->crops.size()) && i < 16; ++i)
-                    ApplyCropArt(patched.plain, i, state->crops[i].art);
-                view.SetPlainTiles(renderer, patched);
-                view.SetEventTiles(renderer, patched);
-                gfxUi.SetPlainTiles(patched.plain);
+                // (a tile pack's tiles are truecolour: no palette and no crop pictures to patch into them yet)
+                if (!gfx.TrueColour())
+                {
+                    MapGraphics patched = gfx;
+                    static const char* const palNames[3] = { "simfarm.pal", "rainpal.pal", "frostpal.pal" };
+                    const std::vector<uint8_t> pal = mega.Read(palNames[playPalette]);
+                    if (pal.size() >= 48)
+                        patched.palette = LoadPalette(pal);
+                    for (int i = 0; i < static_cast<int>(state->crops.size()) && i < 16; ++i)
+                        ApplyCropArt(patched.plain, i, state->crops[i].art);
+                    view.SetPlainTiles(renderer, patched);
+                    view.SetEventTiles(renderer, patched);
+                    gfxUi.SetPlainTiles(patched.plain);
+                }
                 gfxUi.SetPlayPalette(playPalette);
             }
         }

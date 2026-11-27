@@ -25,6 +25,11 @@ std::vector<uint32_t> Upscale(const std::vector<uint32_t>& argb, int w, int h, i
 // an ARGB picture resized to outW x outH by area averaging (premultiplied alpha)
 std::vector<uint32_t> Resample(const std::vector<uint32_t>& argb, int w, int h, int outW, int outH);
 
+// a truecolour picture resized to outW x outH for display: area averaging when it shrinks (or on one axis), bilinear
+// interpolation (premultiplied alpha, edges clamped) when it grows on both. Hi-res art is not pixel art: it is
+// shown smooth, never put through the MMPX scaler above
+std::vector<uint32_t> ResampleSmooth(const std::vector<uint32_t>& argb, int w, int h, int outW, int outH);
+
 // a w x h picture of palette indices as outW x outH ARGB pixels, upscaled (index seeThrough, if >= 0, is
 // see-through): doubled once or twice, each pixel then repeated for larger sizes, and resampled to the exact size
 // when that is not a whole multiple
@@ -42,5 +47,11 @@ inline std::vector<uint32_t> PlainTile(const uint8_t* tile16, const Palette& pal
 {
     return PlainPicture(tile16, 16, 16, pal, seeThrough ? kSeeThrough : -1, size, size);
 }
+
+// Tile `t` of a sheet as outSize x outSize ARGB pixels: an indexed tile through the palette and the pixel-art scaler
+// (smooth) or by pixel repetition; a truecolour tile resampled (ResampleSmooth), whatever `smooth` says.
+// seeThrough: an indexed sheet's kSeeThrough pixels are see-through (a truecolour tile keeps its own alpha when
+// true; when false it is made opaque, as the plain ground is drawn without blending)
+std::vector<uint32_t> SheetTileArgb(const TileSheet& sheet, int t, const Palette& pal, bool seeThrough, int outSize, bool smooth);
 
 } // namespace osf
