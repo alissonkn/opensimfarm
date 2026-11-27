@@ -84,6 +84,8 @@ add_executable(opensimfarm
     src/assets/Megadata.cpp
     src/assets/Graphics.cpp
     src/assets/TilePack.cpp
+    src/assets/Png.cpp
+    src/assets/PicturePack.cpp
     src/ui/TruecolourTest.cpp
     src/assets/Picture.cpp
     src/assets/WindowsEdition.cpp

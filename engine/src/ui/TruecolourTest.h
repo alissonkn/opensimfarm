@@ -10,8 +10,9 @@ namespace osf {
 int TruecolourSelfTest();
 
 // --packpreview folder prefix: loads the tile pack in `folder` and draws all of it with the map view, as
-// `prefix`-plain.bmp (the 848 plain tiles, 32 to a row, tile id = row * 32 + column) and `prefix`-masked.bmp (the
-// 200 masked tiles, 20 to a row, over ground). 0 when it worked; for artists, and for looking at a pack as the engine
+// `prefix`-plain.bmp (the 848 plain tiles, 32 to a row, tile id = row * 32 + column), `prefix`-masked.bmp (the
+// 200 masked tiles, 20 to a row, over ground) and, when the pack has pictures, `prefix`-pictures.bmp (the pictures
+// laid out in rows, drawn by the interface). 0 when it worked; for artists, and for looking at a pack as the engine
 // draws it
 int PackPreview(const char* folder, const char* prefix);
 

@@ -3,6 +3,7 @@
 #pragma once
 #include "assets/Graphics.h"
 #include "assets/Picture.h"
+#include "assets/PicturePack.h"
 
 #include <SDL.h>
 
@@ -47,7 +48,13 @@ public:
         _scale = s < 1 ? 1 : s;
         if (_plain.TrueColour() && TrueTileDetail() != _tileDetail)
             RemakeTiles(); // truecolour tiles are made at the size they are drawn at
+        if (_pack && TrueTileDetail() != _packDetail)
+            DropPackPictures(); // so are a pack's pictures (the archive's pictures stay)
     }
+    // The truecolour pictures of a pack (assets/PicturePack.h) stand in for the archive's pictures of the same keys
+    // from now on (null: back to the archive's). The pack must outlive its use here.
+    void SetPicturePack(const PicturePack* pack);
+    const PicturePack* PicturePackInUse() const { return _pack; }
     int Scale() const { return _scale; }
     // Modern Render for the interface: every picture (windows, buttons, icons, tiles, sprites, full screens, the
     // font) is kept at `detail` texels per interface pixel, upscaled with the pixel-art scaler (ui/PixelArt.h), except
@@ -139,6 +146,12 @@ private:
     // (an indexed sheet is upscaled by _detail like every other picture; _tileDetail is then _detail)
     int TrueTileDetail() const { return std::clamp(std::max(_detail, _scale), 1, 4); }
     void RemakeTiles();
+    // Drops the picture textures (made again when next drawn); those of the pack too when `packToo`
+    void ClearPictures(bool packToo);
+    void DropPackPictures(); // only the pack's textures, and the detail they will be made at from now on
+    struct PackMeta { int logicalW = 0, logicalH = 0, texW = 0, texH = 0; }; // a pack picture's texture and its interface size
+    SDL_Texture* MakePackTexture(const std::string& key, const PackPicture& pic);
+    const PackMeta* PackMetaOf(const std::string& key) const;
     SDL_Texture* MakeArgbTexture(const std::vector<uint32_t>& argb, int w, int h, bool blend);
     SDL_Rect TileSrc(int index) const; // tile `index` of an atlas (plain or masked) in texture pixels
     SDL_Rect Src(int x, int y, int w, int h) const { return SDL_Rect{ x * _detail, y * _detail, w * _detail, h * _detail }; }
@@ -163,6 +176,9 @@ private:
     SDL_Texture* _tiles = nullptr;  // plain tile atlas
     SDL_Texture* _masked = nullptr; // masked tile atlas (kSeeThrough transparent)
     std::map<std::string, SDL_Texture*> _pictures;
+    std::map<std::string, PackMeta> _packMeta; // the pictures above that come from the pack
+    const PicturePack* _pack = nullptr;
+    int _packDetail = 0;                       // texels per interface unit the pack's pictures were made at (<= TrueTileDetail)
     std::vector<uint32_t> _tileColour;  // average colour of each plain tile (overview map)
     SDL_Texture* _pixels = nullptr;
     int _pixelsW = 0, _pixelsH = 0;

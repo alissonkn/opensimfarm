@@ -96,10 +96,7 @@ void Gfx::SetDetail(int detail)
     if (detail == _detail || !_r)
         return;
     _detail = detail;
-    for (auto& [k, t] : _pictures)
-        if (t)
-            SDL_DestroyTexture(t);
-    _pictures.clear();
+    ClearPictures(true);
     MakeFont();
     RemakeTiles(); // (the plain tiles first: they set the detail the masked ones are made at)
 }
@@ -421,15 +418,88 @@ void Gfx::SetPlayPalette(int which)
     _playPalette = which;
     _pal = LoadPalette(pal);
     // everything drawn from palette indices is made again with the new colours; the masked tiles' see-through
-    // pixels are no colour, so they look the same
-    for (auto& [k, t] : _pictures)
-        if (t)
-            SDL_DestroyTexture(t);
-    _pictures.clear();
+    // pixels are no colour, so they look the same. A pack's pictures have colours of their own and stay
+    ClearPictures(false);
     if (_plain.TrueColour())
         return; // (the tile pack's colours are its own: no palette to remake them with)
     const TileSheet plain = _plain;
     SetPlainTiles(plain);
+}
+
+void Gfx::ClearPictures(bool packToo)
+{
+    for (auto it = _pictures.begin(); it != _pictures.end();)
+    {
+        if (!packToo && _packMeta.count(it->first))
+        {
+            ++it;
+            continue;
+        }
+        if (it->second)
+            SDL_DestroyTexture(it->second);
+        _packMeta.erase(it->first);
+        it = _pictures.erase(it);
+    }
+    if (packToo)
+    {
+        _packMeta.clear();
+        _packDetail = TrueTileDetail();
+    }
+}
+
+void Gfx::DropPackPictures()
+{
+    for (auto it = _pictures.begin(); it != _pictures.end();)
+    {
+        if (!_packMeta.count(it->first))
+        {
+            ++it;
+            continue;
+        }
+        if (it->second)
+            SDL_DestroyTexture(it->second);
+        it = _pictures.erase(it);
+    }
+    _packMeta.clear();
+    _packDetail = TrueTileDetail();
+}
+
+void Gfx::SetPicturePack(const PicturePack* pack)
+{
+    _pack = pack;
+    ClearPictures(true);
+}
+
+const Gfx::PackMeta* Gfx::PackMetaOf(const std::string& key) const
+{
+    const auto it = _packMeta.find(key);
+    return it == _packMeta.end() ? nullptr : &it->second;
+}
+
+SDL_Texture* Gfx::MakePackTexture(const std::string& key, const PackPicture& pic)
+{
+    // As many texels per interface unit as the picture has, but no more than the screen can show: a larger picture is
+    // shrunk once here (area average) instead of by the renderer at every frame, which would shimmer
+    const int want = TrueTileDetail();
+    int tw = pic.image.w, th = pic.image.h;
+    std::vector<uint32_t> shrunk;
+    const std::vector<uint32_t>* px = &pic.image.argb;
+    if (tw > pic.logicalW * want || th > pic.logicalH * want)
+    {
+        tw = pic.logicalW * want;
+        th = pic.logicalH * want;
+        shrunk = ResampleSmooth(pic.image.argb, pic.image.w, pic.image.h, tw, th);
+        px = &shrunk;
+    }
+    SDL_Texture* t = SDL_CreateTexture(_r, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, tw, th);
+    if (!t)
+        return nullptr;
+    SDL_UpdateTexture(t, nullptr, px->data(), tw * 4);
+    SDL_SetTextureBlendMode(t, SDL_BLENDMODE_BLEND);
+    SDL_SetTextureScaleMode(t, SDL_ScaleModeLinear);
+    _packMeta[key] = PackMeta{ pic.logicalW, pic.logicalH, tw, th };
+    _packDetail = want;
+    return t;
 }
 
 Gfx::~Gfx()
@@ -471,7 +541,15 @@ bool Gfx::PictureSize(const std::string& name, int& w, int& h)
 {
     w = h = 0;
     SDL_Texture* t = PictureTexture(name);
-    if (!t || SDL_QueryTexture(t, nullptr, nullptr, &w, &h) != 0)
+    if (!t)
+        return false;
+    if (const PackMeta* m = PackMetaOf(name))
+    {
+        w = m->logicalW;
+        h = m->logicalH;
+        return true;
+    }
+    if (SDL_QueryTexture(t, nullptr, nullptr, &w, &h) != 0)
         return false;
     w /= _detail;
     h /= _detail;
@@ -483,6 +561,13 @@ SDL_Texture* Gfx::PictureTexture(const std::string& key)
     auto it = _pictures.find(key);
     if (it != _pictures.end())
         return it->second;
+    if (_pack)
+        if (const PackPicture* pp = _pack->Find(key))
+        {
+            SDL_Texture* t = MakePackTexture(key, *pp);
+            _pictures[key] = t;
+            return t;
+        }
     Picture p;
     bool ok = false;
     const auto hash = key.find('#');
@@ -550,6 +635,12 @@ void Gfx::DrawPicture(const std::string& name, int x, int y)
     SDL_Texture* t = PictureTexture(name);
     if (!t)
         return;
+    if (const PackMeta* m = PackMetaOf(name)) // a pack's picture: drawn as it is, at its interface size
+    {
+        const SDL_Rect dst = R(x, y, m->logicalW, m->logicalH);
+        SDL_RenderCopy(_r, t, nullptr, &dst);
+        return;
+    }
     int w, h;
     SDL_QueryTexture(t, nullptr, nullptr, &w, &h);
     const SDL_Rect dst = R(x, y, w / _detail, h / _detail);
@@ -562,6 +653,15 @@ void Gfx::DrawPicturePart(const std::string& name, int sx, int sy, int w, int h,
     SDL_Texture* t = PictureTexture(name);
     if (!t)
         return;
+    if (const PackMeta* m = PackMetaOf(name)) // a pack's picture: the part in texels, cut on whole texel edges
+    {
+        const double rx = static_cast<double>(m->texW) / m->logicalW, ry = static_cast<double>(m->texH) / m->logicalH;
+        const int x0 = static_cast<int>(std::lround(sx * rx)), y0 = static_cast<int>(std::lround(sy * ry));
+        const SDL_Rect src{ x0, y0, static_cast<int>(std::lround((sx + w) * rx)) - x0, static_cast<int>(std::lround((sy + h) * ry)) - y0 };
+        const SDL_Rect dst = R(x, y, w, h);
+        SDL_RenderCopy(_r, t, &src, &dst);
+        return;
+    }
     const SDL_Rect src = Src(sx, sy, w, h);
     const SDL_Rect dst = R(x, y, w, h);
     SDL_RenderCopy(_r, t, &src, &dst);
@@ -572,6 +672,9 @@ void Gfx::DrawFullScreen(const std::string& file, const std::string& palette, co
 {
     const std::string key = file + "|" + palette;
     auto it = _pictures.find(key);
+    if (it == _pictures.end() && _pack)
+        if (const PackPicture* pp = _pack->Find(file)) // (the pack's picture has its own colours: no palette)
+            it = _pictures.emplace(key, MakePackTexture(key, *pp)).first;
     if (it == _pictures.end())
     {
         Picture p;

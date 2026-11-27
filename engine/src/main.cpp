@@ -16,6 +16,7 @@
 #include "assets/Graphics.h"
 #include "audio/Sound.h"
 #include "assets/Megadata.h"
+#include "assets/PicturePack.h"
 #include "assets/TilePack.h"
 #include "ui/TruecolourTest.h"
 #include "assets/Picture.h"
@@ -2650,6 +2651,9 @@ static std::optional<std::string> AskPlayerForGameFolder(std::string problem, co
     }
 }
 
+// the pictures of the tile pack in use (OPENSIMFARM_TILEPACK), kept for as long as the interface draws from it
+static PicturePack g_picturePack;
+
 int main(int argc, char** argv)
 {
     // --reconfigure (anywhere on the line): the player chooses the SimFarm folder again before the game starts; it is
@@ -3699,10 +3703,19 @@ int main(int argc, char** argv)
             if (const char* pack = std::getenv("OPENSIMFARM_TILEPACK"); pack && *pack)
             {
                 std::string packError;
-                if (LoadTilePack(pack, gfx, packError))
+                bool tiles = false;
+                g_picturePack = PicturePack();
+                if (!LoadTilePack(pack, gfx, packError, &tiles))
+                    std::fprintf(stderr, "tile pack %s: tiles not used: %s\n", pack, packError.c_str());
+                else if (tiles)
                     std::fprintf(stderr, "tile pack %s: %d px tiles\n", pack, gfx.plain.size);
-                else
-                    std::fprintf(stderr, "tile pack %s not used: %s\n", pack, packError.c_str());
+                if (!LoadPicturePack(pack, g_picturePack, packError))
+                {
+                    std::fprintf(stderr, "tile pack %s: pictures not used: %s\n", pack, packError.c_str());
+                    g_picturePack = PicturePack();
+                }
+                else if (g_picturePack.Size())
+                    std::fprintf(stderr, "tile pack %s: %zu pictures\n", pack, g_picturePack.Size());
             }
         if (ok)
         {
@@ -3823,6 +3836,8 @@ int main(int argc, char** argv)
         Fatal(Tr("The interface pictures or the font are missing from MEGADATA.EEA."));
         return 1;
     }
+    if (g_picturePack.Size())
+        gfxUi.SetPicturePack(&g_picturePack);
     // interface settings of the last session (settings.txt in the settings folder: key=value lines)
     std::map<std::string, int> settings;
     for (const auto& [key, value] : ReadSettingsFile())

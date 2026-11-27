@@ -15,6 +15,15 @@ struct Picture
     bool Empty() const { return w == 0 || h == 0; }
 };
 
+// A truecolour picture: straight-alpha ARGB (0xAARRGGBB), one pixel per element, rows top to bottom. The pictures
+// of a pack (assets/PicturePack.h) are these; the original's are the indexed Pictures above.
+struct RgbaPicture
+{
+    int w = 0, h = 0;
+    std::vector<uint32_t> argb;
+    bool Empty() const { return w == 0 || h == 0; }
+};
+
 // Window background (.bmp): u16 width in bytes, u16 height, u16 planes (4), u16 unused, then the four
 // planes one after another, MSB = leftmost pixel.
 bool DecodePlanarBitmap(const std::vector<uint8_t>& data, Picture& out);

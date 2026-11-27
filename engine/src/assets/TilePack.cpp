@@ -2,13 +2,9 @@
 // Licensed under the GNU General Public License version 3 (see LICENSE.txt).
 #include "assets/TilePack.h"
 
+#include "assets/Png.h"
 #include "core/Json.h"
 
-#define STB_IMAGE_IMPLEMENTATION
-#define STBI_ONLY_PNG
-#define STBI_NO_STDIO
-#define STBI_MAX_DIMENSIONS 16384
-#include "third_party/stb_image.h"
 
 #include <algorithm>
 #include <fstream>
@@ -28,8 +24,8 @@ bool DecodeTileSheetPng(const std::vector<uint8_t>& png, int tileSize, int colum
         error = "a sheet's tile size, columns or count is out of range";
         return false;
     }
-    int w = 0, h = 0, comp = 0;
-    if (png.empty() || !stbi_info_from_memory(png.data(), static_cast<int>(png.size()), &w, &h, &comp))
+    int w = 0, h = 0;
+    if (!PngSize(png, w, h))
     {
         error = "not a readable PNG";
         return false;
@@ -42,12 +38,9 @@ bool DecodeTileSheetPng(const std::vector<uint8_t>& png, int tileSize, int colum
                 std::to_string(rows * tileSize) + " needed)";
         return false;
     }
-    stbi_uc* rgba = stbi_load_from_memory(png.data(), static_cast<int>(png.size()), &w, &h, &comp, 4);
-    if (!rgba)
-    {
-        error = std::string("the PNG cannot be decoded: ") + stbi_failure_reason();
+    RgbaPicture image;
+    if (!DecodePng(png, image, error))
         return false;
-    }
     TileSheet sheet;
     sheet.count = count;
     sheet.size = tileSize;
@@ -57,19 +50,29 @@ bool DecodeTileSheetPng(const std::vector<uint8_t>& png, int tileSize, int colum
         const int ox = (t % columns) * tileSize, oy = (t / columns) * tileSize;
         uint32_t* dst = &sheet.argb[static_cast<size_t>(t) * tileSize * tileSize];
         for (int y = 0; y < tileSize; ++y)
-            for (int x = 0; x < tileSize; ++x)
-            {
-                const stbi_uc* p = rgba + (static_cast<size_t>(oy + y) * w + ox + x) * 4;
-                dst[y * tileSize + x] = (static_cast<uint32_t>(p[3]) << 24) | (static_cast<uint32_t>(p[0]) << 16) | (static_cast<uint32_t>(p[1]) << 8) | p[2];
-            }
+            std::copy_n(&image.argb[static_cast<size_t>(oy + y) * image.w + ox], tileSize, dst + static_cast<size_t>(y) * tileSize);
     }
-    stbi_image_free(rgba);
     out = std::move(sheet);
     return true;
 }
 
-bool ParseTilePack(const std::string& text, bool (*read)(void*, const std::string&, std::vector<uint8_t>&), void* user, TilePackSheets& out,
-                   std::string& error)
+bool IsPackFileName(const std::string& file)
+{
+    if (file.empty() || file.size() > 200 || file.front() == '/' || file.back() == '/' || file.find_first_of("\\:") != std::string::npos)
+        return false;
+    size_t start = 0;
+    while (start <= file.size())
+    {
+        const size_t end = std::min(file.find('/', start), file.size());
+        const std::string part = file.substr(start, end - start);
+        if (part.empty() || part == "." || part == "..")
+            return false;
+        start = end + 1;
+    }
+    return true;
+}
+
+bool ParseTilePack(const std::string& text, PackReader read, void* user, TilePackSheets& out, std::string& error)
 {
     Json root;
     if (!ParseJson(text, root, error))
@@ -82,16 +85,18 @@ bool ParseTilePack(const std::string& text, bool (*read)(void*, const std::strin
         error = "tilepack.json: \"format\" must be 1";
         return false;
     }
-    const int tileSize = root.Int("tileSize", 0);
-    if (tileSize < kMinTile || tileSize > kMaxTile)
-    {
-        error = "tilepack.json: \"tileSize\" must be from " + std::to_string(kMinTile) + " to " + std::to_string(kMaxTile);
-        return false;
-    }
     const Json* sheets = root.Get("sheets");
-    if (!sheets || !sheets->IsObject())
+    if (!sheets)
     {
-        error = "tilepack.json: \"sheets\" is missing";
+        out = TilePackSheets();
+        out.name = root.Str("name");
+        return true; // (no tiles: a pack of pictures only)
+    }
+    const int tileSize = root.Int("tileSize", 0);
+    if (!sheets->IsObject() || tileSize < kMinTile || tileSize > kMaxTile)
+    {
+        error = !sheets->IsObject() ? "tilepack.json: \"sheets\" must be an object"
+                                    : "tilepack.json: \"tileSize\" must be from " + std::to_string(kMinTile) + " to " + std::to_string(kMaxTile);
         return false;
     }
     struct Want { const char* key; int minCount; bool required; TileSheet TilePackSheets::*dst; };
@@ -100,6 +105,7 @@ bool ParseTilePack(const std::string& text, bool (*read)(void*, const std::strin
                            { "events", kEventTiles, false, &TilePackSheets::events } };
     TilePackSheets result;
     result.name = root.Str("name");
+    result.hasSheets = true;
     for (const Want& w : wants)
     {
         const Json* sh = sheets->Get(w.key);
@@ -113,10 +119,9 @@ bool ParseTilePack(const std::string& text, bool (*read)(void*, const std::strin
             continue;
         }
         const std::string file = sh->Str("file");
-        // a plain file name in the pack's folder: no folders, no way out of it
-        if (file.empty() || file.find_first_of("/\\:") != std::string::npos || file == "." || file == ".." || file.find("..") != std::string::npos)
+        if (!IsPackFileName(file))
         {
-            error = std::string("tilepack.json: sheet \"") + w.key + "\" needs a plain \"file\" name";
+            error = std::string("tilepack.json: sheet \"") + w.key + "\" needs a \"file\" name inside the pack's folder";
             return false;
         }
         const int count = sh->Int("count", w.minCount), columns = sh->Int("columns", 0);
@@ -143,21 +148,33 @@ bool ParseTilePack(const std::string& text, bool (*read)(void*, const std::strin
     return true;
 }
 
+bool ReadPackFile(const std::string& dir, const std::string& file, std::vector<uint8_t>& bytes)
+{
+    if (!IsPackFileName(file))
+        return false;
+    std::ifstream f(dir + "/" + file, std::ios::binary | std::ios::ate);
+    if (!f)
+        return false;
+    const std::streamoff size = f.tellg();
+    if (size < 0 || size > 64 * 1024 * 1024)
+        return false;
+    f.seekg(0);
+    bytes.resize(static_cast<size_t>(size));
+    return size == 0 || static_cast<bool>(f.read(reinterpret_cast<char*>(bytes.data()), size));
+}
+
 namespace {
 struct DirReader { const std::string& dir; };
 bool ReadFromDir(void* user, const std::string& file, std::vector<uint8_t>& bytes)
 {
-    const auto& d = *static_cast<const DirReader*>(user);
-    std::ifstream f(d.dir + "/" + file, std::ios::binary);
-    if (!f)
-        return false;
-    bytes.assign(std::istreambuf_iterator<char>(f), std::istreambuf_iterator<char>());
-    return true;
+    return ReadPackFile(static_cast<const DirReader*>(user)->dir, file, bytes);
 }
 }
 
-bool LoadTilePack(const std::string& dir, MapGraphics& out, std::string& error)
+bool LoadTilePack(const std::string& dir, MapGraphics& out, std::string& error, bool* loaded)
 {
+    if (loaded)
+        *loaded = false;
     std::ifstream f(dir + "/tilepack.json", std::ios::binary);
     if (!f)
     {
@@ -169,6 +186,10 @@ bool LoadTilePack(const std::string& dir, MapGraphics& out, std::string& error)
     TilePackSheets sheets;
     if (!ParseTilePack(text, ReadFromDir, &reader, sheets, error))
         return false;
+    if (!sheets.hasSheets)
+        return true; // (a pack of pictures only: the tiles stay as they are)
+    if (loaded)
+        *loaded = true;
     out.plain = std::move(sheets.plain);
     out.masked = std::move(sheets.masked);
     if (sheets.hasEvents)
