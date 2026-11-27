@@ -102,6 +102,33 @@ OPENSIMFARM_TILEPACK=/path/to/pack opensimfarm /path/to/SimFarm
 A development aid for now: the pack's tiles replace the archive's (the rest still comes from the archive). A pack that
 cannot be read is reported on stderr and the archive's tiles are used.
 
+## Data tables
+
+Six of the game's data tables can be written as JSON, in the `tables` block of the same `tilepack.json`
+(`assets/PackTables.{h,cpp}` has the full description; every table is optional):
+
+| JSON | Replaces | What it holds |
+|---|---|---|
+| `climate` | `rain0..3.dat`, `temp0..3.dat`, `wind0..3.dat` | 4 climate classes of 240 weeks (or 48, repeated) for rain class 0..7, degrees F, wind |
+| `regions` | `scenario.odt` | the 18 x 18 region map: rain, temperature and wind class letters, and where a farm may be chosen |
+| `townLayout` | `townly0.cmp` | the 15 town plot templates, 8 x 8 tile ids each |
+| `events` | `events.dat` | every message box's title and up to 6 lines, by event id |
+| `items` | `itemtext.dat` | every item's name and description, by item id |
+| `overview` | `far_mapc.mbm` | the overview map's 2 x 2 colour block (palette indices) of each tile, by default, range or tile |
+
+How it works: the engine reads each table as a byte blob by its archive name. `assets/TableFormats.{h,cpp}` holds the
+one decoder of each format (it replaced five separate inline readers in the interface and world generation, which now
+share it), and `assets/PackTables` makes the same blobs from the JSON, validated and all-or-nothing: ranges, widths
+and character sets are checked (the message box takes 27 characters a line, an item name 13, nothing above `z`, no
+`@`, `~` or `` ` ``, the file formats' own marks). `Megadata::Override` lays them over the archive's entries, so a
+pack's table replaces the archive's of the same name and the consumers do not change. A title is centred for you (the
+box centres nothing; the file does it with blanks).
+
+`opensimfarm --tablestest [pack folder]` needs no game files. It compares each decoder with a word-for-word copy of
+the reader it replaced on varied blobs, makes every table from JSON and reads it back with the real decoders and with
+the engine's own consumers (`GenerateTerrain` for the climate, `PlaceTownPlotCells` for the town), and checks 36
+bad tables. With a folder it also checks that pack's tables.
+
 ## The placeholder pack
 
 `packs/placeholder/` is a complete pack at 32 px, made by `tools/make_placeholder_pack.py` (Python and Pillow; one
@@ -121,6 +148,9 @@ contains nothing of the original game:
   editor's icons and the button, gauge and weather-vane faces numbered, four full-screen pictures, and numbered
   sprite frames, all at 2 pixels per unit (`--no-pictures` leaves them out). Picture banks (`alltiles.btl#N`) and
   the cursors are not made yet.
+* The data tables (`--no-tables` leaves them out): synthetic climate (seasons and weather by class), a region map in
+  gradients, a dirt-road cross in each town block, 80 message texts (the engine's own English words for the ids it
+  raises, found in `game/*.cpp`), 103 item texts, and overview colours by tile family.
 
 `opensimfarm --packpreview packs/placeholder /tmp/shot` draws a pack with the real map view and interface into
 `/tmp/shot-plain.bmp` (the 848 plain tiles, 32 to a row), `/tmp/shot-masked.bmp` (the 200 masked tiles over ground) and
@@ -154,11 +184,27 @@ Found by reading the code; none of it breaks a truecolour pack, but a pack canno
 Limits: tile size 128 at most (the native atlas is 32 tiles wide: 4096 px). A truecolour pack still builds the native
 atlas besides the per-zoom ones, which costs memory (about 20 MB at 64 px) and could be dropped.
 
+## What still needs the original's files
+
+With a pack, the map, the interface pictures and six data tables no longer come from the original. To start the game
+with none of its files, these remain:
+
+| What | Where it is read | Next |
+|---|---|---|
+| The archive itself | `Megadata::Open` wants `MEGADATA.IDX/EEA`; `Gfx::Init` wants `egafont.fnt` | open from a pack alone; a font in the pack |
+| Palettes: `simfarm.pal`, `rainpal.pal`, `frostpal.pal`, `sftitle.pal`, `scenario.pal`, `prsnt480.pal` | tile colours, weather, the indexed pictures, the overview map | JSON palettes; the overview and region map need one |
+| Picture banks `alltiles.btl`, `wethgrnd.btl`, `wethsky.btl`; `cursors.til` | message box pictures (event ids pick a record), the Expert's faces, weather art | bank sets in `pictures`; cursors |
+| Crop files `CROPS/*.crp` | 16 crops: name, 70 parameters, 14 pictures, help card | a `crops` table; the pictures come from the pack |
+| Help cards `cardN.hc` | the Farm Expert's scripted cards | a JSON card format |
+| Prebuilt farms `SCEN0..N.SSM` | `SCEN0.SSM` is the template every new world starts from (item catalogue, prices, tables) | the template as JSON, a built-in default state |
+| Sounds `*.voc` and songs `*.xmi` | effects and music | a sound set in the pack |
+| `uicolour.map`, `mskdtile.msk` | the Windows edition's colours and masks | not needed by a pack |
+
 ## Next steps
 
 1. Give the interface's hard-coded layout (window contents, the labels `PictureText.cpp` places) a home in the pack's
    JSON, so that a pack can move things; picture banks and cursors in packs.
 2. Weather as a tint or overlay for truecolour tiles; crop pictures in the pack (`crops.json`).
-3. Put every table the engine reads from the archive (`townly0.cmp`, `events.dat`, `itemtext.dat`, `scenario.odt`,
-   `cardN.hc`, `.crp`) behind JSON, so that no original file is needed; a placeholder pack that makes the game run
-   with none.
+3. The rest of the list above, in this order: palettes (the others need them), the crop files, the template farm,
+   picture banks, the help cards, sounds, the archive itself; each with placeholder data in the shipped pack until the
+   game runs with none of the original's files.

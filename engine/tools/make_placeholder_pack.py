@@ -6,15 +6,20 @@ drawn from nothing but the engine's own tile tables (nothing of the original gam
 
 Every one of the 848 plain, 200 masked and 105 event tiles is made, in the PNG-sheet format of
 engine/TRUECOLOUR.md, and so are placeholder pictures for the interface (windows, buttons, gauges, sprites, the
-full-screen pictures), at 2 pixels per interface unit (--no-pictures leaves them out). The families the engine knows by name (ground, water, ditches, roads, fences, gates, trees,
+full-screen pictures), at 2 pixels per interface unit (--no-pictures leaves them out), and placeholder data tables
+(climate, region map, town layout, message texts, item texts, overview colours; --no-tables leaves them out). The families the engine knows by name (ground, water, ditches, roads, fences, gates, trees,
 rocks, bridges, crop pictures, event grounds) are drawn as what they are, connected pieces with the right arms; every
 other tile is coloured by the tile family it belongs to. Each tile carries its number (--no-labels leaves them off),
 so the pack doubles as a map of what the engine uses where. Needs Pillow (pip install pillow).
 """
 import argparse
 import colorsys
+import glob
 import json
+import math
 import os
+import random
+import re
 import sys
 
 from PIL import Image, ImageDraw, ImageFont
@@ -571,6 +576,139 @@ def build_pictures(out):
     return {"scale": PIC_SCALE, "single": single, "sets": sets}
 
 
+# ----------------------------------------------------------------------------------------------- data tables
+# Written as the "tables" block of tilepack.json (engine/src/assets/PackTables.h describes each).
+
+def climate_tables():
+    """12 climate tables of 240 weeks (5 years of 48): seasons and weather by class 0 (mild) .. 3 (extreme)."""
+    rng = random.Random(1993)
+    mean = [45, 55, 65, 78]            # degrees F
+    swing = [22, 24, 26, 28]
+    wet = [(0, 2), (1, 3), (2, 5), (3, 7)]  # rain class range by class: the wetter the class, the more rain days
+    out = {"rain": [], "temperature": [], "wind": []}
+    for cls in range(4):
+        rain, temp, wind = [], [], []
+        for week in range(240):
+            season = math.sin((week % 48 - 12) / 48.0 * 2 * math.pi)  # warmest in week 36 (midsummer in a year from January)
+            temp.append(int(round(mean[cls] + swing[cls] * season + rng.uniform(-4, 4))))
+            lo, hi = wet[cls]
+            # more rain in spring: the season term pushes the class up a little around week 12..20
+            bump = 1 if 8 <= week % 48 < 20 and cls > 0 else 0
+            rain.append(min(7, rng.randint(lo, hi) + bump))
+            wind.append(int(2 + cls * 3 + rng.uniform(0, 8)))
+        out["rain"].append(rain)
+        out["temperature"].append(temp)
+        out["wind"].append(wind)
+    return out
+
+
+def region_grids():
+    """The region map: rain from dry in the west to wet in the east, temperature from cold in the north to hot in the
+    south, wind in diagonal bands; every cell but the corners is somewhere a farm may be chosen."""
+    rows = {"rain": [], "temperature": [], "wind": [], "hotpoints": []}
+    for y in range(18):
+        r, t, w, h = "", "", "", ""
+        for x in range(18):
+            r += "abcd"[min(3, x * 4 // 18)]
+            t += "abcd"[min(3, y * 4 // 18)]
+            w += "abcd"[((x + y) // 5) % 4]
+            corner = (x < 2 or x > 15) and (y < 2 or y > 15)
+            h += "a" if corner else "b"
+        rows["rain"].append(r)
+        rows["temperature"].append(t)
+        rows["wind"].append(w)
+        rows["hotpoints"].append(h)
+    return rows
+
+
+def town_blocks():
+    """15 town plot templates, 8 x 8 each: bare ground (15) with a dirt-road cross (the engine joins the pieces); the
+    airport (type 5) a paved runway across the ground."""
+    blocks = []
+    for t in range(15):
+        b = [[15] * 8 for _ in range(8)]
+        if t == 5:
+            for i in range(8):
+                b[3][i] = 151
+        else:
+            for k in range(8):
+                b[k][3] = 161       # north-south dirt piece
+                b[3][k] = 162       # east-west dirt piece
+            b[3][3] = 171           # the crossing
+        blocks.append(b)
+    return blocks
+
+
+def event_texts():
+    """The message boxes' texts by event id: the engine's own English strings, found in its source where an event is
+    raised with an id and a Tr("...") (game/*.cpp), else a plain placeholder."""
+    src = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src")
+    found = {}
+    pattern = re.compile(r'(?:Event|DisasterEvent)\(\s*(\d+)\s*,\s*\d+\s*,\s*Tr(?:F)?\(\s*"((?:[^"\\]|\\.)*)"')
+    for path in glob.glob(os.path.join(src, "game", "*.cpp")):
+        with open(path, encoding="utf-8", errors="replace") as f:
+            for m in pattern.finditer(f.read()):
+                found.setdefault(int(m.group(1)), m.group(2).replace('\\"', '"').replace("{0}", "..."))
+    found.setdefault(12, "This is a placeholder card.")
+    found.setdefault(45, "Do you want to quit the game?")
+    found.setdefault(61, "Bet 500 on a rodeo rider?")
+    events = []
+    for eid in range(0, 80):
+        text = found.get(eid, "Placeholder message %d." % eid)
+        text = "".join(c for c in text if " " <= c <= "z" and c not in "@~`")
+        lines, cur = [], ""
+        for word in text.split():
+            word = word[:27]
+            if cur and len(cur) + 1 + len(word) > 27:
+                lines.append(cur)
+                cur = ""
+            cur = (cur + " " + word).strip()
+        if cur:
+            lines.append(cur)
+        events.append({"id": eid, "title": "NOTICE %d" % eid, "lines": lines[:6]})
+    return events
+
+
+def item_texts():
+    return [{"id": i, "name": "Item %d" % i, "description": "A placeholder item."} for i in range(103)]
+
+
+def overview_colours():
+    """Overview map colours (indices into the interface palette) by tile family, a 2 x 2 block each."""
+    ranges = [
+        (15, 30, [10, 10, 10, 10]),       # ground: brown
+        (31, 38, [8, 8, 8, 8]),
+        (39, 69, [6, 6, 6, 6]),           # water: blue
+        (87, 97, [10, 2, 2, 10]),         # dry ditches
+        (98, 108, [2, 2, 2, 2]),          # full ditches: sky
+        (128, 146, [9, 9, 9, 9]),         # trees: dark green
+        (150, 171, [13, 7, 7, 13]),       # roads: grey and tan
+        (172, 173, [6, 10, 10, 6]),       # bridges
+        (177, 193, [10, 8, 8, 10]),       # fences
+        (232, 300, [3, 3, 3, 3]),         # buildings: red
+        (440, 480, [3, 14, 14, 3]),       # closed buildings
+        (483, 517, [12, 12, 12, 12]),     # event grounds: light grey
+        (535, 538, [14, 13, 13, 14]),     # rocks
+        (688, 815, [8, 9, 8, 9]),         # crops: green
+    ]
+    for k in range(32):                   # the ramp of tiles 0x1D0.. the map modes use: tan to green
+        step = k // 8
+        pat = [[7, 7, 7, 7], [7, 8, 8, 7], [8, 8, 8, 7], [8, 9, 9, 8]][step]
+        ranges.append((0x1D0 + k, 0x1D0 + k, pat))
+    return {"default": [8, 8, 8, 8], "ranges": [{"from": a, "to": b, "colours": c} for a, b, c in ranges]}
+
+
+def build_tables():
+    return {
+        "climate": climate_tables(),
+        "regions": region_grids(),
+        "townLayout": {"blocks": town_blocks()},
+        "events": event_texts(),
+        "items": item_texts(),
+        "overview": overview_colours(),
+    }
+
+
 # ----------------------------------------------------------------------------------------------- the pack
 
 def sheet(tiles, cols, size):
@@ -622,7 +760,8 @@ def main():
     ap.add_argument("--size", type=int, default=32, help="pixels a tile, 8..128 (default 32)")
     ap.add_argument("--out", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "packs", "placeholder"))
     ap.add_argument("--no-labels", action="store_true", help="leave the tile numbers off")
-    ap.add_argument("--no-pictures", action="store_true", help="make the tiles only, no interface pictures")
+    ap.add_argument("--no-pictures", action="store_true", help="leave the interface pictures out")
+    ap.add_argument("--no-tables", action="store_true", help="leave the data tables out")
     a = ap.parse_args()
     if not 8 <= a.size <= 128:
         sys.exit("--size must be from 8 to 128")
@@ -643,9 +782,13 @@ def main():
     }
     if not a.no_pictures:
         meta["pictures"] = build_pictures(a.out)
+    if not a.no_tables:
+        meta["tables"] = build_tables()
     with open(os.path.join(a.out, "tilepack.json"), "w") as f:
-        json.dump(meta, f, indent=2)
-        f.write("\n")
+        # one line for each short array keeps the file readable and small
+        text = json.dumps(meta, indent=2)
+        text = re.sub(r"\[\s+((?:-?\d+,?\s*)+)\]", lambda m: "[" + re.sub(r"\s+", " ", m.group(1).strip()) + "]", text)
+        f.write(text + "\n")
     print("wrote", os.path.abspath(a.out), f"({a.size} px tiles)")
 
 
