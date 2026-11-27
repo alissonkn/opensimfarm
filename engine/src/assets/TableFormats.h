@@ -71,4 +71,26 @@ struct OverviewTable
 };
 OverviewTable MakeOverview(const std::vector<uint8_t>& rgbEntry, const std::vector<uint8_t>& indexedEntry);
 
+// ---- the Farm Expert's cards: card1.hc, card2.hc ...
+// A card is a script of operations, each a code byte, 16-bit little-endian arguments and, for the two that have text, a
+// zero-terminated string; 0xFF ends it. Coordinates count from the window's top-left corner, the title bar included.
+//   0x83 hotspot   x0 y0 x1 y1 card     a click inside goes to `card`
+//   0x84 button    x y face card        a button face (buttons.til) that goes to `card`
+//   0x86 picture   record x y           a picture of the bank alltiles.btl
+//   0x87 text      x y width + text     a text box (the width in pixels)
+//   0x89 crop      slot x y             the information of the crop in `slot`
+//   0x8a sound     x0 y0 x1 y1 + name   a click inside plays the sound `name`
+//   0x8b (two arguments, not used)
+//   0x8c tiles     x y count - first    `count` map tiles in a row from tile `first` (the fourth argument is not used)
+struct CardOp
+{
+    int op = 0;
+    std::vector<int> a;
+    std::string text;
+};
+// the operations of a card; reading stops at 0xFF, the end of the blob, or an operation it does not know
+std::vector<CardOp> DecodeCard(const std::vector<uint8_t>& blob);
+// how many 16-bit arguments an operation has and whether a string follows; -1 for an unknown operation
+int CardOpArguments(int op, bool& hasText);
+
 } // namespace osf

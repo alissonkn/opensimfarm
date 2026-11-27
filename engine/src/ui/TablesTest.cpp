@@ -3,7 +3,10 @@
 #include "ui/TablesTest.h"
 
 #include "assets/Megadata.h"
+#include "assets/PackCards.h"
+#include "assets/PackSounds.h"
 #include "assets/PackTables.h"
+#include "audio/Sound.h"
 #include "assets/TableFormats.h"
 #include "assets/Theme.h"
 #include "assets/Weather.h"
@@ -347,6 +350,170 @@ int TablesSelfTest(const char* packFolder)
         check(!none.rgb && none.Index(5, 0, 0) == 0 && MakeOverview({}, {}).blob.empty(), "a too short RGB entry is ignored; with neither entry the table is empty and gives index 0");
     }
 
+    // ---------------------------------------------------------------- the Farm Expert's cards
+    std::printf("-- Farm Expert cards\n");
+    {
+        // the card reader as the Expert window had it, word for word
+        auto oldCard = [](const std::vector<uint8_t>& d) {
+            static const std::map<int, std::pair<int, bool>> spec = { { 0x83, { 5, false } }, { 0x84, { 4, false } }, { 0x86, { 3, false } }, { 0x87, { 3, true } },
+                                                                       { 0x89, { 3, false } }, { 0x8a, { 4, true } }, { 0x8b, { 2, false } }, { 0x8c, { 5, false } } };
+            std::vector<CardOp> ops;
+            size_t i = 0;
+            while (i < d.size() && d[i] != 0xFF)
+            {
+                const auto it = spec.find(d[i]);
+                if (it == spec.end())
+                    break;
+                CardOp o{ d[i++], {}, {} };
+                for (int k = 0; k < it->second.first && i + 1 < d.size(); ++k, i += 2)
+                    o.a.push_back(d[i] | (d[i + 1] << 8));
+                if (it->second.second)
+                    while (i < d.size() && d[i])
+                        o.text += static_cast<char>(d[i++]);
+                i += it->second.second ? 1 : 0;
+                ops.push_back(std::move(o));
+            }
+            return ops;
+        };
+        bool same = true;
+        static const int kOps[] = { 0x83, 0x84, 0x86, 0x87, 0x89, 0x8a, 0x8b, 0x8c, 0x85, 0x00, 0xFF };
+        for (int round = 0; round < 300; ++round)
+        {
+            std::vector<uint8_t> blob;
+            const int n = static_cast<int>(rng() % 60);
+            for (int k = 0; k < n; ++k)
+                blob.push_back(rng() % 4 == 0 ? static_cast<uint8_t>(rng()) : static_cast<uint8_t>(kOps[rng() % 11]));
+            const auto a = oldCard(blob), b = DecodeCard(blob);
+            bool eq = a.size() == b.size();
+            for (size_t k = 0; k < a.size() && eq; ++k)
+                eq = a[k].op == b[k].op && a[k].a == b[k].a && a[k].text == b[k].text;
+            same = same && eq;
+        }
+        check(same, "the shared card decoder reads 300 random blobs (known and unknown codes, truncated, 0xFF) as the Expert window's own reader did");
+
+        const std::string good = "{ \"id\": 1, \"items\": [ { \"picture\": 66, \"x\": 24, \"y\": 40 }, { \"text\": \"Hello there\", \"x\": 120, \"y\": 44, \"width\": 200 },"
+                                 " { \"button\": 4, \"x\": 280, \"y\": 90, \"goto\": 2 }, { \"hotspot\": [10, 20, 110, 60], \"goto\": 2 }, { \"tiles\": { \"first\": 539, \"count\": 4 }, \"x\": 20, \"y\": 150 },"
+                                 " { \"crop\": 3, \"x\": 30, \"y\": 90 }, { \"sound\": [1, 2, 30, 40], \"play\": \"cow1.voc\" } ] },"
+                                 " { \"id\": 2, \"items\": [ { \"button\": 3, \"x\": 336, \"y\": 200, \"goto\": 1 } ] }";
+        TableBlobs out;
+        std::string e;
+        const bool ok = ParsePackCards("{ \"format\": 1, \"cards\": [ " + good + " ] }", out, e);
+        check(ok && out.size() == 2 && out.count("card1.hc") && out.count("card2.hc"), "cards are made into card<id>.hc entries" + (ok ? "" : ": " + e));
+        if (ok)
+        {
+            const auto ops = DecodeCard(out["card1.hc"]);
+            check(ops.size() == 7 && ops[0].op == 0x86 && ops[0].a == std::vector<int>({ 66, 24, 40 }) && ops[1].op == 0x87 && ops[1].a == std::vector<int>({ 120, 44, 200 }) && ops[1].text == "Hello there" &&
+                      ops[2].op == 0x84 && ops[2].a == std::vector<int>({ 280, 90, 4, 2 }) && ops[3].op == 0x83 && ops[3].a == std::vector<int>({ 10, 20, 110, 60, 2 }) &&
+                      ops[4].op == 0x8c && ops[4].a == std::vector<int>({ 20, 150, 4, 0, 539 }) && ops[5].op == 0x89 && ops[5].a == std::vector<int>({ 3, 30, 90 }) &&
+                      ops[6].op == 0x8a && ops[6].a == std::vector<int>({ 1, 2, 30, 40 }) && ops[6].text == "cow1.voc",
+                  "  each kind of item is read back by the Expert's decoder, arguments in the order it uses them");
+            check(out["card1.hc"].back() == 0xFF && DecodeCard(out["card2.hc"]).size() == 1, "  a card ends with 0xFF");
+        }
+        TableBlobs none;
+        check(ParsePackCards("{ \"format\": 1 }", none, e) && none.empty(), "no cards block: nothing");
+        auto bad = [&](const std::string& cards, const std::string& why) {
+            TableBlobs b;
+            std::string er;
+            const bool r = !ParsePackCards("{ \"format\": 1, \"cards\": " + cards + " }", b, er) && !er.empty() && b.empty();
+            check(r, "rejects " + why + (r ? " (" + er + ")" : ""));
+        };
+        const std::string home = "{ \"id\": 1, \"items\": [] }";
+        bad("5", "cards that is not a list");
+        bad("[]", "no cards");
+        bad("[ 5 ]", "a card that is not an object");
+        bad("[ { \"items\": [] } ]", "a card without an id");
+        bad("[ { \"id\": 0, \"items\": [] } ]", "an id of 0");
+        bad("[ { \"id\": 10000, \"items\": [] } ]", "an id of 10000");
+        bad("[ " + home + ", " + home + " ]", "an id twice");
+        bad("[ { \"id\": 2, \"items\": [] } ]", "no card 1");
+        bad("[ { \"id\": 1 } ]", "a card without items");
+        bad("[ { \"id\": 1, \"items\": [], \"title\": \"x\" } ]", "a field a card does not have");
+        bad("[ { \"id\": 1, \"items\": [ 5 ] } ]", "an item that is not an object");
+        bad("[ { \"id\": 1, \"items\": [ { \"x\": 1, \"y\": 2 } ] } ]", "an item of no kind");
+        bad("[ { \"id\": 1, \"items\": [ { \"picture\": 66 } ] } ]", "a picture without a place");
+        bad("[ { \"id\": 1, \"items\": [ { \"picture\": 256, \"x\": 1, \"y\": 2 } ] } ]", "a picture of 256");
+        bad("[ { \"id\": 1, \"items\": [ { \"text\": \"a\", \"x\": 1, \"y\": 2 } ] } ]", "a text without a width");
+        bad("[ { \"id\": 1, \"items\": [ { \"text\": \"a\", \"x\": 1, \"y\": 2, \"width\": 4 } ] } ]", "a width of 4");
+        bad("[ { \"id\": 1, \"items\": [ { \"text\": \"caf\\u00e9\", \"x\": 1, \"y\": 2, \"width\": 100 } ] } ]", "a letter beyond ASCII");
+        bad("[ { \"id\": 1, \"items\": [ { \"text\": \"" + std::string(801, 'x') + "\", \"x\": 1, \"y\": 2, \"width\": 100 } ] } ]", "a text of 801 characters");
+        bad("[ { \"id\": 1, \"items\": [ { \"button\": 18, \"x\": 1, \"y\": 2, \"goto\": 1 } ] } ]", "a button face of 18");
+        bad("[ { \"id\": 1, \"items\": [ { \"button\": 4, \"x\": 1, \"y\": 2 } ] } ]", "a button that goes nowhere");
+        bad("[ { \"id\": 1, \"items\": [ { \"button\": 4, \"x\": 1, \"y\": 2, \"goto\": 7 } ] } ]", "a button to a card the pack does not have");
+        bad("[ { \"id\": 1, \"items\": [ { \"hotspot\": [10, 10, 5, 20], \"goto\": 1 } ] } ]", "a hotspot with its right left of its left");
+        bad("[ { \"id\": 1, \"items\": [ { \"hotspot\": [1, 2, 3], \"goto\": 1 } ] } ]", "a hotspot of 3 numbers");
+        bad("[ { \"id\": 1, \"items\": [ { \"tiles\": { \"first\": 539 }, \"x\": 1, \"y\": 2 } ] } ]", "tiles without a count");
+        bad("[ { \"id\": 1, \"items\": [ { \"tiles\": { \"first\": 2048, \"count\": 1 }, \"x\": 1, \"y\": 2 } ] } ]", "a first tile of 2048");
+        bad("[ { \"id\": 1, \"items\": [ { \"crop\": 16, \"x\": 1, \"y\": 2 } ] } ]", "a crop slot of 16");
+        bad("[ { \"id\": 1, \"items\": [ { \"sound\": [1, 2, 30, 40] } ] } ]", "a sound spot that plays nothing");
+        std::string many = "[ { \"id\": 1, \"items\": [";
+        for (int i = 0; i < 61; ++i)
+            many += std::string(i ? "," : "") + "{ \"picture\": 1, \"x\": 1, \"y\": 1 }";
+        bad(many + "] } ]", "61 items on a card");
+    }
+
+    // ---------------------------------------------------------------- sounds
+    std::printf("-- sounds\n");
+    {
+        auto wav = [](int samples, int rate, int channels = 1, int bits = 16) {
+            std::vector<uint8_t> d = { 'R', 'I', 'F', 'F', 0, 0, 0, 0, 'W', 'A', 'V', 'E', 'f', 'm', 't', ' ', 16, 0, 0, 0, 1, 0, static_cast<uint8_t>(channels), 0 };
+            auto le32 = [&](uint32_t v) { for (int k = 0; k < 4; ++k) d.push_back(static_cast<uint8_t>(v >> (8 * k))); };
+            le32(static_cast<uint32_t>(rate));
+            le32(static_cast<uint32_t>(rate * channels * bits / 8));
+            d.push_back(static_cast<uint8_t>(channels * bits / 8)); d.push_back(0);
+            d.push_back(static_cast<uint8_t>(bits)); d.push_back(0);
+            d.insert(d.end(), { 'd', 'a', 't', 'a' });
+            le32(static_cast<uint32_t>(samples * channels * bits / 8));
+            for (int i = 0; i < samples * channels; ++i)
+                if (bits == 16) { const int v = (i % 50 < 25 ? 8000 : -8000); d.push_back(static_cast<uint8_t>(v & 255)); d.push_back(static_cast<uint8_t>((v >> 8) & 255)); }
+                else d.push_back(static_cast<uint8_t>(i % 50 < 25 ? 200 : 56));
+            const uint32_t riff = static_cast<uint32_t>(d.size() - 8);
+            for (int k = 0; k < 4; ++k) d[4 + k] = static_cast<uint8_t>(riff >> (8 * k));
+            return d;
+        };
+        std::map<std::string, std::vector<uint8_t>> files;
+        files["sounds/ding.wav"] = wav(800, 11025);
+        files["sounds/stereo8.WAV"] = wav(400, 22050, 2, 8);
+        files["music/tune.mid"] = { 'M', 'T', 'h', 'd', 0, 0, 0, 6, 0, 1, 0, 1, 0, 96, 'M', 'T', 'r', 'k', 0, 0, 0, 4, 0, 0xFF, 0x2F, 0 };
+        files["sounds/notwav.wav"] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 };
+        files["music/notmidi.mid"] = wav(100, 8000);
+        auto reader = [](void* user, const std::string& file, std::vector<uint8_t>& bytes) {
+            auto& f = *static_cast<std::map<std::string, std::vector<uint8_t>>*>(user);
+            const auto it = f.find(file);
+            if (it == f.end())
+                return false;
+            bytes = it->second;
+            return true;
+        };
+        TableBlobs out;
+        std::string e;
+        const bool ok = ParsePackSounds("{ \"format\": 1, \"sounds\": { \"Click.VOC\": \"sounds/ding.wav\", \"uhoh.voc\": \"sounds/stereo8.WAV\", \"genfarm.xmi\": \"music/tune.mid\" } }", reader, &files, out, e);
+        check(ok && out.size() == 3 && out.count("click.voc") && out.count("uhoh.voc") && out.count("genfarm.xmi"), "a sounds block gives the files' bytes under the names the game asks for (keys in any case)" + (ok ? "" : ": " + e));
+        std::vector<int16_t> pcm;
+        int rate = 0;
+        check(ok && DecodeVoc(out["click.voc"], pcm, rate) && rate == 11025 && pcm.size() == 800 && pcm[0] == 8000, "  a WAV effect decodes through the engine's own DecodeVoc (rate, length, samples)");
+        check(ok && DecodeVoc(out["uhoh.voc"], pcm, rate) && rate == 22050 && pcm.size() == 400, "  so does an 8-bit stereo one (mixed to mono)");
+        TableBlobs none;
+        check(ParsePackSounds("{ \"format\": 1 }", reader, &files, none, e) && none.empty(), "no sounds block: nothing");
+        auto bad = [&](const std::string& body, const std::string& why) {
+            TableBlobs b;
+            std::string er;
+            const bool r = !ParsePackSounds("{ \"format\": 1, \"sounds\": " + body + " }", reader, &files, b, er) && !er.empty() && b.empty();
+            check(r, "rejects " + why + (r ? " (" + er + ")" : ""));
+        };
+        bad("5", "sounds that is not an object");
+        bad("{ \"click.wav\": \"sounds/ding.wav\" }", "a name that is neither .voc nor .xmi");
+        bad("{ \"a/b.voc\": \"sounds/ding.wav\" }", "a name with a folder");
+        bad("{ \"averyveryverylongname.voc\": \"sounds/ding.wav\" }", "a name over 16 characters");
+        bad("{ \"click.voc\": 5 }", "a file that is not text");
+        bad("{ \"click.voc\": \"../ding.wav\" }", "a file that leaves the folder");
+        bad("{ \"click.voc\": \"sounds/ding.mid\" }", "an effect that is not a .wav");
+        bad("{ \"genfarm.xmi\": \"sounds/ding.wav\" }", "a song that is not a .mid");
+        bad("{ \"click.voc\": \"sounds/missing.wav\" }", "a file that is not there");
+        bad("{ \"click.voc\": \"sounds/notwav.wav\" }", "a .wav that is no WAVE file");
+        bad("{ \"genfarm.xmi\": \"music/notmidi.mid\" }", "a .mid that is no MIDI file");
+        bad("{ \"click.voc\": \"sounds/ding.wav\", \"uhoh.voc\": \"sounds/missing.wav\" }", "a manifest with one bad file (nothing of it is kept)");
+    }
+
     // ---------------------------------------------------------------- a full manifest
     std::printf("-- tables from JSON\n");
     std::string wholeJson = "{ \"format\": 1, \"tables\": {"
@@ -610,6 +777,30 @@ int TablesSelfTest(const char* packFolder)
             check(pack["itemtext.dat"].size() % 128 == 0 && pack["itemtext.dat"].size() >= 104 * 128 && ItemLines(itemLines, 6)[0].find("Small Silo") == 0 &&
                       ItemLines(itemLines, 40)[0].find("Tractor") == 0 && ItemLines(itemLines, 18)[0].find("Corn") == 0 && ItemLines(itemLines, 103)[0].find("Water Tower") == 0,
                   "  the item texts, by tile family (the id the catalogue gives them): buildings, machines, crops");
+            TableBlobs cards;
+            bool cardsOk = LoadPackCards(packFolder, cards, e) && cards.size() == 6 && cards.count("card1.hc");
+            for (const auto& [name, bytes] : cards)
+                cardsOk = cardsOk && !DecodeCard(bytes).empty() && bytes.back() == 0xFF;
+            check(cardsOk, "  the Farm Expert's 6 cards: a welcome card with 5 topics, each readable");
+            TableBlobs sounds;
+            check(LoadPackSounds(packFolder, sounds, e) && sounds.size() == 25, "  25 sound effects");
+            bool decodes = true;
+            std::string names;
+            for (const char* name : { "bird1", "bird2", "boos", "bulldoze", "cheers", "click", "compbeep", "cow1", "cow2", "explode", "flood", "horse1", "pig", "plane", "plopitem",
+                                      "ploptool", "rooster", "sheep1", "sheep2", "smack", "swarm", "thunder", "tornado", "uhoh", "wind" })
+            {
+                std::vector<int16_t> pcm;
+                int rate = 0;
+                const std::string key = std::string(name) + ".voc";
+                int peak = 0;
+                const bool good = sounds.count(key) && DecodeVoc(sounds[key], pcm, rate) && rate == 8000 && pcm.size() > 200 && pcm.size() < 3 * 8000;
+                for (int16_t v : pcm)
+                    peak = std::max(peak, std::abs(static_cast<int>(v)));
+                if (!good || peak < 3000)
+                    names += std::string(" ") + name;
+                decodes = decodes && good && peak >= 3000;
+            }
+            check(decodes, "  every effect the game asks for is there and decodes: 8 kHz, under 3 s, audible" + (decodes ? "" : " (not:" + names + ")"));
             Theme theme;
             bool hasTheme = false;
             check(LoadTheme(packFolder, theme, hasTheme, e) && hasTheme && theme[12] == std::array<uint8_t, 3>({ 0xC4, 0xC4, 0xC4 }) && theme[15] == std::array<uint8_t, 3>({ 0xFF, 0xFF, 0xFF }) &&

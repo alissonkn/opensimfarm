@@ -1,0 +1,20 @@
+# A game from a pack alone, played through the interface (tools/packplay_test.sh runs it). Window coordinates: the start
+# screens are letterboxed at 1.5 x in the 1024 x 720 window the dummy video driver gives, the game itself is at 1:1.
+10 expect start 0
+20 click 500 300      # the intro picture
+50 click 500 300      # the title picture
+75 click 282 366      # PLAY THIS REGION
+150 expect game 0
+150 expect cash 40000
+150 expect machines 0
+160 click 16 31       # the BUY button of the toolbar
+175 expect open 0     # the BUY window
+190 click 313 307     # its BUY button: a tractor
+210 click 660 420     # a spot on the farm
+230 expect cash 34000
+230 expect machines 1
+240 click 238 7       # the Windows menu
+250 click 260 120     # Farm Expert
+270 expect open 6     # the Farm Expert window
+280 shot /tmp/packplay.bmp
+290 quit x

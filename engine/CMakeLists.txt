@@ -87,6 +87,8 @@ add_executable(opensimfarm
     src/assets/Png.cpp
     src/assets/TableFormats.cpp
     src/assets/PackTables.cpp
+    src/assets/PackSounds.cpp
+    src/assets/PackCards.cpp
     src/assets/Theme.cpp
     src/assets/Weather.cpp
     src/assets/PicturePack.cpp

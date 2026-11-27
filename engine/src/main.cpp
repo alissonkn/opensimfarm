@@ -16,6 +16,8 @@
 #include "assets/Graphics.h"
 #include "audio/Sound.h"
 #include "assets/Megadata.h"
+#include "assets/PackCards.h"
+#include "assets/PackSounds.h"
 #include "assets/PackTables.h"
 #include "assets/PicturePack.h"
 #include "assets/Theme.h"
@@ -63,6 +65,7 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <functional>
 #include <iterator>
 #include <map>
 #include <set>
@@ -2668,7 +2671,9 @@ static WeatherLook g_weatherLook = DefaultWeatherLook(); // how rain and frost l
 // Test aid: OPENSIMFARM_SCRIPT=file runs a script of input against the running program, so that a game can be played and
 // photographed without a person or a display. A line is `FRAME COMMAND ARGS` (frames count the main loop's passes); `#`
 // starts a comment. Commands: click X Y, rclick X Y, move X Y (window pixels), key NAME (SDL key names: Return, Escape, F1,
-// Space, a ...), shot FILE (the next frame is saved as a bitmap), quit.
+// Space, a ...), shot FILE (the next frame is saved as a bitmap), quit, and expectations that fail the run (a message on
+// stderr and exit code 1) when the game is not as said: expect cash N, expect game | start (in a game, or still on the start
+// screens), expect machines N | structures N | animals N | fields N, expect open WINDOWID.
 struct InputScript
 {
     struct Command
@@ -2676,12 +2681,14 @@ struct InputScript
         int frame = 0;
         std::string name, arg;
         int x = 0, y = 0;
+        long long value = 0;
     };
     std::vector<Command> commands;
     size_t next = 0;
     int frame = 0;
     std::string pendingShot;
     bool pendingQuit = false;
+    int failures = 0;
 
     InputScript()
     {
@@ -2700,6 +2707,8 @@ struct InputScript
                 continue;
             if (c.name == "click" || c.name == "rclick" || c.name == "move")
                 in >> c.x >> c.y;
+            else if (c.name == "expect")
+                in >> c.arg >> c.value;
             else
                 in >> c.arg;
             commands.push_back(c);
@@ -2708,7 +2717,8 @@ struct InputScript
     }
     bool Active() const { return !commands.empty(); }
     // runs what is due at this pass of the loop
-    void Poll(SDL_Window* window)
+    // `check(what, value)` answers an expectation: an empty string when it holds, else what is wrong
+    void Poll(SDL_Window* window, const std::function<std::string(const std::string&, long long)>& check)
     {
         ++frame;
         while (next < commands.size() && commands[next].frame <= frame)
@@ -2755,6 +2765,17 @@ struct InputScript
                     k.key.keysym.scancode = SDL_GetScancodeFromKey(sym);
                     SDL_PushEvent(&k);
                 }
+            }
+            else if (c.name == "expect")
+            {
+                const std::string why = check(c.arg, c.value);
+                if (!why.empty())
+                {
+                    ++failures;
+                    std::fprintf(stderr, "script: frame %d: expect %s %lld: %s\n", frame, c.arg.c_str(), c.value, why.c_str());
+                }
+                else
+                    std::fprintf(stderr, "script: frame %d: expect %s %lld: ok\n", frame, c.arg.c_str(), c.value);
             }
             else if (c.name == "shot")
                 pendingShot = c.arg;
@@ -2833,6 +2854,28 @@ static bool ApplyPack(const std::string& pack, Megadata& mega, MapGraphics& gfx,
     {
         mega.Override(kTemplateEntry, templateFarm);
         std::fprintf(stderr, "tile pack %s: template farm\n", pack.c_str());
+    }
+    {
+        TableBlobs sounds;
+        if (!LoadPackSounds(pack, sounds, packError))
+            std::fprintf(stderr, "tile pack %s: sounds not used: %s\n", pack.c_str(), packError.c_str());
+        else if (!sounds.empty())
+        {
+            for (const auto& [name, bytes] : sounds)
+                mega.Override(name, bytes);
+            std::fprintf(stderr, "tile pack %s: %zu sounds\n", pack.c_str(), sounds.size());
+        }
+    }
+    {
+        TableBlobs cards;
+        if (!LoadPackCards(pack, cards, packError))
+            std::fprintf(stderr, "tile pack %s: Farm Expert cards not used: %s\n", pack.c_str(), packError.c_str());
+        else if (!cards.empty())
+        {
+            for (const auto& [name, bytes] : cards)
+                mega.Override(name, bytes);
+            std::fprintf(stderr, "tile pack %s: %zu Farm Expert cards\n", pack.c_str(), cards.size());
+        }
     }
     TableBlobs tables;
     if (!LoadPackTables(pack, tables, packError))
@@ -4506,7 +4549,20 @@ int main(int argc, char** argv)
         }
 #endif
         checkGameFolder();
-        script.Poll(window);
+        script.Poll(window, [&](const std::string& what, long long v) -> std::string {
+            if (what == "start" || what == "game")
+                return (what == "start") == atStart ? "" : atStart ? "still on the start screens" : "already in a game";
+            if (atStart || !state)
+                return "not in a game";
+            auto is = [&](long long have) { return have == v ? std::string() : "it is " + std::to_string(have); };
+            if (what == "cash") return is(state->cash);
+            if (what == "machines") return is(state->machineCount);
+            if (what == "structures") return is(state->structureCount);
+            if (what == "animals") return is(state->animalCount);
+            if (what == "fields") return is(state->fieldCount);
+            if (what == "open") return ui.IsOpen(static_cast<int>(v)) ? "" : "that window is not open";
+            return "not a thing the script can expect";
+        });
         if (atStart)
         {
             const std::string song = ui.RadioSong("amain.xmi");
@@ -4859,5 +4915,5 @@ int main(int argc, char** argv)
         }
     }
     writeSettings();
-    return 0;
+    return script.failures ? 1 : 0;
 }

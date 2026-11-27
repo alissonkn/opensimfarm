@@ -361,10 +361,11 @@ contains nothing of the original game:
 * The interface pictures are blank panels at the sizes the engine expects (`ArchivePictureTest` in `main.cpp`): the 18
   windows with their file name and size, the toolbar with a ruler every 32 units (where the interface cuts it), the
   editor's icons and the button, gauge and weather-vane faces numbered, four full-screen pictures, and numbered
-  sprite frames, all at 2 pixels per unit (`--no-pictures` leaves them out). Picture banks (`alltiles.btl#N`) and
-  the cursors are not made yet.
+  sprite frames, all at 2 pixels per unit (`--no-pictures` leaves them out). The picture banks
+  (`alltiles.btl`: 96 labelled records, `wethsky.btl`, `wethgrnd.btl`) are made too; the cursors are not.
 * The interface theme and the weather look: the engine's own 16 colours and rain and frost veils written out in
-  `tilepack.json`, ready to change.
+  `tilepack.json`, ready to change. The sound effects (25, synthesised) and the Farm Expert's cards (a welcome card and five
+  topics).
 * 24 crops with their parameters and pictures (with `--no-tables` left out): the 16 a new world starts with, 8 to choose
   from (4 of them orchards), the weather steered so that they can grow.
 * The template farm (with `--no-tables` left out): the item catalogue, made from the engine's own role tables.
@@ -406,26 +407,60 @@ Found by reading the code; none of it breaks a truecolour pack, but a pack canno
 Limits: tile size 128 at most (the native atlas is 32 tiles wide: 4096 px). A truecolour pack still builds the native
 atlas besides the per-zoom ones, which costs memory (about 20 MB at 64 px) and could be dropped.
 
-## What still needs the original's files
+## What a pack gives, and what is left
 
-With a pack, the map, the interface pictures and six data tables no longer come from the original. To start the game
-with none of its files, these remain:
+A pack alone makes a whole game (`--pack`). Everything the engine read from SimFarm's files now has a pack form or a
+built-in stand-in:
 
-| What | Where it is read | Next |
-|---|---|---|
-| The archive itself | `Megadata::Open` wants `MEGADATA.IDX/EEA`; `Gfx::Init` wants `egafont.fnt` | open from a pack alone; a font in the pack |
-| Palettes: `simfarm.pal`, `rainpal.pal`, `frostpal.pal`, `sftitle.pal`, `scenario.pal`, `prsnt480.pal` | a pack no longer needs any: the interface has its theme, tiles and pictures are RGB, the overview is RGB and the weather a veil. Only the archive's own indexed pictures still use them | nothing on the pack path |
-| Picture banks `alltiles.btl`, `wethgrnd.btl`, `wethsky.btl`; `cursors.til` | message box pictures (event ids pick a record), the Expert's faces, weather art | bank sets in `pictures`; cursors |
-| Crop files `CROPS/*.crp` | (done: see Crops) | |
-| Help cards `cardN.hc` | the Farm Expert's scripted cards | a JSON card format |
-| Prebuilt farms `SCEN0..7.SSM` | `SCEN0.SSM` is also the farm a game opens in, and the others are the farms on the region map. (As the template for *new worlds* it is replaced: see Template farm) | start from a generated world; the region map's farms generated from their region |
-| Sounds `*.voc` and songs `*.xmi` | effects and music | a sound set in the pack |
-| `uicolour.map`, `mskdtile.msk` | the Windows edition's colours and masks | not needed by a pack |
+| What the original keeps | In a pack |
+|---|---|
+| Tile sheets, pictures, banks, sprites, buttons, full screens | PNG: `plain`, `masked`, `events` sheets and the `pictures` block (the banks `alltiles.btl`, `wethsky.btl`, `wethgrnd.btl` are sets of pictures under keys like `alltiles.btl#12`) |
+| Palettes (6) | not needed: the theme (16 RGB colours), RGB art, the RGB overview, the weather veil |
+| Climate, region map, town layout, message and item texts, overview colours | the `tables` block |
+| Crop files | the `crops` block |
+| `SCEN0.SSM` as the template for new worlds | the `template` block; the first farm and the region map's eight farms are generated |
+| Farm Expert cards | the `cards` block |
+| Sound effects (`.voc`) and songs (`.xmi`) | the `sounds` block: `.wav` effects, `.mid` songs; a game song a pack leaves out is played by an engine song of the same mood |
+| The interface font | built in (Press Start 2P, rasterised); the modern fonts are built in anyway |
+| The archive container (`MEGADATA.IDX/EEA`) | not needed: `--pack` starts from an empty archive |
+
+Left out, and optional: **the six custom mouse cursors** (`cursors.til`): without them the game keeps the system's cursor.
+
+## Sounds
+
+A `sounds` block maps the names the game asks for to files in the pack: an effect (`click.voc`, `uhoh.voc`, ...) to a
+`.wav` (PCM, 8 or 16 bits, one or two channels, any rate), a song (`amain.xmi`, `genfarm.xmi`, ...) to a standard `.mid`.
+The engine already reads both formats under those names (the Windows edition ships them so), so a pack's files are laid
+into the archive as they are (`assets/PackSounds.{h,cpp}` lists the 25 effects and the 8 songs the game uses). The files are
+checked for what they claim to be, at most 8 MB each. A game song the pack does not give is played by an engine song
+of the same mood (`SoundPlayer::LoadSong`), so a pack with no music still has the radio. The placeholder effects are made
+by the generator from tones, sweeps and noise (8 kHz), with nothing recorded or borrowed.
+
+## Farm Expert cards
+
+The Expert's cards are a small script each (`card1.hc`, ...): pictures from the bank, text boxes, buttons and hotspots that
+open other cards, tile rows, the information of a crop and sound hotspots. The `cards` block of `tilepack.json` writes
+them as JSON (`assets/PackCards.h` has the full description): the Expert opens on card 1, every `goto` must name a card
+the pack has, and positions count from the window's top-left corner (the 16 pixel title bar included). The decoder
+(`DecodeCard` in `assets/TableFormats.h`) is shared by the window and the tests. The placeholder Expert is a welcome card with
+five topics (getting started, fields and crops, machines and storage, weather and water, money and the town), each a
+card of plain advice with a way back.
+
+## Testing a whole game
+
+`tools/packplay_test.sh [program] [pack]` plays a game from a pack alone, through the interface, with no display and no
+person (`SDL_VIDEODRIVER=dummy`), using the input script `tools/packplay.script`: it starts the program, clicks through
+the intro and the title, plays the placeholder region, opens BUY, buys a tractor and clicks it onto the farm, and opens the
+Farm Expert from the Windows menu. The script checks the game as it goes with `expect` lines (`expect cash 34000`,
+`expect machines 1`, `expect open 6`, ...); a check that fails prints what is wrong and the program ends with exit code 1.
+The input script and its expectations are described under Playing with a pack alone.
+
+The earlier tests check the parts: `--tilepacktest`, `--tablestest [pack]`, `--templatetest [pack]`, `--cropstest [pack]`.
 
 ## Next steps
 
-1. Give the interface's hard-coded layout (window contents, the labels `PictureText.cpp` places) a home in the pack's
-   JSON, so that a pack can move things; picture banks and cursors in packs.
-2. Weather as a tint or overlay for truecolour tiles; crop pictures in the pack (`crops.json`).
-3. The rest of the list above, in this order: the starting farm (generated, and the region map's farms), picture banks, the help cards, sounds, the archive itself; each with placeholder data in the shipped pack until the game runs with none of the
-   original's files.
+* Custom mouse cursors in a pack (`cursors`), the one thing a pack still takes from the system.
+* Give the interface's hard-coded layout (window contents, the labels `PictureText.cpp` places) a home in the pack's
+  JSON, so that a pack can move things instead of only redrawing them.
+* Real art, sound and balance in place of the placeholders: the engine and the pack format are done, what the placeholder
+  pack holds is only a working stand-in.

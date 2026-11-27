@@ -122,4 +122,46 @@ OverviewTable MakeOverview(const std::vector<uint8_t>& rgbEntry, const std::vect
     return t;
 }
 
+int CardOpArguments(int op, bool& hasText)
+{
+    hasText = false;
+    switch (op)
+    {
+    case 0x83: return 5;
+    case 0x84: return 4;
+    case 0x86: return 3;
+    case 0x87: hasText = true; return 3;
+    case 0x89: return 3;
+    case 0x8a: hasText = true; return 4;
+    case 0x8b: return 2;
+    case 0x8c: return 5;
+    default: return -1;
+    }
+}
+
+std::vector<CardOp> DecodeCard(const std::vector<uint8_t>& d)
+{
+    std::vector<CardOp> ops;
+    size_t i = 0;
+    while (i < d.size() && d[i] != 0xFF)
+    {
+        bool hasText = false;
+        const int n = CardOpArguments(d[i], hasText);
+        if (n < 0)
+            break;
+        CardOp o;
+        o.op = d[i++];
+        for (int k = 0; k < n && i + 1 < d.size(); ++k, i += 2)
+            o.a.push_back(d[i] | (d[i + 1] << 8));
+        if (hasText)
+        {
+            while (i < d.size() && d[i])
+                o.text += static_cast<char>(d[i++]);
+            ++i;
+        }
+        ops.push_back(std::move(o));
+    }
+    return ops;
+}
+
 } // namespace osf

@@ -1637,25 +1637,12 @@ private:
     }
     void Load(UiContext& ctx)
     {
-        static const std::map<int, std::pair<int, bool>> spec = { { 0x83, { 5, false } }, { 0x84, { 4, false } }, { 0x86, { 3, false } }, { 0x87, { 3, true } },
-                                                                   { 0x89, { 3, false } }, { 0x8a, { 4, true } }, { 0x8b, { 2, false } }, { 0x8c, { 5, false } } };
         _ops.clear();
         _loaded = _card;
-        const std::vector<uint8_t> d = ctx.mega ? ctx.mega->Read("card" + std::to_string(_card) + ".hc") : std::vector<uint8_t>();
-        size_t i = 0;
         int texts = 0;
-        while (i < d.size() && d[i] != 0xFF)
+        for (CardOp& c : DecodeCard(ctx.mega ? ctx.mega->Read("card" + std::to_string(_card) + ".hc") : std::vector<uint8_t>()))
         {
-            const auto it = spec.find(d[i]);
-            if (it == spec.end())
-                break;
-            Op o{ d[i++], {}, {} };
-            for (int k = 0; k < it->second.first && i + 1 < d.size(); ++k, i += 2)
-                o.a.push_back(d[i] | (d[i + 1] << 8));
-            if (it->second.second)
-                while (i < d.size() && d[i])
-                    o.text += static_cast<char>(d[i++]);
-            i += it->second.second ? 1 : 0;
+            Op o{ c.op, std::move(c.a), std::move(c.text) };
             if (o.op == 0x87) // a text box: its translation by "card:<card>:<n>", n counting the card's text boxes
                 o.text = TrId("card:" + std::to_string(_card) + ":" + std::to_string(texts++), o.text);
             _ops.push_back(std::move(o));
@@ -1829,18 +1816,10 @@ private:
     static Rect Slot(int c) { return { 16 + (c % 4) * 32, 48 + (c / 4) * 32, 32, 32 }; }
     void Scan(UiContext& ctx)
     {
-        // every .CRP file of the crops folder, in file-name order, shown by the crop's own name; the first is chosen
-        std::error_code ec;
-        auto dir = FindFileNoCase(ctx.gameDir, "CROPS");
-        if (!dir)
-            return;
-        for (const auto& e : std::filesystem::directory_iterator(*dir, ec))
+        // every crop file (a pack's crops, else the .CRP files of the crops folder), in file-name order, shown by the crop's own
+        // name; the first is chosen
+        for (const std::string& n : CropFiles(ctx.gameDir))
         {
-            std::string n = e.path().filename().string();
-            for (char& c : n)
-                c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
-            if (n.size() <= 4 || n.substr(n.size() - 4) != ".CRP")
-                continue;
             CropDef def;
             _files.emplace_back(n, LoadCropFile(ctx.gameDir, n, def) ? CropName(def) : n);
         }
