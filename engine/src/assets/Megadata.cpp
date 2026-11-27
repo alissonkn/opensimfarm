@@ -76,6 +76,12 @@ bool Megadata::Open(const std::string& gameDir, std::string& error)
     return true;
 }
 
+void Megadata::Override(const std::string& name, const std::vector<uint8_t>& bytes)
+{
+    _entries[Lower(name)] = { static_cast<uint32_t>(_data.size()), static_cast<uint32_t>(bytes.size()) };
+    _data.insert(_data.end(), bytes.begin(), bytes.end());
+}
+
 bool Megadata::Has(const std::string& name) const
 {
     return _entries.count(Lower(name)) != 0;

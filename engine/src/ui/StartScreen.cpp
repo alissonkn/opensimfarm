@@ -2,6 +2,7 @@
 // Licensed under the GNU General Public License version 3 (see LICENSE.txt).
 #include "ui/StartScreen.h"
 
+#include "assets/TableFormats.h"
 #include "assets/Megadata.h"
 #include "core/Lang.h"
 #include "core/Paths.h"
@@ -70,26 +71,7 @@ void StartScreen::LoadClimateMap()
     const Megadata* mega = _g.Mega();
     if (!mega)
         return;
-    std::string section, line;
-    for (uint8_t c : mega->Read("scenario.odt"))
-    {
-        if (c == '\r')
-            continue;
-        if (c != '\n')
-        {
-            line += static_cast<char>(c);
-            continue;
-        }
-        if (line.rfind("//", 0) == 0)
-        {
-            section.clear();
-            for (char ch : line.substr(2))
-                section += static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
-        }
-        else if (!section.empty() && line.size() >= 18 && line[18] == ' ')
-            _grids[section].push_back(line.substr(0, 18));
-        line.clear();
-    }
+    _grids = DecodeScenarioGrids(mega->Read("scenario.odt"));
 }
 
 bool StartScreen::ToPicture(int px, int py, int& x, int& y) const
@@ -294,17 +276,12 @@ void StartScreen::MakePreview()
         {
             const int t = _land.world.At(x, y).BaseTile();
             for (int r = 0; r < 2; ++r)
-            {
-                const int b = 2 * t + r < static_cast<int>(mapc.size()) ? mapc[static_cast<size_t>(2 * t + r)] : 0;
                 for (int c = 0; c < 2; ++c)
                 {
-                    int idx = 0;
-                    for (int plane = 0; plane < 4; ++plane)
-                        idx |= ((b >> (6 - 2 * plane + (1 - c))) & 1) << plane;
+                    const int idx = OverviewIndex(mapc, t, r, c);
                     _preview[static_cast<size_t>(2 * y + r) * D + 2 * x + c] =
                         0xFF000000u | (pal[idx][0] << 16) | (pal[idx][1] << 8) | pal[idx][2];
                 }
-            }
         }
 }
 

@@ -5,6 +5,7 @@
 #include <optional>
 #include <filesystem>
 #include "core/Paths.h"
+#include "assets/TableFormats.h"
 #include "assets/Graphics.h"
 
 #include "game/Editing.h"
@@ -2235,11 +2236,7 @@ void Simulation::Answer(int id, bool yes)
 
 void Simulation::SetTownLayout(const std::vector<uint8_t>& cmp)
 {
-    _townLayout.clear();
-    if (cmp.size() < 1920)
-        return;
-    for (size_t i = 0; i < 960; ++i)
-        _townLayout.push_back(static_cast<uint16_t>(cmp[2 * i] | (cmp[2 * i + 1] << 8)));
+    _townLayout = DecodeTownLayout(cmp);
 }
 
 bool Simulation::BuyPlot(int c, int r, std::string& why)

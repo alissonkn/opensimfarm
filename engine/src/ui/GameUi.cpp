@@ -4,6 +4,7 @@
 #include "ui/PixelArt.h"
 #include "game/Machines.h"
 
+#include "assets/TableFormats.h"
 #include "assets/Graphics.h"
 #include "assets/Megadata.h"
 #include "audio/Music.h"
@@ -1481,27 +1482,8 @@ static std::vector<std::string> EventText(const Megadata* mega, int id)
 {
     static std::vector<std::string> lines;
     if (lines.empty() && mega)
-    {
-        std::string cur;
-        for (uint8_t c : mega->Read("events.dat"))
-        {
-            if (c == '\n')
-            {
-                lines.push_back(cur);
-                cur.clear();
-            }
-            else if (c != '\r')
-                cur += static_cast<char>(c);
-        }
-        lines.push_back(cur);
-    }
-    std::vector<std::string> out;
-    for (int k = 0; k < 7; ++k)
-    {
-        const size_t i = static_cast<size_t>(id) * 8 + k;
-        out.push_back(i < lines.size() ? lines[i] : std::string());
-    }
-    return out;
+        lines = DecodeTextLines(mega->Read("events.dat"));
+    return EventLines(lines, id);
 }
 
 // the game's box waits 1280 timer ticks (50 a second, about 25.6 s) for an answer; then it closes by itself and a

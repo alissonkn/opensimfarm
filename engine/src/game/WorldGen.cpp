@@ -3,6 +3,7 @@
 #include "game/WorldGen.h"
 #include "core/Lang.h"
 
+#include "assets/TableFormats.h"
 #include "assets/Megadata.h"
 #include "core/Paths.h"
 #include "game/Editing.h"
@@ -23,15 +24,7 @@ namespace {
 // one of the 12 climate tables: 60 lines x 4 comma-separated values = 240 weeks
 bool ReadTable(const Megadata& mega, const std::string& name, std::vector<int>& out)
 {
-    out.clear();
-    std::string text;
-    for (uint8_t c : mega.Read(name))
-        text += (c == ',' || c == '\r' || c == '\n') ? ' ' : static_cast<char>(c);
-    std::istringstream in(text);
-    int v;
-    while (in >> v && out.size() < 240)
-        out.push_back(v);
-    return out.size() == 240;
+    return DecodeClimateTable(mega.Read(name), out);
 }
 
 // The two generators of world creation: G2's shift register and the additive
@@ -282,10 +275,7 @@ void FinishWorld(const std::string& gameDir, const Megadata& mega, GameState& s,
     // the town's home plot (type 0 at level 10): the roads of block 0 of the town layout file (960
     // little-endian words) on bare ground, every cell flagged as town. (The engine used to read the file as bytes,
     // found the size wrong and left the plot as plain ground: no town at all on generated worlds.)
-    const std::vector<uint8_t> raw = mega.Read("townly0.cmp");
-    std::vector<uint16_t> layout;
-    for (size_t i = 0; i + 1 < raw.size() && layout.size() < 960; i += 2)
-        layout.push_back(static_cast<uint16_t>(raw[i] | (raw[i + 1] << 8)));
+    const std::vector<uint16_t> layout = DecodeTownLayout(mega.Read("townly0.cmp"));
     PlaceTownPlotCells(s, layout, tc, tr, 0);
     s.SetPlotOwner(tc, tr, 2);
     s.SetPlotType(tc, tr, 0xA0);

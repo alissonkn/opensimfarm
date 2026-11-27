@@ -16,8 +16,10 @@
 #include "assets/Graphics.h"
 #include "audio/Sound.h"
 #include "assets/Megadata.h"
+#include "assets/PackTables.h"
 #include "assets/PicturePack.h"
 #include "assets/TilePack.h"
+#include "ui/TablesTest.h"
 #include "ui/TruecolourTest.h"
 #include "assets/Picture.h"
 #include "core/Lang.h"
@@ -2695,6 +2697,8 @@ int main(int argc, char** argv)
     }
     if (argc > 1 && std::strcmp(argv[1], "--touchtest") == 0)
         return TouchSelfTest() ? 1 : 0; // the touch gestures (no game folder needed)
+    if (argc > 1 && std::strcmp(argv[1], "--tablestest") == 0)
+        return TablesSelfTest(argc > 2 ? argv[2] : nullptr); // the data tables as JSON, no game files needed
     if (argc > 3 && std::strcmp(argv[1], "--packpreview") == 0)
         return PackPreview(argv[2], argv[3]); // a tile pack drawn by the map view into two .bmp files
     if (argc > 1 && std::strcmp(argv[1], "--tilepacktest") == 0)
@@ -3716,6 +3720,15 @@ int main(int argc, char** argv)
                 }
                 else if (g_picturePack.Size())
                     std::fprintf(stderr, "tile pack %s: %zu pictures\n", pack, g_picturePack.Size());
+                TableBlobs tables;
+                if (!LoadPackTables(pack, tables, packError))
+                    std::fprintf(stderr, "tile pack %s: tables not used: %s\n", pack, packError.c_str());
+                else if (!tables.empty())
+                {
+                    for (const auto& [name, bytes] : tables)
+                        mega.Override(name, bytes);
+                    std::fprintf(stderr, "tile pack %s: %zu tables\n", pack, tables.size());
+                }
             }
         if (ok)
         {

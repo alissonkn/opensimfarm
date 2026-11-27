@@ -8,6 +8,7 @@
 #include "core/Lang.h"
 #include "audio/Sound.h"
 
+#include "assets/TableFormats.h"
 #include "assets/Megadata.h"
 #include "game/Crops.h"
 #include "game/Shop.h"
@@ -519,16 +520,8 @@ public:
             {
                 const int t = tile[static_cast<size_t>(x) * N + y];
                 for (int r = 0; r < 2; ++r)
-                {
-                    const int b = 2 * t + r < static_cast<int>(_mapc.size()) ? _mapc[static_cast<size_t>(2 * t + r)] : 0;
                     for (int c = 0; c < 2; ++c)
-                    {
-                        int idx = 0;
-                        for (int plane = 0; plane < 4; ++plane)
-                            idx |= ((b >> (6 - 2 * plane + (1 - c))) & 1) << plane;
-                        ix[static_cast<size_t>(2 * y + r) * D + 2 * x + c] = static_cast<uint8_t>(idx);
-                    }
-                }
+                        ix[static_cast<size_t>(2 * y + r) * D + 2 * x + c] = static_cast<uint8_t>(OverviewIndex(_mapc, t, r, c));
             }
         // a larger world's picture is scaled into the 192 x 192 box here, before the lines below, so that they stay whole
         if (D != 192)
@@ -621,17 +614,8 @@ public:
             g.Text(80, 199, Tr("High"), kBlack);
             for (int k = 0; k < 32; ++k)
                 for (int r = 0; r < 8; ++r)
-                {
-                    const size_t at = static_cast<size_t>(2 * (0x1D0 + k) + (r & 1));
-                    const int b = at < _mapc.size() ? _mapc[at] : 0;
                     for (int c = 0; c < 2; ++c)
-                    {
-                        int idx = 0;
-                        for (int plane = 0; plane < 4; ++plane)
-                            idx |= ((b >> (6 - 2 * plane + (1 - c))) & 1) << plane;
-                        g.Fill(32 + 2 * k + c, 210 + r, 1, 1, idx);
-                    }
-                }
+                        g.Fill(32 + 2 * k + c, 210 + r, 1, 1, OverviewIndex(_mapc, 0x1D0 + k, r & 1, c));
             g.Fill(30, 208, 66, 1, kGrey);
             g.Fill(30, 209, 65, 1, kGrey);
             g.Fill(30, 208, 1, 11, kGrey);
@@ -1061,21 +1045,7 @@ static std::vector<std::string> ItemText(const Megadata* mega, int id)
         return out;
     static std::vector<std::string> lines;
     if (lines.empty())
-    {
-        const std::vector<uint8_t> d = mega->Read("itemtext.dat");
-        std::string cur;
-        for (uint8_t c : d)
-        {
-            if (c == '\n')
-            {
-                lines.push_back(cur);
-                cur.clear();
-            }
-            else if (c != '\r')
-                cur += static_cast<char>(c == '@' || c == '~' ? ' ' : c);
-        }
-        lines.push_back(cur);
-    }
+        lines = DecodeTextLines(mega->Read("itemtext.dat"), true);
     // a translation ("item:<id>"): the name, '~', the description
     if (const std::string tr = TrId("item:" + std::to_string(id), ""); !tr.empty())
     {
@@ -1084,12 +1054,7 @@ static std::vector<std::string> ItemText(const Megadata* mega, int id)
         std::replace(rest.begin(), rest.end(), '~', ' ');
         return { tr.substr(0, cut), rest };
     }
-    for (int k = 0; k < 7; ++k)
-    {
-        const size_t i = static_cast<size_t>(id) * 8 + k;
-        out.push_back(i < lines.size() ? lines[i] : std::string());
-    }
-    return out;
+    return ItemLines(lines, id);
 }
 
 // the original's raised box (the scroll thumb): black frame, two-pixel white top/left and grey bottom/right edges
