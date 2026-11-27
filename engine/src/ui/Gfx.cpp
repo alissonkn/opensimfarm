@@ -604,6 +604,14 @@ void Gfx::Fill(int x, int y, int w, int h, int c)
     SDL_RenderFillRect(_r, &rc);
 }
 
+void Gfx::FillArgb(int x, int y, int w, int h, uint32_t argb)
+{
+    SDL_SetRenderDrawBlendMode(_r, SDL_BLENDMODE_NONE);
+    SDL_SetRenderDrawColor(_r, static_cast<uint8_t>(argb >> 16), static_cast<uint8_t>(argb >> 8), static_cast<uint8_t>(argb), 255);
+    const SDL_Rect rc = R(x, y, w, h);
+    SDL_RenderFillRect(_r, &rc);
+}
+
 void Gfx::Frame(int x, int y, int w, int h, int c)
 {
     Fill(x, y, w, 1, c);

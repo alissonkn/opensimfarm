@@ -2,6 +2,7 @@
 // Licensed under the GNU General Public License version 3 (see LICENSE.txt).
 #include "assets/PackTables.h"
 
+#include "assets/Theme.h"
 #include "core/Json.h"
 
 #include <algorithm>
@@ -299,14 +300,27 @@ void Overview(const Json& block, TableBlobs& out)
 {
     if (!block.IsObject())
         Bad("\"overview\" must be an object");
-    std::vector<std::array<int, 4>> colours(static_cast<size_t>(kOverviewTiles), std::array<int, 4>{ 0, 0, 0, 0 });
+    using Block = std::array<std::array<uint8_t, 3>, 4>; // a tile's 2 x 2 pixels, row by row
+    std::vector<Block> colours(static_cast<size_t>(kOverviewTiles), Block{});
+    // a colour: "#rrggbb" for all four pixels, or 4 of them
     auto four = [&](const Json& v, const std::string& what) {
-        if (!v.IsArray() || v.array.size() != 4)
-            Bad(what + " must be 4 palette indices (the tile's 2 x 2 block, row by row)");
-        std::array<int, 4> a{};
-        for (size_t k = 0; k < 4; ++k)
-            a[k] = Whole(v.array[k], 0, 15, what + "'s palette indices");
-        return a;
+        Block b{};
+        auto one = [&](const Json& c) {
+            std::array<uint8_t, 3> rgb{};
+            if (!c.IsString() || !ParseColourText(c.string, rgb))
+                Bad(what + " must be colours like \"#3f9f3f\" (the overview is RGB: palette indices are not used)");
+            return rgb;
+        };
+        if (v.IsString())
+            b.fill(one(v));
+        else
+        {
+            if (!v.IsArray() || v.array.size() != 4)
+                Bad(what + " must be a colour, or 4 colours (the tile's 2 x 2 block, row by row)");
+            for (size_t k = 0; k < 4; ++k)
+                b[k] = one(v.array[k]);
+        }
+        return b;
     };
     if (const Json* d = block.Get("default"))
         std::fill(colours.begin(), colours.end(), four(*d, "overview \"default\""));
@@ -320,7 +334,7 @@ void Overview(const Json& block, TableBlobs& out)
                 Bad("each overview range must be an object");
             const int from = Whole(Member(r, "from", "an overview range"), 0, kOverviewTiles - 1, "an overview range's \"from\"");
             const int to = Whole(Member(r, "to", "an overview range"), from, kOverviewTiles - 1, "an overview range's \"to\"");
-            const auto c = four(Member(r, "colours", "an overview range"), "an overview range's \"colours\"");
+            const Block c = four(Member(r, "colours", "an overview range"), "an overview range's \"colours\"");
             for (int t = from; t <= to; ++t)
                 colours[static_cast<size_t>(t)] = c;
         }
@@ -339,16 +353,11 @@ void Overview(const Json& block, TableBlobs& out)
         }
     }
     std::vector<uint8_t> blob;
-    for (const auto& c : colours)
-        for (int r = 0; r < 2; ++r)
-        {
-            int b = 0;
-            for (int plane = 0; plane < 4; ++plane)
-                for (int col = 0; col < 2; ++col)
-                    b |= ((c[static_cast<size_t>(r * 2 + col)] >> plane) & 1) << (6 - 2 * plane + (1 - col));
-            blob.push_back(static_cast<uint8_t>(b));
-        }
-    out["far_mapc.mbm"] = std::move(blob);
+    blob.reserve(static_cast<size_t>(kOverviewRgbBytes));
+    for (const Block& b : colours)
+        for (const auto& px : b)
+            blob.insert(blob.end(), { px[0], px[1], px[2], 255 });
+    out["overview.rgb"] = std::move(blob);
 }
 
 } // namespace

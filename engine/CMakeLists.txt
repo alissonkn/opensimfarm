@@ -91,6 +91,7 @@ add_executable(opensimfarm
     src/assets/PicturePack.cpp
     src/ui/TruecolourTest.cpp
     src/ui/TablesTest.cpp
+    src/ui/OverviewImage.cpp
     src/assets/Picture.cpp
     src/assets/WindowsEdition.cpp
     src/assets/SaveGame.cpp

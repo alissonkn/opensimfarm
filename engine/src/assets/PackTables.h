@@ -11,7 +11,9 @@ namespace osf {
 
 // The game's data tables written as JSON, in the "tables" block of a pack's tilepack.json, made into the blobs the
 // engine reads (assets/TableFormats.h): same names, same formats. A pack's tables replace the archive's of the same
-// name; a table the pack leaves out stays the archive's. Every table is optional.
+// name; a table the pack leaves out stays the archive's. Every table is optional. (The overview is the one table
+// that is no byte format of the original's: it makes the entry "overview.rgb" of TableFormats.h, RGB where the
+// original's far_mapc.mbm holds palette indices.)
 //
 //   "tables": {
 //     "climate": {                    the 12 climate tables: 4 classes (0 mild .. 3 extreme, as the sliders pick) each
@@ -26,10 +28,10 @@ namespace osf {
 //     "townLayout": { "blocks": [ B x 15 ] },   B = 8 rows of 8 tile ids; block t is plot template type t
 //     "events":  [ { "id": 61, "title": "...", "lines": [ "...", ... ] } ],    message boxes' texts by event id
 //     "items":   [ { "id": 5, "name": "...", "description": "..." } ],         item help texts by item id
-//     "overview": {                   the overview map colours: 4 palette indices a tile (its 2 x 2 block, row by row)
-//       "default": [ 0, 0, 0, 0 ],
-//       "ranges":  [ { "from": 15, "to": 30, "colours": [ 10, 10, 10, 10 ] } ],
-//       "tiles":   { "17": [ 10, 9, 10, 9 ] }
+//     "overview": {                   the overview map's colours: a tile's 2 x 2 block is "#rrggbb" for all four pixels,
+//       "default": "#3f9f3f",             or 4 colours (row by row); a tile takes the default, then the ranges in order,
+//       "ranges":  [ { "from": 15, "to": 30, "colours": "#80502a" } ],     then its own entry
+//       "tiles":   { "17": [ "#80502a", "#6a4020", "#80502a", "#6a4020" ] }
 //     }
 //   }
 //

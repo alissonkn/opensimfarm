@@ -101,4 +101,25 @@ int OverviewIndex(const std::vector<uint8_t>& blob, int tile, int row, int colum
     return idx;
 }
 
+uint32_t OverviewTable::Argb(int tile, int row, int column) const
+{
+    const size_t at = (static_cast<size_t>(tile) * 4 + static_cast<size_t>(row * 2 + column)) * 4;
+    if (!rgb || tile < 0 || row < 0 || row > 1 || column < 0 || column > 1 || at + 3 >= blob.size())
+        return 0xFF000000u;
+    return 0xFF000000u | (static_cast<uint32_t>(blob[at]) << 16) | (static_cast<uint32_t>(blob[at + 1]) << 8) | blob[at + 2];
+}
+
+OverviewTable MakeOverview(const std::vector<uint8_t>& rgbEntry, const std::vector<uint8_t>& indexedEntry)
+{
+    OverviewTable t;
+    if (rgbEntry.size() >= static_cast<size_t>(kOverviewRgbBytes))
+    {
+        t.blob = rgbEntry;
+        t.rgb = true;
+    }
+    else
+        t.blob = indexedEntry;
+    return t;
+}
+
 } // namespace osf

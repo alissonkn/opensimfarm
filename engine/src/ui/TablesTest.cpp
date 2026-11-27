@@ -10,6 +10,7 @@
 #include "game/Editing.h"
 #include "game/GameState.h"
 #include "game/WorldGen.h"
+#include "ui/OverviewImage.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -258,6 +259,93 @@ int TablesSelfTest(const char* packFolder)
         check(same, "overview colours: the same palette index for every byte value and position, and 0 past the table");
     }
 
+    // ---------------------------------------------------------------- the Map window's picture
+    std::printf("-- the overview picture\n");
+    {
+        // the Map window's pixel stage as it was written inline: index buffer, nearest scaling into 192, XOR with 15
+        auto oldPicture = [&](const std::vector<uint8_t>& mapc, const std::vector<int>& tile, int N, const std::vector<std::pair<int, int>>& xors) {
+            const int D = 2 * N;
+            std::vector<uint8_t> ix(static_cast<size_t>(D) * D);
+            for (int x = 0; x < N; ++x)
+                for (int y = 0; y < N; ++y)
+                {
+                    const int t = tile[static_cast<size_t>(x) * N + y];
+                    for (int r = 0; r < 2; ++r)
+                        for (int c = 0; c < 2; ++c)
+                            ix[static_cast<size_t>(2 * y + r) * D + 2 * x + c] = static_cast<uint8_t>(OldOverview(mapc, t, r, c));
+                }
+            if (D != 192)
+            {
+                std::vector<uint8_t> box(192 * 192);
+                for (int y = 0; y < 192; ++y)
+                    for (int x = 0; x < 192; ++x)
+                        box[static_cast<size_t>(y) * 192 + x] = ix[static_cast<size_t>(y * D / 192) * D + x * D / 192];
+                ix.swap(box);
+            }
+            for (const auto& [x, y] : xors)
+                if (x >= 0 && y >= 0 && x < 192 && y < 192)
+                    ix[static_cast<size_t>(y) * 192 + x] ^= 15;
+            return ix;
+        };
+        std::vector<uint8_t> mapc(1920);
+        for (auto& b : mapc)
+            b = static_cast<uint8_t>(rng());
+        const auto palette = [](int i) { return 0xFF000000u | static_cast<uint32_t>(i * 0x101010 + 0x050607); };
+        bool same = true;
+        for (const int N : { 96, 144, 40 })
+        {
+            std::vector<int> tile(static_cast<size_t>(N) * N);
+            for (auto& t : tile)
+                t = static_cast<int>(rng() % 1000); // (some past the table: its 960 tiles)
+            std::vector<std::pair<int, int>> xors = { { 0, 0 }, { 191, 191 }, { 5, 7 }, { 5, 7 }, { -1, 3 }, { 3, 192 }, { 100, 50 } };
+            const OverviewTable table = MakeOverview({}, mapc);
+            OverviewImage image(table, tile, N);
+            image.ScaleTo(192);
+            for (const auto& [x, y] : xors)
+                image.Invert(x, y);
+            const auto expected = oldPicture(mapc, tile, N, xors);
+            const auto got = image.ToArgb(palette);
+            bool eq = got.size() == expected.size() && image.Side() == 192 && !image.Rgb();
+            for (size_t i = 0; i < expected.size() && eq; ++i)
+                eq = got[i] == palette(expected[i]);
+            same = same && eq;
+        }
+        check(same, "indexed table: the same picture as the window's old inline code for 96, 144 and 40 cells, scaled to 192, with XOR (also twice on a pixel and outside)");
+        // an RGB table
+        std::vector<uint8_t> rgb(static_cast<size_t>(kOverviewRgbBytes));
+        for (size_t i = 0; i < rgb.size(); ++i)
+            rgb[i] = static_cast<uint8_t>(i % 4 == 3 ? 255 : (i * 7 + i / 4) & 255);
+        const OverviewTable rgbTable = MakeOverview(rgb, mapc);
+        check(rgbTable.rgb && rgbTable.blob == rgb, "an RGB entry wins over the indexed one");
+        std::vector<int> tile(static_cast<size_t>(96) * 96);
+        for (size_t i = 0; i < tile.size(); ++i)
+            tile[i] = static_cast<int>(i % 960);
+        OverviewImage img(rgbTable, tile, 96);
+        bool callback = false;
+        auto before = img.ToArgb([&](int) { callback = true; return 0u; });
+        bool placed = img.Rgb() && img.Side() == 192 && !callback;
+        for (int x = 0; x < 96 && placed; x += 11)
+            for (int y = 0; y < 96 && placed; y += 7)
+                for (int r = 0; r < 2; ++r)
+                    for (int c = 0; c < 2; ++c)
+                        placed = placed && before[static_cast<size_t>(2 * y + r) * 192 + 2 * x + c] == rgbTable.Argb(tile[static_cast<size_t>(x) * 96 + y], r, c);
+        check(placed, "RGB table: each cell's 2 x 2 block in place, and the palette is not asked");
+        img.Invert(10, 20);
+        auto after = img.ToArgb([](int) { return 0u; });
+        const size_t at = 20 * 192 + 10;
+        check(after[at] == (before[at] ^ 0x00FFFFFFu) && (after[at] >> 24) == 0xFF && after[at + 1] == before[at + 1], "RGB table: the XOR highlight inverts the colour, opaque, and only that pixel");
+        img.Invert(10, 20);
+        img.Invert(-1, 0);
+        img.Invert(192, 0);
+        img.Invert(0, 192);
+        check(img.ToArgb([](int) { return 0u; }) == before, "  twice is no change, and outside the picture nothing happens");
+        img.ScaleTo(96);
+        const auto small = img.ToArgb([](int) { return 0u; });
+        check(img.Side() == 96 && small.size() == 96 * 96 && small[5 * 96 + 7] == before[static_cast<size_t>(5 * 192 / 96) * 192 + 7 * 192 / 96], "RGB table: scaling picks the nearest pixel, as the indexed picture does");
+        const OverviewTable none = MakeOverview({ 1, 2, 3 }, {});
+        check(!none.rgb && none.Index(5, 0, 0) == 0 && MakeOverview({}, {}).blob.empty(), "a too short RGB entry is ignored; with neither entry the table is empty and gives index 0");
+    }
+
     // ---------------------------------------------------------------- a full manifest
     std::printf("-- tables from JSON\n");
     std::string wholeJson = "{ \"format\": 1, \"tables\": {"
@@ -271,14 +359,15 @@ int TablesSelfTest(const char* packFolder)
     wholeJson += "] },"
         " \"events\": [ { \"id\": 3, \"title\": \"Big News\", \"lines\": [ \"Line one\", \"Line two is here\" ] }, { \"id\": 1, \"title\": \"X\" } ],"
         " \"items\": [ { \"id\": 2, \"name\": \"Tractor\", \"description\": \"It pulls the plow and other tools\" }, { \"id\": 0, \"name\": \"Seed\", \"description\": \"\" } ],"
-        " \"overview\": { \"default\": [1, 1, 1, 1], \"ranges\": [ { \"from\": 15, \"to\": 30, \"colours\": [10, 11, 12, 13] } ], \"tiles\": { \"17\": [0, 15, 5, 10], \"959\": [15, 15, 15, 15] } } } }";
+        " \"overview\": { \"default\": \"#010101\", \"ranges\": [ { \"from\": 15, \"to\": 30, \"colours\": [\"#0a0b0c\", \"#0b0c0d\", \"#0c0d0e\", \"#0d0e0f\"] } ],"
+        "   \"tiles\": { \"17\": [\"#000000\", \"#ffffff\", \"#050505\", \"#0a0a0a\"], \"959\": \"#f0f0f0\" } } } }";
     TableBlobs blobs;
     std::string err;
     const bool ok = ParsePackTables(wholeJson, blobs, err);
     check(ok, "a manifest with every table is made into blobs" + (ok ? "" : ": " + err));
     if (ok)
     {
-        check(blobs.size() == 12 + 1 + 1 + 1 + 1 + 1, "  12 climate tables, scenario.odt, townly0.cmp, events.dat, itemtext.dat, far_mapc.mbm");
+        check(blobs.size() == 12 + 1 + 1 + 1 + 1 + 1, "  12 climate tables, scenario.odt, townly0.cmp, events.dat, itemtext.dat, overview.rgb");
         std::vector<int> t;
         check(DecodeClimateTable(blobs["rain0.dat"], t) && t[0] == 0 && t[1] == 1 && t[4] == 0 && t[48] == 0 && t[49] == 1 && t[239] == 3,
               "  climate: 48 numbers repeat as 5 years, in place");
@@ -311,22 +400,31 @@ int TablesSelfTest(const char* packFolder)
             name += c;
         }
         check(name == "Tractor " && rec.find("It pulls the") != std::string::npos && rec.find("plow and") != std::string::npos, "  items: the Examine card's reading of the record finds the name and the words");
-        const std::vector<uint8_t>& ov = blobs["far_mapc.mbm"];
-        check(ov.size() == 1920 && OverviewIndex(ov, 0, 0, 0) == 1 && OverviewIndex(ov, 15, 0, 0) == 10 && OverviewIndex(ov, 30, 1, 1) == 13 && OverviewIndex(ov, 31, 0, 1) == 1 &&
-                  OverviewIndex(ov, 17, 0, 1) == 15 && OverviewIndex(ov, 17, 1, 0) == 5 && OverviewIndex(ov, 17, 1, 1) == 10 && OverviewIndex(ov, 17, 0, 0) == 0 &&
-                  OverviewIndex(ov, 959, 1, 1) == 15,
-              "  overview: default, range and single tiles, each 2 x 2 block in order");
+        const std::vector<uint8_t>& ovBlob = blobs["overview.rgb"];
+        const OverviewTable ov = MakeOverview(ovBlob, {});
+        check(ovBlob.size() == static_cast<size_t>(kOverviewRgbBytes) && ov.rgb && ov.Argb(0, 0, 0) == 0xFF010101u && ov.Argb(14, 1, 1) == 0xFF010101u && ov.Argb(15, 0, 0) == 0xFF0A0B0Cu &&
+                  ov.Argb(15, 0, 1) == 0xFF0B0C0Du && ov.Argb(15, 1, 0) == 0xFF0C0D0Eu && ov.Argb(30, 1, 1) == 0xFF0D0E0Fu && ov.Argb(31, 0, 1) == 0xFF010101u &&
+                  ov.Argb(17, 0, 0) == 0xFF000000u && ov.Argb(17, 0, 1) == 0xFFFFFFFFu && ov.Argb(17, 1, 0) == 0xFF050505u && ov.Argb(17, 1, 1) == 0xFF0A0A0Au &&
+                  ov.Argb(959, 0, 0) == 0xFFF0F0F0u && ov.Argb(959, 1, 1) == 0xFFF0F0F0u,
+              "  overview: RGB, the default, a range, a 4-colour tile in order and a single-colour tile");
+        check(ov.Argb(960, 0, 0) == 0xFF000000u && ov.Argb(-1, 0, 0) == 0xFF000000u && ov.Argb(0, 2, 0) == 0xFF000000u && ov.Index(5, 0, 0) == 0, "  overview: outside the table is opaque black, and an RGB table has no indices");
         bool every = true;
-        for (int i = 0; i < 16; ++i)
+        for (int i = 0; i < 256; ++i)
         {
-            // every palette index survives the packing in each of the four positions
+            // every value of each channel survives, in each of the four positions
             TableBlobs one;
             std::string e;
-            const std::string js = "{ \"format\": 1, \"tables\": { \"overview\": { \"tiles\": { \"5\": [" + std::to_string(i) + "," + std::to_string(15 - i) + "," + std::to_string((i * 7) & 15) + "," + std::to_string((i * 3 + 1) & 15) + "] } } } }";
-            every = every && ParsePackTables(js, one, e) && OverviewIndex(one["far_mapc.mbm"], 5, 0, 0) == i && OverviewIndex(one["far_mapc.mbm"], 5, 0, 1) == 15 - i &&
-                    OverviewIndex(one["far_mapc.mbm"], 5, 1, 0) == ((i * 7) & 15) && OverviewIndex(one["far_mapc.mbm"], 5, 1, 1) == ((i * 3 + 1) & 15);
+            char hex[4][8];
+            for (int k = 0; k < 4; ++k)
+                std::snprintf(hex[k], sizeof hex[k], "#%02x%02x%02x", (i + k * 64) & 255, (255 - i + k * 3) & 255, (i * 7 + k) & 255);
+            const std::string js = std::string("{ \"format\": 1, \"tables\": { \"overview\": { \"tiles\": { \"5\": [\"") + hex[0] + "\",\"" + hex[1] + "\",\"" + hex[2] + "\",\"" + hex[3] + "\"] } } } }";
+            const bool made = ParsePackTables(js, one, e);
+            const OverviewTable t = MakeOverview(one["overview.rgb"], {});
+            every = every && made;
+            for (int k = 0; k < 4 && made; ++k)
+                every = every && t.Argb(5, k / 2, k % 2) == (0xFF000000u | (static_cast<uint32_t>((i + k * 64) & 255) << 16) | (static_cast<uint32_t>((255 - i + k * 3) & 255) << 8) | static_cast<uint32_t>((i * 7 + k) & 255));
         }
-        check(every, "  overview: all 16 palette indices come back from each of the 4 positions");
+        check(every, "  overview: every value of each colour channel comes back from each of the 4 positions");
     }
 
     // ---------------------------------------------------------------- the real consumers
@@ -356,7 +454,7 @@ int TablesSelfTest(const char* packFolder)
         check(mega.Open(dir, e) && mega.Has("events.dat") && mega.Read("EVENTS.DAT") == std::vector<uint8_t>({ 1, 2, 3 }), "the fake archive opens with its one entry");
         for (const auto& [name, bytes] : blobs)
             mega.Override(name, bytes);
-        check(mega.Read("Events.Dat") == blobs["events.dat"] && mega.Has("RAIN0.DAT") && mega.Read("far_mapc.mbm").size() == 1920, "Override replaces an entry and adds new ones, names in any case");
+        check(mega.Read("Events.Dat") == blobs["events.dat"] && mega.Has("RAIN0.DAT") && mega.Read("overview.rgb").size() == static_cast<size_t>(kOverviewRgbBytes), "Override replaces an entry and adds new ones, names in any case");
 
         // world generation reads the pack's climate tables through the archive's names
         GameState tmpl;
@@ -464,12 +562,15 @@ int TablesSelfTest(const char* packFolder)
         bad("{ \"items\": [ { \"id\": 1, \"name\": \"Ok\", \"description\": \"Extraordinarily\" } ] }", "a word longer than a line");
         bad("{ \"items\": [ { \"id\": 1, \"name\": \"Ok\", \"description\": \"a b c d e f g h i j k l m n o p q r s t u v w x y z a b c d e f g h i j k l m n o p q r s t u v w x y z a b\" } ] }", "a description that needs 7 lines");
         bad("{ \"items\": [ { \"id\": 1, \"name\": \"Ok~\" } ] }", "a '~' in an item name");
-        bad("{ \"overview\": { \"default\": [0, 0, 0] } }", "an overview colour of 3 indices");
-        bad("{ \"overview\": { \"default\": [0, 0, 0, 16] } }", "a palette index of 16");
-        bad("{ \"overview\": { \"tiles\": { \"960\": [0, 0, 0, 0] } } }", "tile 960");
-        bad("{ \"overview\": { \"tiles\": { \"x\": [0, 0, 0, 0] } } }", "a tile key that is not a number");
-        bad("{ \"overview\": { \"ranges\": [ { \"from\": 10, \"to\": 5, \"colours\": [0, 0, 0, 0] } ] } }", "a range that ends before it starts");
-        bad("{ \"overview\": { \"ranges\": [ { \"from\": 1, \"colours\": [0, 0, 0, 0] } ] } }", "a range without \"to\"");
+        bad("{ \"overview\": { \"default\": [\"#000\", \"#000\", \"#000\"] } }", "an overview colour of 3 pixels");
+        bad("{ \"overview\": { \"default\": [0, 0, 0, 0] } }", "palette indices (the overview is RGB)");
+        bad("{ \"overview\": { \"default\": \"#12\" } }", "a colour that is not #rgb or #rrggbb");
+        bad("{ \"overview\": { \"default\": \"green\" } }", "a colour name");
+        bad("{ \"overview\": { \"tiles\": { \"960\": \"#000\" } } }", "tile 960");
+        bad("{ \"overview\": { \"tiles\": { \"x\": \"#000\" } } }", "a tile key that is not a number");
+        bad("{ \"overview\": { \"ranges\": [ { \"from\": 10, \"to\": 5, \"colours\": \"#000\" } ] } }", "a range that ends before it starts");
+        bad("{ \"overview\": { \"ranges\": [ { \"from\": 1, \"colours\": \"#000\" } ] } }", "a range without \"to\"");
+        bad("{ \"overview\": 5 }", "an overview that is not an object");
         // all or nothing: a good table before a bad one is not kept
         TableBlobs b;
         std::string e;
@@ -511,8 +612,9 @@ int TablesSelfTest(const char* packFolder)
             check(LoadTheme(packFolder, theme, hasTheme, e) && hasTheme && theme[12] == std::array<uint8_t, 3>({ 0xC4, 0xC4, 0xC4 }) && theme[15] == std::array<uint8_t, 3>({ 0xFF, 0xFF, 0xFF }) &&
                       theme[0] == std::array<uint8_t, 3>({ 0, 0, 0 }),
                   "  the interface theme: 16 colours, light grey panels, black and white");
-            check(pack["far_mapc.mbm"].size() == 1920 && OverviewIndex(pack["far_mapc.mbm"], 40, 0, 0) == 6 && OverviewIndex(pack["far_mapc.mbm"], 20, 1, 1) == 10,
-                  "  the overview colours by family: water blue, ground brown");
+            const OverviewTable shipped = MakeOverview(pack["overview.rgb"], {});
+            check(shipped.rgb && shipped.Argb(40, 0, 0) == 0xFF3A5FD0u && shipped.Argb(20, 1, 1) == 0xFF80502Au,
+                  "  the overview colours by family, in RGB: water blue, ground brown");
         }
     }
 

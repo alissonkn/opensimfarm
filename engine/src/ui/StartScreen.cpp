@@ -265,7 +265,7 @@ void StartScreen::MakePreview()
         return;
     // the preview as the original draws it: each cell's ground tile (the low 11 bits of its word) as a
     // 2 x 2 block of its overview colours (far_mapc.mbm, the Map window's table) in the design picture's palette
-    const std::vector<uint8_t> mapc = mega->Read("far_mapc.mbm");
+    const OverviewTable mapc = MakeOverview(mega->Read("overview.rgb"), mega->Read("far_mapc.mbm")); // (a pack's colours are RGB)
     const Palette pal = LoadPalette(mega->Read("scenario.pal"));
     // (a larger world is drawn the same way at two pixels a cell and scaled into the preview box)
     const int N = _land.world.size, D = 2 * N;
@@ -278,9 +278,9 @@ void StartScreen::MakePreview()
             for (int r = 0; r < 2; ++r)
                 for (int c = 0; c < 2; ++c)
                 {
-                    const int idx = OverviewIndex(mapc, t, r, c);
+                    const int idx = mapc.Index(t, r, c);
                     _preview[static_cast<size_t>(2 * y + r) * D + 2 * x + c] =
-                        0xFF000000u | (pal[idx][0] << 16) | (pal[idx][1] << 8) | pal[idx][2];
+                        mapc.rgb ? mapc.Argb(t, r, c) : 0xFF000000u | (pal[idx][0] << 16) | (pal[idx][1] << 8) | pal[idx][2];
                 }
         }
 }

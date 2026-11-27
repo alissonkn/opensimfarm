@@ -52,4 +52,23 @@ std::map<std::string, std::vector<std::string>> DecodeScenarioGrids(const std::v
 constexpr int kOverviewTiles = 960;
 int OverviewIndex(const std::vector<uint8_t>& blob, int tile, int row, int column); // 0 outside the table
 
+// A pack's overview colours are RGB instead: the entry "overview.rgb" (one a pack adds, as the Windows edition adds
+// uicolour.map), 960 tiles x 4 pixels (the tile's 2 x 2 block, row by row) x 4 bytes: red, green, blue, and a
+// fourth that is ignored (the pixel is drawn opaque).
+constexpr int kOverviewRgbBytes = kOverviewTiles * 4 * 4;
+
+// The overview colours the interface draws with: the pack's RGB entry when it has one, else the archive's palette
+// indices. An RGB table needs no palette (and does not change with the weather); an indexed one gives each pixel a
+// palette index 0..15.
+struct OverviewTable
+{
+    std::vector<uint8_t> blob; // far_mapc.mbm or overview.rgb
+    bool rgb = false;
+    // the pixel (row, column of the 2 x 2 block) of `tile`; Index for an indexed table (0 outside it), Argb for an RGB one
+    // (opaque black outside it)
+    int Index(int tile, int row, int column) const { return rgb ? 0 : OverviewIndex(blob, tile, row, column); }
+    uint32_t Argb(int tile, int row, int column) const;
+};
+OverviewTable MakeOverview(const std::vector<uint8_t>& rgbEntry, const std::vector<uint8_t>& indexedEntry);
+
 } // namespace osf

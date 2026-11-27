@@ -14,6 +14,7 @@
 #include "game/Shop.h"
 #include "game/Disasters.h"
 #include "ui/MapView.h"
+#include "ui/OverviewImage.h"
 
 #include <algorithm>
 #include <cctype>
@@ -474,10 +475,10 @@ public:
     {
         GameState& s = *ctx.state;
         // every cell is drawn as a 2x2 block of the overview colours of a tile (far_mapc.mbm: 2 bytes per tile id,
-        // one per pixel row, four 2-bit plane fields, left pixel in the high bit). The mode picks
-        // the tile: the terrain, the plot-ownership tile, or a step 0x1D0 + value / 8 of the 32-step ramp
-        if (_mapc.empty() && ctx.mega)
-            _mapc = ctx.mega->Read("far_mapc.mbm");
+        // one per pixel row, four 2-bit plane fields, left pixel in the high bit; a pack's overview.rgb: RGB). The mode
+        // picks the tile: the terrain, the plot-ownership tile, or a step 0x1D0 + value / 8 of the 32-step ramp
+        if (_mapc.blob.empty() && ctx.mega)
+            _mapc = MakeOverview(ctx.mega->Read("overview.rgb"), ctx.mega->Read("far_mapc.mbm"));
         // a larger world (an engine addition) is drawn the same way at two pixels a cell, then scaled into the box
         const int N = s.world.size, D = 2 * N, P = s.Plots();
         std::vector<int> tile(static_cast<size_t>(N) * N);
@@ -510,31 +511,13 @@ public:
                     for (int y = f.Y(); y < std::min(N, f.Y() + f.H()); ++y)
                         tile[static_cast<size_t>(x) * N + y] = t;
             }
-        std::vector<uint8_t> ix(static_cast<size_t>(D) * D);
-        for (int x = 0; x < N; ++x)
-            for (int y = 0; y < N; ++y)
-            {
-                const int t = tile[static_cast<size_t>(x) * N + y];
-                for (int r = 0; r < 2; ++r)
-                    for (int c = 0; c < 2; ++c)
-                        ix[static_cast<size_t>(2 * y + r) * D + 2 * x + c] = static_cast<uint8_t>(OverviewIndex(_mapc, t, r, c));
-            }
+        OverviewImage image(_mapc, tile, N);
         // a larger world's picture is scaled into the 192 x 192 box here, before the lines below, so that they stay whole
-        if (D != 192)
-        {
-            std::vector<uint8_t> box(192 * 192);
-            for (int y = 0; y < 192; ++y)
-                for (int x = 0; x < 192; ++x)
-                    box[static_cast<size_t>(y) * 192 + x] = ix[static_cast<size_t>(y * D / 192) * D + x * D / 192];
-            ix.swap(box);
-        }
+        image.ScaleTo(192);
         auto sc = [&](int v) { return v * 192 / D; }; // map pixels (two a cell) to box pixels
         // the original draws the chosen plot and the view frame in XOR mode with colour 15 (palette index ^ 15):
         // horizontal lines stop before their end x, vertical lines include their end y
-        auto xorPixel = [&](int x, int y) {
-            if (x >= 0 && y >= 0 && x < 192 && y < 192)
-                ix[static_cast<size_t>(y) * 192 + x] ^= 15;
-        };
+        auto xorPixel = [&](int x, int y) { image.Invert(x, y); };
         auto xorH = [&](int x1, int x2, int y) { for (int x = x1; x < x2; ++x) xorPixel(x, y); };
         auto xorV = [&](int x, int y1, int y2) { for (int y = y1; y <= y2; ++y) xorPixel(x, y); };
         if (_mode == kProperty && _plotC >= 0)
@@ -559,9 +542,7 @@ public:
             viewCol = std::clamp(static_cast<int>(vx + vw / 2) / 8, 0, P - 1);
             viewRow = std::clamp(static_cast<int>(vy + vh / 2) / 8, 0, P - 1);
         }
-        std::vector<uint32_t> px(192 * 192);
-        for (size_t i = 0; i < px.size(); ++i)
-            px[i] = g.Argb16(ix[i]);
+        const std::vector<uint32_t> px = image.ToArgb([&](int i) { return g.Argb16(i); });
         g.DrawPixels(px, 192, 192, 72, 0, 192, 192);
 
         // property mode: the plot grid in yellow, twelve lines each way from the map's top-left corner, over the
@@ -610,7 +591,12 @@ public:
             for (int k = 0; k < 32; ++k)
                 for (int r = 0; r < 8; ++r)
                     for (int c = 0; c < 2; ++c)
-                        g.Fill(32 + 2 * k + c, 210 + r, 1, 1, OverviewIndex(_mapc, 0x1D0 + k, r & 1, c));
+                    {
+                        if (_mapc.rgb)
+                            g.FillArgb(32 + 2 * k + c, 210 + r, 1, 1, _mapc.Argb(0x1D0 + k, r & 1, c));
+                        else
+                            g.Fill(32 + 2 * k + c, 210 + r, 1, 1, _mapc.Index(0x1D0 + k, r & 1, c));
+                    }
             g.Fill(30, 208, 66, 1, kGrey);
             g.Fill(30, 209, 65, 1, kGrey);
             g.Fill(30, 208, 1, 11, kGrey);
@@ -717,7 +703,7 @@ private:
     static inline int _mode = kOverhead;
     static inline int _plotC = -1, _plotR = -1;
     bool _toggled[8] = {};        // a mode button once pressed
-    std::vector<uint8_t> _mapc;   // far_mapc.mbm
+    OverviewTable _mapc;          // far_mapc.mbm, or a pack's overview.rgb
 };
 
 // The game's plain rectangle fill writes whole video bytes: both edges fall back to the 8-pixel column

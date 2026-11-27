@@ -3,6 +3,7 @@
 #include "ui/TruecolourTest.h"
 
 #include "assets/Megadata.h"
+#include "assets/PackTables.h"
 #include "assets/PicturePack.h"
 #include "assets/Png.h"
 #include "assets/Theme.h"
@@ -958,6 +959,30 @@ int PackPreview(const char* folder, const char* prefix)
         }
         std::error_code ec;
         std::filesystem::remove_all(dir, ec);
+    }
+    // the overview colours (a pack's "overview" table, in RGB): the 960 tile ids as 2 x 2 blocks, 30 to a row, each
+    // pixel 8 x 8 here
+    TableBlobs tables;
+    if (LoadPackTables(folder, tables, err) && tables.count("overview.rgb"))
+    {
+        const OverviewTable overview = MakeOverview(tables["overview.rgb"], {});
+        const int across = 32, rows = (kOverviewTiles + across - 1) / across, k = 8;
+        Target t(across * 2 * k, rows * 2 * k);
+        if (overview.rgb && t.surface)
+        {
+            uint32_t* px = static_cast<uint32_t*>(t.surface->pixels);
+            for (int id = 0; id < kOverviewTiles; ++id)
+                for (int r = 0; r < 2; ++r)
+                    for (int c = 0; c < 2; ++c)
+                        for (int dy = 0; dy < k; ++dy)
+                            for (int dx = 0; dx < k; ++dx)
+                                px[static_cast<size_t>(((id / across) * 2 + r) * k + dy) * (t.surface->pitch / 4) + ((id % across) * 2 + c) * k + dx] = overview.Argb(id, r, c);
+            const std::string out = std::string(prefix) + "-overview.bmp";
+            if (SDL_SaveBMP(t.surface, out.c_str()) == 0)
+                std::printf("wrote %s\n", out.c_str());
+            else
+                failed = 1;
+        }
     }
     SDL_Quit();
     return failed;

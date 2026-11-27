@@ -102,6 +102,7 @@ public:
     int PlayPalette() const { return _playPalette; }
 
     void Fill(int x, int y, int w, int h, int colour);
+    void FillArgb(int x, int y, int w, int h, uint32_t argb); // a rectangle in a plain RGB colour (alpha ignored)
     void Frame(int x, int y, int w, int h, int colour);
     void Bevel(int x, int y, int w, int h, bool raised);   // light 15 / shadow 13 edges
     void Line(int x0, int y0, int x1, int y1, int colour);
