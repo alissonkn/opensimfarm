@@ -8,7 +8,7 @@ Every one of the 848 plain, 200 masked and 105 event tiles is made, in the PNG-s
 engine/TRUECOLOUR.md, and so are placeholder pictures for the interface (windows, buttons, gauges, sprites, the
 full-screen pictures), at 2 pixels per interface unit (--no-pictures leaves them out), and placeholder data tables
 (climate, region map, town layout, message texts, item texts, overview colours; --no-tables leaves them out) and the
-interface theme (16 RGB colours). The families the engine knows by name (ground, water, ditches, roads, fences, gates, trees,
+interface theme (16 RGB colours) and the weather look (a veil for rain and for frost). The families the engine knows by name (ground, water, ditches, roads, fences, gates, trees,
 rocks, bridges, crop pictures, event grounds) are drawn as what they are, connected pieces with the right arms; every
 other tile is coloured by the tile family it belongs to. Each tile carries its number (--no-labels leaves them off),
 so the pack doubles as a map of what the engine uses where. Needs Pillow (pip install pillow).
@@ -683,6 +683,14 @@ THEME = {
 }
 
 
+# How rain and frost look on the map (engine/src/assets/Weather.h): the map is laid under a translucent veil; "strength"
+# is its share, 0 none .. 1 the colour alone. The engine's own defaults, written out so that an author can change them.
+WEATHER = {
+    "rain": {"colour": "#30508c", "strength": 0.30},
+    "frost": {"colour": "#e8f4ff", "strength": 0.45},
+}
+
+
 def overview_colours():
     """Overview map colours by tile family, RGB: a tile's 2 x 2 block is one colour or four (row by row). They are the
     interface theme's own colours, so the map matches the windows around it."""
@@ -796,6 +804,7 @@ def main():
     if not a.no_pictures:
         meta["pictures"] = build_pictures(a.out)
     meta["theme"] = THEME
+    meta["weather"] = WEATHER
     if not a.no_tables:
         meta["tables"] = build_tables()
     with open(os.path.join(a.out, "tilepack.json"), "w") as f:

@@ -124,10 +124,32 @@ How it works: `Gfx::Ui(c)` was the one place a colour number became RGB (through
 pictures pixel by pixel from colour numbers (the map window, the crop icon lists). Without a theme both answer from
 the palette exactly as before. Unlike the palette, the theme does not change with the weather: in the original a rainy
 day recolours palette entry 7 (tan) and with it everything drawn in it; a theme keeps the interface still (weather on
-the map becomes a tint, a later step).
+the map becomes a veil: see Weather).
 
 Code: `assets/Theme.{h,cpp}`. The crop lists' colour numbers are theme colours in a pack. The overview map has its
 own colours in RGB (below).
+
+## Weather
+
+The original shows rain and frost by recolouring one palette entry (colour 7, tan: blue in rain, white in frost), so
+the ground, and everything else drawn in tan, turns blue or white. A pack has no palette, so its map is laid under a
+translucent veil: bluish in rain, pale in frost (a rain day at 32 F or below). Only the map is veiled; the interface
+keeps its theme, and so do the pictures. An optional `weather` block of `tilepack.json` sets each day:
+
+```json
+"weather": { "rain":  { "colour": "#30508c", "strength": 0.30 },
+             "frost": { "colour": "#e8f4ff", "strength": 0.45 } }
+```
+
+`colour` is `#rrggbb` or `#rgb`; `strength` is the veil's share, 0 (none) to 1 (the colour alone). Either can be left
+out of a day (it keeps the engine's own), either day can be left out, `"strength": 0` is no veil, unknown names are
+errors. A pack with no `weather` block gets the engine's own look (a slate-blue 30% in rain, a pale 45% in frost).
+
+How it works: the veil is drawn at the end of `MapView::Draw`, over the part of the world in view (the margin round a
+small world is not veiled) and over the movers' glides; `main.cpp` sets it from the day's weather when the tiles are a
+pack's (`WeatherTint` and `TintOfDay` in `assets/Weather.{h,cpp}`). With the original's own tiles nothing changes: the
+palette swap stays. `opensimfarm --packpreview` also writes `<prefix>-weather.bmp`, the map on a plain day, in rain and
+in frost side by side.
 
 ## Data tables
 
@@ -184,7 +206,8 @@ contains nothing of the original game:
   editor's icons and the button, gauge and weather-vane faces numbered, four full-screen pictures, and numbered
   sprite frames, all at 2 pixels per unit (`--no-pictures` leaves them out). Picture banks (`alltiles.btl#N`) and
   the cursors are not made yet.
-* The interface theme: the engine's own 16 colours written out in `tilepack.json`, ready to change.
+* The interface theme and the weather look: the engine's own 16 colours and rain and frost veils written out in
+  `tilepack.json`, ready to change.
 * The data tables (`--no-tables` leaves them out): synthetic climate (seasons and weather by class), a region map in
   gradients, a dirt-road cross in each town block, 80 message texts (the engine's own English words for the ids it
   raises, found in `game/*.cpp`), 103 item texts, and overview colours by tile family, in RGB from the theme's own
@@ -192,7 +215,8 @@ contains nothing of the original game:
 
 `opensimfarm --packpreview packs/placeholder /tmp/shot` draws a pack with the real map view and interface into
 `/tmp/shot-plain.bmp` (the 848 plain tiles, 32 to a row), `/tmp/shot-masked.bmp` (the 200 masked tiles over ground) and
-`/tmp/shot-pictures.bmp` (every picture, in rows) and `/tmp/shot-overview.bmp` (the overview colours of every tile id): the quickest way for an artist to see a pack the way the engine
+`/tmp/shot-pictures.bmp` (every picture, in rows) and `/tmp/shot-overview.bmp` (the overview colours of every tile id) and `/tmp/shot-weather.bmp` (the map plain, in rain and
+in frost): the quickest way for an artist to see a pack the way the engine
 draws it.
 
 ## Testing
@@ -230,7 +254,7 @@ with none of its files, these remain:
 | What | Where it is read | Next |
 |---|---|---|
 | The archive itself | `Megadata::Open` wants `MEGADATA.IDX/EEA`; `Gfx::Init` wants `egafont.fnt` | open from a pack alone; a font in the pack |
-| Palettes: `simfarm.pal`, `rainpal.pal`, `frostpal.pal`, `sftitle.pal`, `scenario.pal`, `prsnt480.pal` | a pack no longer needs them for the interface (the theme), its tiles and pictures, or the overview map (RGB). Still read: weather (`rainpal`, `frostpal`), the archive's own indexed pictures | weather as a tint |
+| Palettes: `simfarm.pal`, `rainpal.pal`, `frostpal.pal`, `sftitle.pal`, `scenario.pal`, `prsnt480.pal` | a pack no longer needs any: the interface has its theme, tiles and pictures are RGB, the overview is RGB and the weather a veil. Only the archive's own indexed pictures still use them | nothing on the pack path |
 | Picture banks `alltiles.btl`, `wethgrnd.btl`, `wethsky.btl`; `cursors.til` | message box pictures (event ids pick a record), the Expert's faces, weather art | bank sets in `pictures`; cursors |
 | Crop files `CROPS/*.crp` | 16 crops: name, 70 parameters, 14 pictures, help card | a `crops` table; the pictures come from the pack |
 | Help cards `cardN.hc` | the Farm Expert's scripted cards | a JSON card format |
@@ -243,7 +267,6 @@ with none of its files, these remain:
 1. Give the interface's hard-coded layout (window contents, the labels `PictureText.cpp` places) a home in the pack's
    JSON, so that a pack can move things; picture banks and cursors in packs.
 2. Weather as a tint or overlay for truecolour tiles; crop pictures in the pack (`crops.json`).
-3. The last palette on the pack path: weather as a tint on the map (rain and frost are palette swaps in the original).
-4. The rest of the list above, in this order: the crop files, the template farm, picture banks, the help cards,
+3. The rest of the list above, in this order: the crop files, the template farm, picture banks, the help cards,
    sounds, the archive itself; each with placeholder data in the shipped pack until the game runs with none of the
    original's files.

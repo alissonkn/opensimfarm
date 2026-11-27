@@ -173,6 +173,16 @@
     "darkGrey": "#484848",
     "white": "#ffffff"
   },
+  "weather": {
+    "rain": {
+      "colour": "#30508c",
+      "strength": 0.3
+    },
+    "frost": {
+      "colour": "#e8f4ff",
+      "strength": 0.45
+    }
+  },
   "tables": {
     "climate": {
       "rain": [
