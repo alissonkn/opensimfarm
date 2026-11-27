@@ -424,21 +424,36 @@ void MapView::Draw(SDL_Renderer* renderer, int width, int height)
                 }
             }
         }
-    if (!sm)
-        return;
-    // the movers on their way, over the cells
-    for (const auto& g : _glides)
+    if (sm)
     {
-        const MapCell& c = _world->cells[static_cast<size_t>(g.first)];
-        const int o = c.OverlayTile();
-        float px, py;
-        if (!c.HasObject() || o < 0 || o >= 200 || !GlidePosition(g.first, now, px, py))
-            continue;
-        const SDL_Rect dst{ static_cast<int>(std::lround(px * _zoom)) - offX, static_cast<int>(std::lround(py * _zoom)) - offY, size, size };
-        const SDL_Rect src = srcRect(o);
-        SDL_RenderCopy(renderer, maskedTex, &src, &dst);
+        // the movers on their way, over the cells
+        for (const auto& g : _glides)
+        {
+            const MapCell& c = _world->cells[static_cast<size_t>(g.first)];
+            const int o = c.OverlayTile();
+            float px, py;
+            if (!c.HasObject() || o < 0 || o >= 200 || !GlidePosition(g.first, now, px, py))
+                continue;
+            const SDL_Rect dst{ static_cast<int>(std::lround(px * _zoom)) - offX, static_cast<int>(std::lround(py * _zoom)) - offY, size, size };
+            const SDL_Rect src = srcRect(o);
+            SDL_RenderCopy(renderer, maskedTex, &src, &dst);
+        }
     }
-
+    // the weather: the part of the world in view under a translucent veil, the movers included (not the margin round a
+    // small world)
+    if (!_weather.None())
+    {
+        const int side = static_cast<int>(std::lround(MapSize() * 16 * _zoom));
+        const SDL_Rect world{ -offX, -offY, side, side }, view{ 0, 0, width, height };
+        SDL_Rect veil;
+        if (SDL_IntersectRect(&world, &view, &veil))
+        {
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+            SDL_SetRenderDrawColor(renderer, _weather.r, _weather.g, _weather.b, _weather.alpha);
+            SDL_RenderFillRect(renderer, &veil);
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+        }
+    }
 }
 
 // ---------------------------------------------------------------- Modern Render: movers

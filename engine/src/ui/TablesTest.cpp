@@ -6,6 +6,7 @@
 #include "assets/PackTables.h"
 #include "assets/TableFormats.h"
 #include "assets/Theme.h"
+#include "assets/Weather.h"
 #include "core/Json.h"
 #include "game/Editing.h"
 #include "game/GameState.h"
@@ -612,6 +613,10 @@ int TablesSelfTest(const char* packFolder)
             check(LoadTheme(packFolder, theme, hasTheme, e) && hasTheme && theme[12] == std::array<uint8_t, 3>({ 0xC4, 0xC4, 0xC4 }) && theme[15] == std::array<uint8_t, 3>({ 0xFF, 0xFF, 0xFF }) &&
                       theme[0] == std::array<uint8_t, 3>({ 0, 0, 0 }),
                   "  the interface theme: 16 colours, light grey panels, black and white");
+            WeatherLook look;
+            bool hasWeather = false;
+            check(LoadWeatherLook(packFolder, look, hasWeather, e) && hasWeather && look.rain.alpha == 77 && look.rain.b == 0x8C && look.frost.alpha == 115 && look.frost.r == 0xE8,
+                  "  the weather look: a slate-blue veil of 30% in rain, a pale one of 45% in frost");
             const OverviewTable shipped = MakeOverview(pack["overview.rgb"], {});
             check(shipped.rgb && shipped.Argb(40, 0, 0) == 0xFF3A5FD0u && shipped.Argb(20, 1, 1) == 0xFF80502Au,
                   "  the overview colours by family, in RGB: water blue, ground brown");

@@ -7,6 +7,7 @@
 #include "assets/PicturePack.h"
 #include "assets/Png.h"
 #include "assets/Theme.h"
+#include "assets/Weather.h"
 #include "assets/SaveGame.h"
 #include "assets/TilePack.h"
 #include "core/Json.h"
@@ -743,6 +744,108 @@ int TruecolourSelfTest()
         std::filesystem::remove_all(dir, ec);
     }
 
+    // ---------------------------------------------------------------- weather
+    std::printf("-- weather\n");
+    {
+        WeatherLook look;
+        bool present = true;
+        std::string e;
+        const WeatherLook def = DefaultWeatherLook();
+        check(ParseWeatherLook("{ \"format\": 1 }", look, present, e) && !present && look.rain.alpha == def.rain.alpha && look.frost.r == def.frost.r,
+              "no weather block: the engine's own look, not present");
+        check(def.rain.alpha > 0 && def.frost.alpha > def.rain.alpha && def.rain.b > def.rain.r && TintOfDay(def, 0).None() && TintOfDay(def, 1).alpha == def.rain.alpha &&
+                  TintOfDay(def, 2).alpha == def.frost.alpha && TintOfDay(def, 3).None() && TintOfDay(def, -1).None(),
+              "the default look: a blue veil in rain, a stronger pale one in frost, none on a plain day (or any other kind)");
+        check(ParseWeatherLook("{ \"format\": 1, \"weather\": { \"rain\": { \"colour\": \"#102030\", \"strength\": 0.5 } } }", look, present, e) && present && look.rain.r == 0x10 &&
+                  look.rain.g == 0x20 && look.rain.b == 0x30 && look.rain.alpha == 128 && look.frost.alpha == def.frost.alpha,
+              "a rain day given: colour and strength (0.5 is 128 of 255); frost keeps the engine's own");
+        check(ParseWeatherLook("{ \"format\": 1, \"weather\": { \"frost\": { \"strength\": 0 }, \"rain\": { \"strength\": 1 } } }", look, present, e) && look.frost.None() &&
+                  look.rain.alpha == 255 && look.rain.r == def.rain.r,
+              "strength 0 is no veil, 1 is the colour alone; a day with only a strength keeps its colour");
+        auto badWeather = [&](const std::string& body, const std::string& why) {
+            WeatherLook x;
+            bool p = true;
+            std::string er;
+            const bool r = !ParseWeatherLook("{ \"format\": 1, \"weather\": " + body + " }", x, p, er) && !er.empty() && !p;
+            check(r, "rejects " + why + (r ? " (" + er + ")" : ""));
+        };
+        badWeather("5", "a weather block that is not an object");
+        badWeather("{ \"snow\": { \"strength\": 0.5 } }", "a kind of day the engine does not have");
+        badWeather("{ \"rain\": 5 }", "a day that is not an object");
+        badWeather("{ \"rain\": { \"alpha\": 0.5 } }", "a name inside a day that is not known");
+        badWeather("{ \"rain\": { \"strength\": 1.5 } }", "a strength above 1");
+        badWeather("{ \"rain\": { \"strength\": -0.1 } }", "a negative strength");
+        badWeather("{ \"rain\": { \"strength\": \"half\" } }", "a strength that is text");
+        badWeather("{ \"rain\": { \"colour\": \"blue\" } }", "a colour name");
+        badWeather("{ \"rain\": { \"colour\": 5 } }", "a colour that is not text");
+
+        // the map under the veil
+        auto blend = [](uint32_t c, const WeatherTint& t) {
+            auto mix = [&](int src, int tint) { return (src * (255 - t.alpha) + tint * t.alpha) / 255; };
+            return 0xFF000000u | (static_cast<uint32_t>(mix((c >> 16) & 255, t.r)) << 16) | (static_cast<uint32_t>(mix((c >> 8) & 255, t.g)) << 8) | static_cast<uint32_t>(mix(c & 255, t.b));
+        };
+        for (const bool modern : { false, true })
+        {
+            Sheets sh = MakeSheets(32);
+            TilePackSheets pack;
+            std::string pe;
+            ParseTilePack(PackJson(32), ReadSheet, &sh, pack, pe);
+            MapGraphics gfx;
+            gfx.plain = pack.plain;
+            gfx.masked = pack.masked;
+            World world;
+            world.Resize(8);
+            for (int x = 0; x < 8; ++x)
+                for (int y = 0; y < 8; ++y)
+                    world.At(x, y).base = static_cast<uint16_t>(x * 8 + y);
+            world.At(2, 3).base |= 0x0800; // an object: the white square of masked tile 0
+            world.At(2, 3).overlay = 0x350;
+            Target t(400, 400);
+            MapView v;
+            v.Init(t.renderer, gfx);
+            v.SetWorld(&world);
+            v.SetModern(modern);
+            v.SetCamera(0, 0);
+            const std::string label = modern ? "Modern Render: " : "classic: ";
+            const WeatherTint rain{ 0, 0, 255, 128 }, frost{ 240, 248, 255, 120 };
+            auto draw = [&] {
+                t.Clear(0, 255, 0);
+                v.Draw(t.renderer, 400, 400);
+                SDL_RenderPresent(t.renderer);
+            };
+            // a view larger than the 256 x 256 world: the world is centred, 72 pixels from each side
+            const int o = 72, cell = 32;
+            auto centre = [&](int cx, int cy) { return t.At(o + cx * cell + cell / 2, o + cy * cell + cell / 2); };
+            draw();
+            const uint32_t plain10 = centre(1, 2), plainWhite = centre(2, 3);
+            check(Near(plain10, PlainColour(10)) && Near(plainWhite, kTestWhite) && t.At(10, 10) == 0xFF00FF00u, label + "without a veil the cells show their tiles, the margin shows what was behind");
+            v.SetWeatherTint(rain);
+            draw();
+            check(Near(centre(1, 2), blend(plain10, rain), 3) && Near(centre(2, 3), blend(plainWhite, rain), 3) && Near(centre(0, 0), blend(PlainColour(0), rain), 3),
+                  label + "rain: a bluish veil over the ground and over an object");
+            check(t.At(10, 10) == 0xFF00FF00u && t.At(o + 8 * cell + 20, 200) == 0xFF00FF00u && t.At(200, o - 5) == 0xFF00FF00u && t.At(200, o + 8 * cell + 5) == 0xFF00FF00u,
+                  label + "the margin round the world is not veiled");
+            check(!Near(centre(1, 2), plain10, 6), label + "the veil visibly changes the picture");
+            v.SetWeatherTint(frost);
+            draw();
+            check(Near(centre(1, 2), blend(plain10, frost), 3) && Near(centre(0, 0), blend(PlainColour(0), frost), 3), label + "frost: a paler veil");
+            v.SetWeatherTint(WeatherTint{});
+            draw();
+            check(centre(1, 2) == plain10 && centre(2, 3) == plainWhite, label + "a plain day again: exactly the tiles");
+            v.SetWeatherTint(WeatherTint{ 10, 20, 30, 0 });
+            draw();
+            check(centre(1, 2) == plain10, label + "a veil of strength 0 changes nothing");
+            // a view smaller than the world: the veil covers the part in view, to the edge
+            v.SetWeatherTint(rain);
+            t.Clear(0, 255, 0);
+            v.SetCamera(0, 0);
+            v.Draw(t.renderer, 100, 100);
+            SDL_RenderPresent(t.renderer);
+            check(Near(t.At(5, 5), blend(PlainColour(0), rain), 3) && Near(t.At(99, 99), blend(PlainColour(3 * 8 + 3), rain), 3) && t.At(150, 150) == 0xFF00FF00u,
+                  label + "a view smaller than the world: veiled to its edge, nothing beyond");
+        }
+    }
+
     // ---------------------------------------------------------------- the original (indexed) tiles still draw as before
     std::printf("-- indexed tiles (the original art's path, on synthetic tiles)\n");
     {
@@ -959,6 +1062,50 @@ int PackPreview(const char* folder, const char* prefix)
         }
         std::error_code ec;
         std::filesystem::remove_all(dir, ec);
+    }
+    // the weather: the first 256 tiles of the plain sheet (16 x 16 cells) on a plain day, in rain and in frost, side by
+    // side, each with the pack's own weather look
+    if (gfx.TrueColour())
+    {
+        WeatherLook look;
+        bool hasWeather = false;
+        std::string we;
+        if (!LoadWeatherLook(folder, look, hasWeather, we))
+        {
+            std::printf("%s\n", we.c_str());
+            failed = 1;
+        }
+        else
+        {
+            World world;
+            world.Resize(16);
+            for (int x = 0; x < 16; ++x)
+                for (int y = 0; y < 16; ++y)
+                    world.At(x, y).base = static_cast<uint16_t>(y * 16 + x);
+            const int cell = 32, side = 16 * cell;
+            Target t(3 * side + 8, side);
+            MapView v;
+            if (t.renderer && v.Init(t.renderer, gfx))
+            {
+                v.SetWorld(&world);
+                v.SetCamera(0, 0);
+                t.Clear(0x20, 0x20, 0x20);
+                for (int kind = 0; kind < 3; ++kind)
+                {
+                    v.SetWeatherTint(TintOfDay(look, kind));
+                    SDL_Rect port{ kind * (side + 4), 0, side, side };
+                    SDL_RenderSetViewport(t.renderer, &port);
+                    v.Draw(t.renderer, side, side);
+                }
+                SDL_RenderSetViewport(t.renderer, nullptr);
+                SDL_RenderPresent(t.renderer);
+                const std::string out = std::string(prefix) + "-weather.bmp";
+                if (SDL_SaveBMP(t.surface, out.c_str()) == 0)
+                    std::printf("wrote %s (plain, rain, frost%s)\n", out.c_str(), hasWeather ? "; the pack's own look" : "; the engine's look");
+                else
+                    failed = 1;
+            }
+        }
     }
     // the overview colours (a pack's "overview" table, in RGB): the 960 tile ids as 2 x 2 blocks, 30 to a row, each
     // pixel 8 x 8 here

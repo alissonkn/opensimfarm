@@ -19,6 +19,7 @@
 #include "assets/PackTables.h"
 #include "assets/PicturePack.h"
 #include "assets/Theme.h"
+#include "assets/Weather.h"
 #include "assets/TilePack.h"
 #include "ui/TablesTest.h"
 #include "ui/TruecolourTest.h"
@@ -2658,6 +2659,7 @@ static std::optional<std::string> AskPlayerForGameFolder(std::string problem, co
 static PicturePack g_picturePack;
 static Theme g_theme; // its interface colours, when it has a theme
 static bool g_hasTheme = false;
+static WeatherLook g_weatherLook = DefaultWeatherLook(); // how rain and frost look on its map
 
 int main(int argc, char** argv)
 {
@@ -3732,6 +3734,14 @@ int main(int argc, char** argv)
                     g_hasTheme = true;
                     std::fprintf(stderr, "tile pack %s: interface theme\n", pack);
                 }
+                bool hasWeather = false;
+                if (!LoadWeatherLook(pack, g_weatherLook, hasWeather, packError))
+                {
+                    std::fprintf(stderr, "tile pack %s: weather not used: %s\n", pack, packError.c_str());
+                    g_weatherLook = DefaultWeatherLook();
+                }
+                else if (hasWeather)
+                    std::fprintf(stderr, "tile pack %s: weather\n", pack);
                 TableBlobs tables;
                 if (!LoadPackTables(pack, tables, packError))
                     std::fprintf(stderr, "tile pack %s: tables not used: %s\n", pack, packError.c_str());
@@ -4524,8 +4534,11 @@ int main(int argc, char** argv)
             if (sig != cropArtSig)
             {
                 cropArtSig = sig;
-                // (a tile pack's tiles are truecolour: no palette and no crop pictures to patch into them yet)
-                if (!gfx.TrueColour())
+                // (a tile pack's tiles are truecolour: no palette to swap and no crop pictures to patch into them yet; its
+                // weather is a veil over the map)
+                if (gfx.TrueColour())
+                    view.SetWeatherTint(TintOfDay(g_weatherLook, playPalette));
+                else
                 {
                     MapGraphics patched = gfx;
                     static const char* const palNames[3] = { "simfarm.pal", "rainpal.pal", "frostpal.pal" };
