@@ -1,0 +1,22 @@
+{
+  "format": 1,
+  "name": "OpenSimFarm placeholder",
+  "tileSize": 32,
+  "sheets": {
+    "plain": {
+      "file": "plain.png",
+      "count": 848,
+      "columns": 32
+    },
+    "masked": {
+      "file": "masked.png",
+      "count": 200,
+      "columns": 20
+    },
+    "events": {
+      "file": "events.png",
+      "count": 105,
+      "columns": 15
+    }
+  }
+}
