@@ -1403,6 +1403,11 @@ def build(size, labels):
         pic = art.marker(kind, size)
         for k in range(4):
             plain[603 + 4 * i + k] = pic.crop(((k % 2) * size, (k // 2) * size, (k % 2 + 1) * size, (k // 2 + 1) * size))
+    # the condition badges (a 2 x 2 picture each, tiles 635 .. 650): high, fair, poor, bad, in that order
+    for i, level in enumerate((3, 2, 1, 0)):
+        pic = art.quality_badge(level, size)
+        for k in range(4):
+            plain[635 + 4 * i + k] = pic.crop(((k % 2) * size, (k // 2) * size, (k % 2 + 1) * size, (k // 2 + 1) * size))
     # the weather: the four seasons (200..203) and the day's sky (204..208)
     for i, kind in enumerate(("winter", "spring", "summer", "autumn", "clear", "fair", "cloudy", "rain", "snow")):
         plain[200 + i] = art.weather_icon(kind, size)

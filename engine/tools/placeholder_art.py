@@ -835,3 +835,38 @@ def weather_icon(kind, s):
             c.line([(x - 0.06, y), (x + 0.06, y)], (0x60, 0x80, 0xD0), 0.04)
             c.line([(x, y - 0.06), (x, y + 0.06)], (0x60, 0x80, 0xD0), 0.04)
     return c.done()
+
+
+# ---------------------------------------------------------------------------------------------------- quality badges
+
+def star(c, x, y, r, fill, edge):
+    pts = []
+    for i in range(10):
+        a = -math.pi / 2 + i * math.pi / 5
+        rr = r if i % 2 == 0 else r * 0.42
+        pts.append((x + rr * math.cos(a), y + rr * math.sin(a)))
+    c.poly(pts, edge)
+    inner = [(x + (px - x) * 0.8, y + (py - y) * 0.8) for px, py in pts]
+    c.poly(inner, fill)
+
+
+def quality_badge(level, s):
+    """A crop's (or animal's, or machine's) condition, two tiles square: 3 high, 2 fair, 1 poor, 0 bad."""
+    c = Cv(2, 2, s)
+    col = {3: (0x3C, 0xA4, 0x48), 2: (0xE0, 0xC0, 0x30), 1: (0xE0, 0x86, 0x24), 0: (0xC8, 0x30, 0x2C)}[level]
+    c.rect(0, 0, 2, 2, (0xC4, 0xC4, 0xC4))
+    c.rect(0.08, 0.08, 1.92, 1.92, (0x20, 0x20, 0x20))
+    c.rect(0.14, 0.14, 1.86, 1.86, col)
+    c.rect(0.14, 0.14, 1.86, 0.28, shade(col, 1.3))
+    W, edge = (0xFF, 0xFF, 0xFF), shade(col, 0.5)
+    if level == 0:
+        c.line([(0.5, 0.5), (1.5, 1.5)], W, 0.2)
+        c.line([(1.5, 0.5), (0.5, 1.5)], W, 0.2)
+    else:
+        pos = {3: [(0.5, 0.95), (1.0, 0.95), (1.5, 0.95)], 2: [(0.7, 1.0), (1.3, 1.0)], 1: [(1.0, 1.0)]}[level]
+        r = 0.27 if level == 3 else 0.34 if level == 2 else 0.42
+        if level == 3:
+            pos = [(0.55, 1.15), (1.0, 0.85), (1.45, 1.15)]
+        for x, y in pos:
+            star(c, x, y, r, W, edge)
+    return c.done()
