@@ -102,6 +102,33 @@ OPENSIMFARM_TILEPACK=/path/to/pack opensimfarm /path/to/SimFarm
 A development aid for now: the pack's tiles replace the archive's (the rest still comes from the archive). A pack that
 cannot be read is reported on stderr and the archive's tiles are used.
 
+## Interface theme
+
+A pack does not need a palette. Everything the interface draws with a colour (fills, frames, bevels, lines, text, the
+plot grid, the overview map's legend) asks for one of 16 named colours by number (`enum Colour` in `ui/Gfx.h`); the
+original gives each a palette entry, a pack gives each an RGB value, in an optional `theme` block of `tilepack.json`:
+
+```json
+"theme": { "black": "#000000", "yellow": "#ffe14d", "sky": "#55aaff", "red": "#d03030", "pink": "#f080c0",
+           "navy": "#1c2a7a", "blue": "#3a5fd0", "tan": "#d8c08a", "green": "#3f9f3f", "darkGreen": "#1f6a2e",
+           "brown": "#80502a", "colour11": "#70d8d8", "lightGrey": "#c4c4c4", "grey": "#868686",
+           "darkGrey": "#484848", "white": "#ffffff" }
+```
+
+Colours are `#rrggbb` or `#rgb`; one left out takes the engine's own (`DefaultTheme`), a name that is not one of the 16
+is an error (a typo is not a silent default). `colour11` is the one the engine never names. The panels are
+`lightGrey` with `white` and `grey` bevel edges and `black` text, so keep those three apart.
+
+How it works: `Gfx::Ui(c)` was the one place a colour number became RGB (through the palette); with a theme set
+(`Gfx::SetTheme`) it answers from the theme, and so does `Gfx::Argb16(i)`, the same for the places that draw
+pictures pixel by pixel from colour numbers (the map window, the crop icon lists). Without a theme both answer from
+the palette exactly as before. Unlike the palette, the theme does not change with the weather: in the original a rainy
+day recolours palette entry 7 (tan) and with it everything drawn in it; a theme keeps the interface still (weather on
+the map becomes a tint, a later step).
+
+Code: `assets/Theme.{h,cpp}`. The map window's and the crop lists' colour numbers are theme colours in a pack, so the
+overview table's indices (below) name theme colours until it becomes RGB.
+
 ## Data tables
 
 Six of the game's data tables can be written as JSON, in the `tables` block of the same `tilepack.json`
@@ -148,6 +175,7 @@ contains nothing of the original game:
   editor's icons and the button, gauge and weather-vane faces numbered, four full-screen pictures, and numbered
   sprite frames, all at 2 pixels per unit (`--no-pictures` leaves them out). Picture banks (`alltiles.btl#N`) and
   the cursors are not made yet.
+* The interface theme: the engine's own 16 colours written out in `tilepack.json`, ready to change.
 * The data tables (`--no-tables` leaves them out): synthetic climate (seasons and weather by class), a region map in
   gradients, a dirt-road cross in each town block, 80 message texts (the engine's own English words for the ids it
   raises, found in `game/*.cpp`), 103 item texts, and overview colours by tile family.
@@ -192,7 +220,7 @@ with none of its files, these remain:
 | What | Where it is read | Next |
 |---|---|---|
 | The archive itself | `Megadata::Open` wants `MEGADATA.IDX/EEA`; `Gfx::Init` wants `egafont.fnt` | open from a pack alone; a font in the pack |
-| Palettes: `simfarm.pal`, `rainpal.pal`, `frostpal.pal`, `sftitle.pal`, `scenario.pal`, `prsnt480.pal` | tile colours, weather, the indexed pictures, the overview map | JSON palettes; the overview and region map need one |
+| Palettes: `simfarm.pal`, `rainpal.pal`, `frostpal.pal`, `sftitle.pal`, `scenario.pal`, `prsnt480.pal` | a pack no longer needs them for the interface (the theme) or its tiles and pictures. Still read: weather (`rainpal`, `frostpal`), the start screen's map preview (`scenario.pal`), the archive's own indexed pictures | weather as a tint; RGB overview colours; the preview in RGB |
 | Picture banks `alltiles.btl`, `wethgrnd.btl`, `wethsky.btl`; `cursors.til` | message box pictures (event ids pick a record), the Expert's faces, weather art | bank sets in `pictures`; cursors |
 | Crop files `CROPS/*.crp` | 16 crops: name, 70 parameters, 14 pictures, help card | a `crops` table; the pictures come from the pack |
 | Help cards `cardN.hc` | the Farm Expert's scripted cards | a JSON card format |
@@ -205,6 +233,8 @@ with none of its files, these remain:
 1. Give the interface's hard-coded layout (window contents, the labels `PictureText.cpp` places) a home in the pack's
    JSON, so that a pack can move things; picture banks and cursors in packs.
 2. Weather as a tint or overlay for truecolour tiles; crop pictures in the pack (`crops.json`).
-3. The rest of the list above, in this order: palettes (the others need them), the crop files, the template farm,
-   picture banks, the help cards, sounds, the archive itself; each with placeholder data in the shipped pack until the
-   game runs with none of the original's files.
+3. Palettes out of the pack path: weather as a tint on the map, the overview table as RGB (a typed table read by its
+   two consumers, not a blob), the start screen's preview in RGB.
+4. The rest of the list above, in this order: the crop files, the template farm, picture banks, the help cards,
+   sounds, the archive itself; each with placeholder data in the shipped pack until the game runs with none of the
+   original's files.

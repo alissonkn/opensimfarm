@@ -155,6 +155,24 @@
       }
     ]
   },
+  "theme": {
+    "black": "#000000",
+    "yellow": "#ffe14d",
+    "sky": "#55aaff",
+    "red": "#d03030",
+    "pink": "#f080c0",
+    "navy": "#1c2a7a",
+    "blue": "#3a5fd0",
+    "tan": "#d8c08a",
+    "green": "#3f9f3f",
+    "darkGreen": "#1f6a2e",
+    "brown": "#80502a",
+    "colour11": "#70d8d8",
+    "lightGrey": "#c4c4c4",
+    "grey": "#868686",
+    "darkGrey": "#484848",
+    "white": "#ffffff"
+  },
   "tables": {
     "climate": {
       "rain": [

@@ -7,7 +7,8 @@ drawn from nothing but the engine's own tile tables (nothing of the original gam
 Every one of the 848 plain, 200 masked and 105 event tiles is made, in the PNG-sheet format of
 engine/TRUECOLOUR.md, and so are placeholder pictures for the interface (windows, buttons, gauges, sprites, the
 full-screen pictures), at 2 pixels per interface unit (--no-pictures leaves them out), and placeholder data tables
-(climate, region map, town layout, message texts, item texts, overview colours; --no-tables leaves them out). The families the engine knows by name (ground, water, ditches, roads, fences, gates, trees,
+(climate, region map, town layout, message texts, item texts, overview colours; --no-tables leaves them out) and the
+interface theme (16 RGB colours). The families the engine knows by name (ground, water, ditches, roads, fences, gates, trees,
 rocks, bridges, crop pictures, event grounds) are drawn as what they are, connected pieces with the right arms; every
 other tile is coloured by the tile family it belongs to. Each tile carries its number (--no-labels leaves them off),
 so the pack doubles as a map of what the engine uses where. Needs Pillow (pip install pillow).
@@ -698,6 +699,15 @@ def overview_colours():
     return {"default": [8, 8, 8, 8], "ranges": [{"from": a, "to": b, "colours": c} for a, b, c in ranges]}
 
 
+# The interface's 16 colours as RGB (engine/src/assets/Theme.h): what the interface draws fills, frames, text and the
+# overview map's legend with. These are the engine's own defaults, written out so that a pack's author can change them.
+THEME = {
+    "black": "#000000", "yellow": "#ffe14d", "sky": "#55aaff", "red": "#d03030", "pink": "#f080c0", "navy": "#1c2a7a",
+    "blue": "#3a5fd0", "tan": "#d8c08a", "green": "#3f9f3f", "darkGreen": "#1f6a2e", "brown": "#80502a",
+    "colour11": "#70d8d8", "lightGrey": "#c4c4c4", "grey": "#868686", "darkGrey": "#484848", "white": "#ffffff",
+}
+
+
 def build_tables():
     return {
         "climate": climate_tables(),
@@ -782,6 +792,7 @@ def main():
     }
     if not a.no_pictures:
         meta["pictures"] = build_pictures(a.out)
+    meta["theme"] = THEME
     if not a.no_tables:
         meta["tables"] = build_tables()
     with open(os.path.join(a.out, "tilepack.json"), "w") as f:
