@@ -1081,20 +1081,40 @@ def region_grids():
     return rows
 
 
+CIVIC = ["hall", "church", "store", "bank", "school", "diner", "clinic", "mill"]  # tiles 322 + 2 * index (2 x 2)
+
+
 def town_blocks():
-    """15 town plot templates, 8 x 8 each: bare ground (15) with a dirt-road cross (the engine joins the pieces); the
-    airport (type 5) a paved runway across the ground."""
+    """15 town plot templates, 8 x 8 each (rows of tile ids; the engine joins the dirt pieces and, as the town grows, swaps
+    the house spots for houses of the town's level). Each has a dirt-road cross and four 2 x 2 spots, a house (252) or one of
+    the town centre's buildings; the event ground (type 4) is a plaza of the 7 x 5 event tiles, the airport (type 5) a paved
+    runway across the ground."""
+    def spot(b, row, col, first):
+        b[row][col], b[row][col + 1], b[row + 1][col], b[row + 1][col + 1] = first, first + 1, first + 40, first + 41
+
+    civic_of = {0: (0, 1, 2, 3), 8: (2, 5, None, None), 12: (4, 6, None, None), 13: (7, 5, None, None), 14: (3, 2, None, None)}
     blocks = []
     for t in range(15):
         b = [[15] * 8 for _ in range(8)]
         if t == 5:
             for i in range(8):
                 b[3][i] = 151
+        elif t == 4:
+            for r in range(5):
+                for c in range(7):
+                    b[1 + r][c] = 483 + 7 * r + c
+            for k in range(8):
+                b[k][7] = 161
+                b[7][k] = 162
+            b[7][7] = 171
         else:
             for k in range(8):
                 b[k][3] = 161       # north-south dirt piece
                 b[3][k] = 162       # east-west dirt piece
             b[3][3] = 171           # the crossing
+            kinds = civic_of.get(t, (None,) * 4)
+            for (row, col), kind in zip(((0, 0), (0, 4), (4, 0), (4, 4)), kinds):
+                spot(b, row, col, 252 if kind is None else 322 + 2 * kind)
         blocks.append(b)
     return blocks
 
@@ -1391,7 +1411,7 @@ def build(size, labels):
         for k in range(w * h):  # a building's tiles are numbered along x first
             plain[first + k] = picture.crop(((k % w) * size, (k // w) * size, (k % w + 1) * size, (k // w + 1) * size))
     # the farmhouse (a 2 x 2 picture at three richness levels: tiles b, b + 1, b + 40, b + 41) and its yard
-    for b, tier in ((252, 0), (272, 1), (274, 2)):
+    for b, tier in ((272, 1), (274, 2)):
         pic = art.house(tier, size)
         for k, off in enumerate((0, 1, 40, 41)):
             plain[b + off] = pic.crop(((k % 2) * size, (k // 2) * size, (k % 2 + 1) * size, (k // 2 + 1) * size))
@@ -1411,6 +1431,21 @@ def build(size, labels):
     # the weather: the four seasons (200..203) and the day's sky (204..208)
     for i, kind in enumerate(("winter", "spring", "summer", "autumn", "clear", "fair", "cloudy", "rain", "snow")):
         plain[200 + i] = art.weather_icon(kind, size)
+    plain[175], plain[176] = art.trough(size, False), art.trough(size, True)  # 176 holds water (Shop.cpp, Editing.cpp)
+    plain[9], plain[194], plain[198], plain[209] = art.slider_track(size), art.slider_thumb(size), art.chart_today(size), art.chart_fallow(size)
+    for pic, tiles in ((art.plane_parked(size), (71, 72, 111, 112)), (art.plane_wreck(size), (73, 74, 113, 114))):
+        for k, t in enumerate(tiles):
+            plain[t] = pic.crop(((k % 2) * size, (k // 2) * size, (k % 2 + 1) * size, (k // 2 + 1) * size))
+    # the town: seven houses (the engine picks a style by the town's level: tiles 252 + 2 * style, + 1, + 40, + 41) and
+    # eight buildings of its centre (322 + 2 * kind, ..., + 40, + 41)
+    for style in range(7):
+        pic = art.town_house(style, size)
+        for k, off in enumerate((0, 1, 40, 41)):
+            plain[252 + 2 * style + off] = pic.crop(((k % 2) * size, (k // 2) * size, (k % 2 + 1) * size, (k // 2 + 1) * size))
+    for kind, name in enumerate(CIVIC):
+        pic = art.civic(name, size)
+        for k, off in enumerate((0, 1, 40, 41)):
+            plain[322 + 2 * kind + off] = pic.crop(((k % 2) * size, (k // 2) * size, (k % 2 + 1) * size, (k // 2 + 1) * size))
     plain[120] = art.pump(size)
     plain[481] = art.water_tower(size)
     plain[0x95] = art.water_tower(size, broken=True)

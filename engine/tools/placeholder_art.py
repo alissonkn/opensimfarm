@@ -870,3 +870,202 @@ def quality_badge(level, s):
         for x, y in pos:
             star(c, x, y, r, W, edge)
     return c.done()
+
+
+# ------------------------------------------------------------------------------------------------------ the trough
+
+def trough(s, water):
+    """A water trough on ground (tile 176 holds water, 175 is empty): a wooden box, filled with water or dry and bare."""
+    c = Cv(1, 1, s)
+    c.rect(0, 0, 1, 1, ground(8))
+    c.shadow(0.06, 0.55, 0.98, 0.95, 60)
+    c.rect(0.08, 0.25, 0.92, 0.78, (0x6A, 0x44, 0x22))
+    c.rect(0.08, 0.25, 0.92, 0.32, (0xA8, 0x78, 0x42))
+    c.rect(0.14, 0.34, 0.86, 0.68, (0x2A, 0x1C, 0x12) if not water else (0x1E, 0x5A, 0xA8))
+    if water:
+        c.rect(0.14, 0.34, 0.86, 0.6, (0x4C, 0xA0, 0xF0))
+        for y in (0.42, 0.52):
+            c.line([(0.2, y), (0.35, y - 0.04), (0.5, y), (0.65, y - 0.04), (0.8, y)], (0xFF, 0xFF, 0xFF), 0.03)
+        c.ellipse(0.2, 0.37, 0.3, 0.43, (0xFF, 0xFF, 0xFF, 160))
+    else:
+        c.rect(0.14, 0.34, 0.86, 0.68, (0x8A, 0x62, 0x3C))
+        c.rect(0.14, 0.34, 0.86, 0.4, (0x4A, 0x30, 0x1A))
+        for x, y in ((0.3, 0.55), (0.55, 0.5), (0.7, 0.6)):
+            c.line([(x, y), (x + 0.1, y + 0.03)], (0xC8, 0xA8, 0x60), 0.025)
+        c.line([(0.25, 0.62), (0.4, 0.5), (0.5, 0.64)], (0x4A, 0x30, 0x1A), 0.02)
+    c.rect(0.08, 0.7, 0.92, 0.78, (0x50, 0x34, 0x1A))
+    for x in (0.12, 0.84):
+        c.rect(x, 0.76, x + 0.06, 0.9, (0x40, 0x28, 0x14))
+    return c.done()
+
+
+# --------------------------------------------------------------------------------------------- interface chart tiles
+
+def slider_track(s):
+    c = Cv(1, 1, s)
+    c.rect(0, 0, 1, 1, (0xC4, 0xC4, 0xC4))
+    c.rect(0, 0.4, 1, 0.6, (0x48, 0x48, 0x48))
+    c.rect(0, 0.46, 1, 0.58, (0x86, 0x86, 0x86))
+    return c.done()
+
+
+def slider_thumb(s):
+    c = Cv(1, 1, s)
+    c.rect(0, 0, 1, 1, (0xC4, 0xC4, 0xC4))
+    c.rect(0.2, 0.1, 0.8, 0.9, (0x20, 0x20, 0x20))
+    c.rect(0.26, 0.16, 0.74, 0.84, (0xC4, 0xC4, 0xC4))
+    c.rect(0.26, 0.16, 0.74, 0.24, (0xFF, 0xFF, 0xFF))
+    c.rect(0.26, 0.76, 0.74, 0.84, (0x86, 0x86, 0x86))
+    c.line([(0.5, 0.3), (0.5, 0.7)], (0x48, 0x48, 0x48), 0.05)
+    return c.done()
+
+
+def chart_today(s):
+    """Under today's marker in a field's chart (0xC6): a small calendar leaf."""
+    c = Cv(1, 1, s)
+    c.rect(0, 0, 1, 1, (0xC4, 0xC4, 0xC4))
+    c.rect(0.18, 0.15, 0.82, 0.88, (0x20, 0x20, 0x20))
+    c.rect(0.22, 0.2, 0.78, 0.84, (0xFF, 0xFF, 0xF4))
+    c.rect(0.22, 0.2, 0.78, 0.38, (0xC8, 0x30, 0x2C))
+    for y in (0.5, 0.62, 0.74):
+        c.line([(0.3, y), (0.7, y)], (0x70, 0x70, 0x70), 0.04)
+    return c.done()
+
+
+def chart_fallow(s):
+    """A fallow stretch in a field's chart (0xD1): bare furrows."""
+    c = Cv(1, 1, s)
+    c.rect(0, 0, 1, 1, (0xB8, 0x98, 0x68))
+    for k in range(4):
+        y = 0.14 + 0.24 * k
+        c.line([(0, y), (1, y)], (0x7C, 0x5A, 0x38), 0.07)
+        c.line([(0, y + 0.07), (1, y + 0.07)], (0xD8, 0xBC, 0x88), 0.03)
+    return c.done()
+
+
+# ------------------------------------------------------------------------------------------------------ the airport
+
+def plane_parked(s):
+    """The parked crop duster, a 2 x 2 picture on the apron (tiles 71, 72 over 111, 112)."""
+    c = Cv(2, 2, s)
+    c.rect(0, 0, 2, 2, (0x70, 0x72, 0x78))
+    for x in (0.3, 1.0, 1.7):
+        c.line([(x, 1.9), (x, 1.75)], (0xE8, 0xD8, 0x50), 0.04)
+    c.shadow(0.2, 0.5, 1.95, 1.95, 70)
+    c.rect(0.1, 0.65, 1.9, 1.08, (0xE8, 0xC8, 0x30))
+    c.line([(0.1, 0.86), (1.9, 0.86)], (0xB8, 0x98, 0x10), 0.03)
+    c.ellipse(0.82, 0.2, 1.18, 1.85, (0xC8, 0x32, 0x28), (0x80, 0x1C, 0x14), 0.03)
+    c.ellipse(0.9, 0.7, 1.1, 1.0, GLASS)
+    c.rect(0.65, 1.55, 1.35, 1.7, (0xE8, 0xC8, 0x30))
+    c.rect(0.95, 0.12, 1.05, 0.3, (0x30, 0x30, 0x34))
+    c.line([(0.6, 0.2), (1.4, 0.2)], (0x30, 0x30, 0x34), 0.05)
+    return c.done()
+
+
+def plane_wreck(s):
+    """A crashed crop duster (tiles 73, 74 over 113, 114): broken wings and a scorch mark."""
+    c = Cv(2, 2, s)
+    c.rect(0, 0, 2, 2, (0x70, 0x72, 0x78))
+    c.ellipse(0.2, 0.3, 1.8, 1.8, (0x22, 0x1E, 0x1C, 200))
+    c.poly([(0.15, 0.7), (0.7, 0.9), (0.6, 1.1), (0.1, 0.95)], (0xB8, 0x98, 0x20))
+    c.poly([(1.9, 0.6), (1.35, 0.95), (1.45, 1.15), (1.95, 0.85)], (0xB8, 0x98, 0x20))
+    c.poly([(0.75, 0.55), (1.2, 0.5), (1.3, 1.5), (0.85, 1.6)], (0x80, 0x2A, 0x22))
+    c.poly([(0.9, 1.55), (1.5, 1.7), (1.4, 1.85), (0.8, 1.75)], (0x40, 0x40, 0x44))
+    for x, y in ((0.5, 0.45), (1.6, 0.5), (1.1, 0.3)):
+        c.ellipse(x - 0.12, y - 0.12, x + 0.12, y + 0.12, (0x50, 0x50, 0x54, 180))
+    c.line([(0.4, 1.3), (0.6, 1.5)], (0xE0, 0x60, 0x20), 0.05)
+    return c.done()
+
+
+# ----------------------------------------------------------------------------------------------------- the town
+
+TOWN_HOUSES = [  # (wall, roof, storeys, extras): from a hut up to a mansion, seven richness levels
+    ((0xA8, 0x7C, 0x48), (0x8C, 0x6C, 0x30), 1, ""), ((0xE0, 0xD0, 0xB0), (0x9C, 0x4A, 0x34), 1, ""),
+    ((0xC8, 0xDC, 0xE8), (0x58, 0x5E, 0x6C), 1, "chimney"), ((0xE8, 0xC8, 0x90), (0xB0, 0x38, 0x2C), 2, "chimney"),
+    ((0xB8, 0x58, 0x3C), (0x44, 0x48, 0x54), 2, "chimney"), ((0xF0, 0xEC, 0xE0), (0x38, 0x68, 0x58), 2, "porch"),
+    ((0xE8, 0xE0, 0xC8), (0x58, 0x38, 0x68), 2, "porch"),
+]
+
+
+def town_house(style, s):
+    """A house of the town, two tiles square, on lawn: `style` 0 (a hut) .. 6 (a mansion)."""
+    wall, roof, storeys, extra = TOWN_HOUSES[style]
+    c = Cv(2, 2, s)
+    lawn(c, 2, 2, 20 + style)
+    c.shadow(0.1, 1.35, 1.95, 1.98, 70)
+    wtop = 0.7 if storeys == 2 else 0.95
+    c.rect(0.15, wtop, 1.85, 1.85, wall)
+    c.rect(0.15, 1.8, 1.85, 1.88, shade(wall, 0.7))
+    c.poly([(0.05, wtop + 0.05), (0.3, wtop - 0.35), (1.7, wtop - 0.35), (1.95, wtop + 0.05)], roof)
+    for k in range(1, 4):
+        y = wtop - 0.35 + 0.4 * k / 4
+        c.line([(0.1 + 0.2 * (1 - k / 4), y), (1.9 - 0.2 * (1 - k / 4), y)], shade(roof, 0.8), 0.015)
+    if "chimney" in extra:
+        c.rect(1.3, wtop - 0.55, 1.5, wtop - 0.15, (0x8C, 0x4A, 0x38))
+    trim = (0xFF, 0xFF, 0xFF)
+    c.rect(0.82, 1.3, 1.18, 1.85, (0x6A, 0x3A, 0x1E))
+    rows = (wtop + 0.12, 1.2) if storeys == 2 else (1.15,)
+    for yy in rows:
+        for wx in (0.3, 1.4) if yy > 1.0 else (0.3, 0.82, 1.4):
+            if yy > 1.0 and 0.7 < wx + 0.15 < 1.3:
+                continue
+            c.rect(wx, yy, wx + 0.3, yy + 0.3, trim)
+            c.rect(wx + 0.03, yy + 0.03, wx + 0.27, yy + 0.27, GLASS)
+    if "porch" in extra:
+        c.rect(0.55, 1.2, 1.45, 1.26, trim)
+        for px in (0.58, 1.38):
+            c.rect(px, 1.26, px + 0.05, 1.85, trim)
+    return c.done()
+
+
+def civic(kind, s):
+    """A building of the town's centre, two tiles square, on paving."""
+    c = Cv(2, 2, s)
+    c.rect(0, 0, 2, 2, (0xC4, 0xC0, 0xB4))
+    for k in range(1, 4):
+        c.line([(0, 0.5 * k), (2, 0.5 * k)], (0xB0, 0xAC, 0xA0), 0.015)
+        c.line([(0.5 * k, 0), (0.5 * k, 2)], (0xB0, 0xAC, 0xA0), 0.015)
+    c.shadow(0.1, 1.35, 1.98, 1.98, 70)
+    col = {"hall": ((0xE8, 0xE4, 0xD8), (0x6C, 0x74, 0x84)), "church": ((0xF4, 0xF0, 0xE8), (0x6A, 0x4A, 0x38)),
+           "store": ((0xD8, 0x9C, 0x58), (0xA8, 0x40, 0x30)), "bank": ((0xC8, 0xCC, 0xD4), (0x48, 0x58, 0x70)),
+           "school": ((0xC8, 0x58, 0x40), (0x58, 0x5E, 0x6C)), "diner": ((0x68, 0xB8, 0xC0), (0xD0, 0x40, 0x48)),
+           "clinic": ((0xF4, 0xF4, 0xF8), (0x40, 0x88, 0xC8)), "mill": ((0xB8, 0x98, 0x68), (0x70, 0x50, 0x30))}[kind]
+    wall, roof = col
+    trim = (0xFF, 0xFF, 0xFF)
+    c.rect(0.12, 0.85, 1.88, 1.86, wall)
+    c.rect(0.12, 1.8, 1.88, 1.88, shade(wall, 0.7))
+    c.poly([(0.05, 0.9), (0.25, 0.5), (1.75, 0.5), (1.95, 0.9)], roof)
+    if kind == "hall":
+        c.rect(0.82, 0.05, 1.18, 0.55, wall); c.poly([(0.78, 0.08), (1.0, -0.05), (1.22, 0.08)], roof)
+        c.ellipse(0.9, 0.18, 1.1, 0.38, trim, (0x30, 0x30, 0x30), 0.02)
+        for x in (0.3, 0.55, 1.3, 1.55):
+            c.rect(x, 1.0, x + 0.1, 1.85, trim)
+    elif kind == "church":
+        c.rect(0.8, 0.15, 1.2, 0.9, wall); c.poly([(0.74, 0.2), (1.0, -0.15), (1.26, 0.2)], roof)
+        c.line([(1.0, -0.15), (1.0, -0.3)], (0xE0, 0xC0, 0x40), 0.04)
+        c.ellipse(0.88, 0.5, 1.12, 0.72, (0x30, 0x30, 0x40))
+    elif kind in ("store", "diner"):
+        for k in range(8):
+            c.rect(0.12 + 0.22 * k, 0.9, 0.12 + 0.22 * (k + 1), 1.15, roof if k % 2 == 0 else trim)
+        c.rect(0.3, 1.25, 1.0, 1.6, GLASS)
+        c.rect(0.3, 1.25, 1.0, 1.6, GLASS)
+    elif kind == "bank":
+        for x in (0.3, 0.7, 1.1, 1.5):
+            c.rect(x, 1.0, x + 0.12, 1.85, trim)
+        c.ellipse(0.88, 0.55, 1.12, 0.78, (0xE0, 0xC0, 0x40), (0x80, 0x60, 0x10), 0.02)
+    elif kind == "school":
+        c.rect(0.85, 0.3, 1.15, 0.6, wall); c.poly([(0.8, 0.35), (1.0, 0.1), (1.2, 0.35)], roof)
+        c.ellipse(0.93, 0.38, 1.07, 0.52, (0xE0, 0xC0, 0x40))
+    elif kind == "clinic":
+        c.rect(0.85, 0.95, 1.15, 1.2, (0xD0, 0x30, 0x2C)); c.rect(0.93, 0.87, 1.07, 1.28, (0xD0, 0x30, 0x2C))
+    else:  # mill
+        c.rect(0.9, 0.2, 1.1, 0.5, (0x5A, 0x38, 0x1C))
+        for a in range(0, 360, 90):
+            t = math.radians(a + 20)
+            c.line([(1.0, 0.35), (1.0 + 0.4 * math.sin(t), 0.35 - 0.4 * math.cos(t))], (0xF0, 0xEC, 0xE0), 0.07)
+    door = (0.88, 1.35, 1.12, 1.86) if kind not in ("store", "diner") else (1.2, 1.3, 1.5, 1.86)
+    c.rect(*door, (0x5A, 0x34, 0x1C))
+    if kind not in ("hall", "bank", "store", "diner"):
+        for wx in (0.3, 1.5):
+            c.rect(wx, 1.2, wx + 0.28, 1.5, trim); c.rect(wx + 0.03, 1.23, wx + 0.25, 1.47, GLASS)
+    return c.done()
