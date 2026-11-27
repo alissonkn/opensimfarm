@@ -1546,237 +1546,432 @@
       }
     ],
     "overview": {
-      "default": [8, 8, 8, 8],
+      "default": "#3f9f3f",
       "ranges": [
         {
           "from": 15,
           "to": 30,
-          "colours": [10, 10, 10, 10]
+          "colours": "#80502a"
         },
         {
           "from": 31,
           "to": 38,
-          "colours": [8, 8, 8, 8]
+          "colours": "#3f9f3f"
         },
         {
           "from": 39,
           "to": 69,
-          "colours": [6, 6, 6, 6]
+          "colours": "#3a5fd0"
         },
         {
           "from": 87,
           "to": 97,
-          "colours": [10, 2, 2, 10]
+          "colours": [
+            "#80502a",
+            "#55aaff",
+            "#55aaff",
+            "#80502a"
+          ]
         },
         {
           "from": 98,
           "to": 108,
-          "colours": [2, 2, 2, 2]
+          "colours": "#55aaff"
         },
         {
           "from": 128,
           "to": 146,
-          "colours": [9, 9, 9, 9]
+          "colours": "#1f6a2e"
         },
         {
           "from": 150,
           "to": 171,
-          "colours": [13, 7, 7, 13]
+          "colours": [
+            "#868686",
+            "#d8c08a",
+            "#d8c08a",
+            "#868686"
+          ]
         },
         {
           "from": 172,
           "to": 173,
-          "colours": [6, 10, 10, 6]
+          "colours": [
+            "#3a5fd0",
+            "#80502a",
+            "#80502a",
+            "#3a5fd0"
+          ]
         },
         {
           "from": 177,
           "to": 193,
-          "colours": [10, 8, 8, 10]
+          "colours": [
+            "#80502a",
+            "#3f9f3f",
+            "#3f9f3f",
+            "#80502a"
+          ]
         },
         {
           "from": 232,
           "to": 300,
-          "colours": [3, 3, 3, 3]
+          "colours": "#d03030"
         },
         {
           "from": 440,
           "to": 480,
-          "colours": [3, 14, 14, 3]
+          "colours": [
+            "#d03030",
+            "#484848",
+            "#484848",
+            "#d03030"
+          ]
         },
         {
           "from": 483,
           "to": 517,
-          "colours": [12, 12, 12, 12]
+          "colours": "#c4c4c4"
         },
         {
           "from": 535,
           "to": 538,
-          "colours": [14, 13, 13, 14]
+          "colours": [
+            "#484848",
+            "#868686",
+            "#868686",
+            "#484848"
+          ]
         },
         {
           "from": 688,
           "to": 815,
-          "colours": [8, 9, 8, 9]
+          "colours": [
+            "#3f9f3f",
+            "#1f6a2e",
+            "#3f9f3f",
+            "#1f6a2e"
+          ]
         },
         {
           "from": 464,
           "to": 464,
-          "colours": [7, 7, 7, 7]
+          "colours": [
+            "#d8c08a",
+            "#d8c08a",
+            "#d8c08a",
+            "#d8c08a"
+          ]
         },
         {
           "from": 465,
           "to": 465,
-          "colours": [7, 7, 7, 7]
+          "colours": [
+            "#d8c08a",
+            "#d8c08a",
+            "#d8c08a",
+            "#d8c08a"
+          ]
         },
         {
           "from": 466,
           "to": 466,
-          "colours": [7, 7, 7, 7]
+          "colours": [
+            "#d8c08a",
+            "#d8c08a",
+            "#d8c08a",
+            "#d8c08a"
+          ]
         },
         {
           "from": 467,
           "to": 467,
-          "colours": [7, 7, 7, 7]
+          "colours": [
+            "#d8c08a",
+            "#d8c08a",
+            "#d8c08a",
+            "#d8c08a"
+          ]
         },
         {
           "from": 468,
           "to": 468,
-          "colours": [7, 7, 7, 7]
+          "colours": [
+            "#d8c08a",
+            "#d8c08a",
+            "#d8c08a",
+            "#d8c08a"
+          ]
         },
         {
           "from": 469,
           "to": 469,
-          "colours": [7, 7, 7, 7]
+          "colours": [
+            "#d8c08a",
+            "#d8c08a",
+            "#d8c08a",
+            "#d8c08a"
+          ]
         },
         {
           "from": 470,
           "to": 470,
-          "colours": [7, 7, 7, 7]
+          "colours": [
+            "#d8c08a",
+            "#d8c08a",
+            "#d8c08a",
+            "#d8c08a"
+          ]
         },
         {
           "from": 471,
           "to": 471,
-          "colours": [7, 7, 7, 7]
+          "colours": [
+            "#d8c08a",
+            "#d8c08a",
+            "#d8c08a",
+            "#d8c08a"
+          ]
         },
         {
           "from": 472,
           "to": 472,
-          "colours": [7, 8, 8, 7]
+          "colours": [
+            "#d8c08a",
+            "#3f9f3f",
+            "#3f9f3f",
+            "#d8c08a"
+          ]
         },
         {
           "from": 473,
           "to": 473,
-          "colours": [7, 8, 8, 7]
+          "colours": [
+            "#d8c08a",
+            "#3f9f3f",
+            "#3f9f3f",
+            "#d8c08a"
+          ]
         },
         {
           "from": 474,
           "to": 474,
-          "colours": [7, 8, 8, 7]
+          "colours": [
+            "#d8c08a",
+            "#3f9f3f",
+            "#3f9f3f",
+            "#d8c08a"
+          ]
         },
         {
           "from": 475,
           "to": 475,
-          "colours": [7, 8, 8, 7]
+          "colours": [
+            "#d8c08a",
+            "#3f9f3f",
+            "#3f9f3f",
+            "#d8c08a"
+          ]
         },
         {
           "from": 476,
           "to": 476,
-          "colours": [7, 8, 8, 7]
+          "colours": [
+            "#d8c08a",
+            "#3f9f3f",
+            "#3f9f3f",
+            "#d8c08a"
+          ]
         },
         {
           "from": 477,
           "to": 477,
-          "colours": [7, 8, 8, 7]
+          "colours": [
+            "#d8c08a",
+            "#3f9f3f",
+            "#3f9f3f",
+            "#d8c08a"
+          ]
         },
         {
           "from": 478,
           "to": 478,
-          "colours": [7, 8, 8, 7]
+          "colours": [
+            "#d8c08a",
+            "#3f9f3f",
+            "#3f9f3f",
+            "#d8c08a"
+          ]
         },
         {
           "from": 479,
           "to": 479,
-          "colours": [7, 8, 8, 7]
+          "colours": [
+            "#d8c08a",
+            "#3f9f3f",
+            "#3f9f3f",
+            "#d8c08a"
+          ]
         },
         {
           "from": 480,
           "to": 480,
-          "colours": [8, 8, 8, 7]
+          "colours": [
+            "#3f9f3f",
+            "#3f9f3f",
+            "#3f9f3f",
+            "#d8c08a"
+          ]
         },
         {
           "from": 481,
           "to": 481,
-          "colours": [8, 8, 8, 7]
+          "colours": [
+            "#3f9f3f",
+            "#3f9f3f",
+            "#3f9f3f",
+            "#d8c08a"
+          ]
         },
         {
           "from": 482,
           "to": 482,
-          "colours": [8, 8, 8, 7]
+          "colours": [
+            "#3f9f3f",
+            "#3f9f3f",
+            "#3f9f3f",
+            "#d8c08a"
+          ]
         },
         {
           "from": 483,
           "to": 483,
-          "colours": [8, 8, 8, 7]
+          "colours": [
+            "#3f9f3f",
+            "#3f9f3f",
+            "#3f9f3f",
+            "#d8c08a"
+          ]
         },
         {
           "from": 484,
           "to": 484,
-          "colours": [8, 8, 8, 7]
+          "colours": [
+            "#3f9f3f",
+            "#3f9f3f",
+            "#3f9f3f",
+            "#d8c08a"
+          ]
         },
         {
           "from": 485,
           "to": 485,
-          "colours": [8, 8, 8, 7]
+          "colours": [
+            "#3f9f3f",
+            "#3f9f3f",
+            "#3f9f3f",
+            "#d8c08a"
+          ]
         },
         {
           "from": 486,
           "to": 486,
-          "colours": [8, 8, 8, 7]
+          "colours": [
+            "#3f9f3f",
+            "#3f9f3f",
+            "#3f9f3f",
+            "#d8c08a"
+          ]
         },
         {
           "from": 487,
           "to": 487,
-          "colours": [8, 8, 8, 7]
+          "colours": [
+            "#3f9f3f",
+            "#3f9f3f",
+            "#3f9f3f",
+            "#d8c08a"
+          ]
         },
         {
           "from": 488,
           "to": 488,
-          "colours": [8, 9, 9, 8]
+          "colours": [
+            "#3f9f3f",
+            "#1f6a2e",
+            "#1f6a2e",
+            "#3f9f3f"
+          ]
         },
         {
           "from": 489,
           "to": 489,
-          "colours": [8, 9, 9, 8]
+          "colours": [
+            "#3f9f3f",
+            "#1f6a2e",
+            "#1f6a2e",
+            "#3f9f3f"
+          ]
         },
         {
           "from": 490,
           "to": 490,
-          "colours": [8, 9, 9, 8]
+          "colours": [
+            "#3f9f3f",
+            "#1f6a2e",
+            "#1f6a2e",
+            "#3f9f3f"
+          ]
         },
         {
           "from": 491,
           "to": 491,
-          "colours": [8, 9, 9, 8]
+          "colours": [
+            "#3f9f3f",
+            "#1f6a2e",
+            "#1f6a2e",
+            "#3f9f3f"
+          ]
         },
         {
           "from": 492,
           "to": 492,
-          "colours": [8, 9, 9, 8]
+          "colours": [
+            "#3f9f3f",
+            "#1f6a2e",
+            "#1f6a2e",
+            "#3f9f3f"
+          ]
         },
         {
           "from": 493,
           "to": 493,
-          "colours": [8, 9, 9, 8]
+          "colours": [
+            "#3f9f3f",
+            "#1f6a2e",
+            "#1f6a2e",
+            "#3f9f3f"
+          ]
         },
         {
           "from": 494,
           "to": 494,
-          "colours": [8, 9, 9, 8]
+          "colours": [
+            "#3f9f3f",
+            "#1f6a2e",
+            "#1f6a2e",
+            "#3f9f3f"
+          ]
         },
         {
           "from": 495,
           "to": 495,
-          "colours": [8, 9, 9, 8]
+          "colours": [
+            "#3f9f3f",
+            "#1f6a2e",
+            "#1f6a2e",
+            "#3f9f3f"
+          ]
         }
       ]
     }

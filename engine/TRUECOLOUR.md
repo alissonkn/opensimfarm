@@ -126,8 +126,8 @@ the palette exactly as before. Unlike the palette, the theme does not change wit
 day recolours palette entry 7 (tan) and with it everything drawn in it; a theme keeps the interface still (weather on
 the map becomes a tint, a later step).
 
-Code: `assets/Theme.{h,cpp}`. The map window's and the crop lists' colour numbers are theme colours in a pack, so the
-overview table's indices (below) name theme colours until it becomes RGB.
+Code: `assets/Theme.{h,cpp}`. The crop lists' colour numbers are theme colours in a pack. The overview map has its
+own colours in RGB (below).
 
 ## Data tables
 
@@ -141,7 +141,7 @@ Six of the game's data tables can be written as JSON, in the `tables` block of t
 | `townLayout` | `townly0.cmp` | the 15 town plot templates, 8 x 8 tile ids each |
 | `events` | `events.dat` | every message box's title and up to 6 lines, by event id |
 | `items` | `itemtext.dat` | every item's name and description, by item id |
-| `overview` | `far_mapc.mbm` | the overview map's 2 x 2 colour block (palette indices) of each tile, by default, range or tile |
+| `overview` | `far_mapc.mbm` (the pack adds `overview.rgb`) | the overview map's colours in RGB: each tile's 2 x 2 block, by default, range or tile |
 
 How it works: the engine reads each table as a byte blob by its archive name. `assets/TableFormats.{h,cpp}` holds the
 one decoder of each format (it replaced five separate inline readers in the interface and world generation, which now
@@ -150,6 +150,15 @@ and character sets are checked (the message box takes 27 characters a line, an i
 `@`, `~` or `` ` ``, the file formats' own marks). `Megadata::Override` lays them over the archive's entries, so a
 pack's table replaces the archive's of the same name and the consumers do not change. A title is centred for you (the
 box centres nothing; the file does it with blanks).
+
+The overview is the one table that is not a byte format of the original's. The original's `far_mapc.mbm` holds 4
+palette indices a tile, which cannot say RGB, so a pack makes a second entry, `overview.rgb` (960 tiles x 4 pixels x
+R, G, B and a spare byte; `MakeOverview` in `assets/TableFormats.h` picks it when present, else the archive's). A
+colour is `"#rrggbb"` for all four pixels of a tile or 4 of them, row by row. The Map window and the start screen's
+preview read the overview through that one table type; the window's pixel stage (the picture, its scaling into the
+192-pixel box, the XOR highlight of the chosen plot and the view frame) is `ui/OverviewImage`, so that it can be
+checked without a window. With the archive's indices the highlight is `index ^ 15`, as the original draws it; with RGB
+it inverts the colour.
 
 `opensimfarm --tablestest [pack folder]` needs no game files. It compares each decoder with a word-for-word copy of
 the reader it replaced on varied blobs, makes every table from JSON and reads it back with the real decoders and with
@@ -178,11 +187,12 @@ contains nothing of the original game:
 * The interface theme: the engine's own 16 colours written out in `tilepack.json`, ready to change.
 * The data tables (`--no-tables` leaves them out): synthetic climate (seasons and weather by class), a region map in
   gradients, a dirt-road cross in each town block, 80 message texts (the engine's own English words for the ids it
-  raises, found in `game/*.cpp`), 103 item texts, and overview colours by tile family.
+  raises, found in `game/*.cpp`), 103 item texts, and overview colours by tile family, in RGB from the theme's own
+  colours.
 
 `opensimfarm --packpreview packs/placeholder /tmp/shot` draws a pack with the real map view and interface into
 `/tmp/shot-plain.bmp` (the 848 plain tiles, 32 to a row), `/tmp/shot-masked.bmp` (the 200 masked tiles over ground) and
-`/tmp/shot-pictures.bmp` (every picture, in rows): the quickest way for an artist to see a pack the way the engine
+`/tmp/shot-pictures.bmp` (every picture, in rows) and `/tmp/shot-overview.bmp` (the overview colours of every tile id): the quickest way for an artist to see a pack the way the engine
 draws it.
 
 ## Testing
@@ -220,7 +230,7 @@ with none of its files, these remain:
 | What | Where it is read | Next |
 |---|---|---|
 | The archive itself | `Megadata::Open` wants `MEGADATA.IDX/EEA`; `Gfx::Init` wants `egafont.fnt` | open from a pack alone; a font in the pack |
-| Palettes: `simfarm.pal`, `rainpal.pal`, `frostpal.pal`, `sftitle.pal`, `scenario.pal`, `prsnt480.pal` | a pack no longer needs them for the interface (the theme) or its tiles and pictures. Still read: weather (`rainpal`, `frostpal`), the start screen's map preview (`scenario.pal`), the archive's own indexed pictures | weather as a tint; RGB overview colours; the preview in RGB |
+| Palettes: `simfarm.pal`, `rainpal.pal`, `frostpal.pal`, `sftitle.pal`, `scenario.pal`, `prsnt480.pal` | a pack no longer needs them for the interface (the theme), its tiles and pictures, or the overview map (RGB). Still read: weather (`rainpal`, `frostpal`), the archive's own indexed pictures | weather as a tint |
 | Picture banks `alltiles.btl`, `wethgrnd.btl`, `wethsky.btl`; `cursors.til` | message box pictures (event ids pick a record), the Expert's faces, weather art | bank sets in `pictures`; cursors |
 | Crop files `CROPS/*.crp` | 16 crops: name, 70 parameters, 14 pictures, help card | a `crops` table; the pictures come from the pack |
 | Help cards `cardN.hc` | the Farm Expert's scripted cards | a JSON card format |
@@ -233,8 +243,7 @@ with none of its files, these remain:
 1. Give the interface's hard-coded layout (window contents, the labels `PictureText.cpp` places) a home in the pack's
    JSON, so that a pack can move things; picture banks and cursors in packs.
 2. Weather as a tint or overlay for truecolour tiles; crop pictures in the pack (`crops.json`).
-3. Palettes out of the pack path: weather as a tint on the map, the overview table as RGB (a typed table read by its
-   two consumers, not a blob), the start screen's preview in RGB.
+3. The last palette on the pack path: weather as a tint on the map (rain and frost are palette swaps in the original).
 4. The rest of the list above, in this order: the crop files, the template farm, picture banks, the help cards,
    sounds, the archive itself; each with placeholder data in the shipped pack until the game runs with none of the
    original's files.

@@ -674,31 +674,6 @@ def item_texts():
     return [{"id": i, "name": "Item %d" % i, "description": "A placeholder item."} for i in range(103)]
 
 
-def overview_colours():
-    """Overview map colours (indices into the interface palette) by tile family, a 2 x 2 block each."""
-    ranges = [
-        (15, 30, [10, 10, 10, 10]),       # ground: brown
-        (31, 38, [8, 8, 8, 8]),
-        (39, 69, [6, 6, 6, 6]),           # water: blue
-        (87, 97, [10, 2, 2, 10]),         # dry ditches
-        (98, 108, [2, 2, 2, 2]),          # full ditches: sky
-        (128, 146, [9, 9, 9, 9]),         # trees: dark green
-        (150, 171, [13, 7, 7, 13]),       # roads: grey and tan
-        (172, 173, [6, 10, 10, 6]),       # bridges
-        (177, 193, [10, 8, 8, 10]),       # fences
-        (232, 300, [3, 3, 3, 3]),         # buildings: red
-        (440, 480, [3, 14, 14, 3]),       # closed buildings
-        (483, 517, [12, 12, 12, 12]),     # event grounds: light grey
-        (535, 538, [14, 13, 13, 14]),     # rocks
-        (688, 815, [8, 9, 8, 9]),         # crops: green
-    ]
-    for k in range(32):                   # the ramp of tiles 0x1D0.. the map modes use: tan to green
-        step = k // 8
-        pat = [[7, 7, 7, 7], [7, 8, 8, 7], [8, 8, 8, 7], [8, 9, 9, 8]][step]
-        ranges.append((0x1D0 + k, 0x1D0 + k, pat))
-    return {"default": [8, 8, 8, 8], "ranges": [{"from": a, "to": b, "colours": c} for a, b, c in ranges]}
-
-
 # The interface's 16 colours as RGB (engine/src/assets/Theme.h): what the interface draws fills, frames, text and the
 # overview map's legend with. These are the engine's own defaults, written out so that a pack's author can change them.
 THEME = {
@@ -706,6 +681,34 @@ THEME = {
     "blue": "#3a5fd0", "tan": "#d8c08a", "green": "#3f9f3f", "darkGreen": "#1f6a2e", "brown": "#80502a",
     "colour11": "#70d8d8", "lightGrey": "#c4c4c4", "grey": "#868686", "darkGrey": "#484848", "white": "#ffffff",
 }
+
+
+def overview_colours():
+    """Overview map colours by tile family, RGB: a tile's 2 x 2 block is one colour or four (row by row). They are the
+    interface theme's own colours, so the map matches the windows around it."""
+    T = THEME
+    ranges = [
+        (15, 30, T["brown"]),                                       # ground
+        (31, 38, T["green"]),
+        (39, 69, T["blue"]),                                        # water
+        (87, 97, [T["brown"], T["sky"], T["sky"], T["brown"]]),     # dry ditches
+        (98, 108, T["sky"]),                                        # full ditches
+        (128, 146, T["darkGreen"]),                                 # trees
+        (150, 171, [T["grey"], T["tan"], T["tan"], T["grey"]]),     # roads
+        (172, 173, [T["blue"], T["brown"], T["brown"], T["blue"]]), # bridges
+        (177, 193, [T["brown"], T["green"], T["green"], T["brown"]]),  # fences
+        (232, 300, T["red"]),                                       # buildings
+        (440, 480, [T["red"], T["darkGrey"], T["darkGrey"], T["red"]]),  # closed buildings
+        (483, 517, T["lightGrey"]),                                 # event grounds
+        (535, 538, [T["darkGrey"], T["grey"], T["grey"], T["darkGrey"]]),  # rocks
+        (688, 815, [T["green"], T["darkGreen"], T["green"], T["darkGreen"]]),  # crops
+    ]
+    for k in range(32):                   # the ramp of tiles 0x1D0.. the map modes use: tan to green
+        step = k // 8
+        pat = [[T["tan"]] * 4, [T["tan"], T["green"], T["green"], T["tan"]],
+               [T["green"], T["green"], T["green"], T["tan"]], [T["green"], T["darkGreen"], T["darkGreen"], T["green"]]][step]
+        ranges.append((0x1D0 + k, 0x1D0 + k, pat))
+    return {"default": T["green"], "ranges": [{"from": a, "to": b, "colours": c} for a, b, c in ranges]}
 
 
 def build_tables():
