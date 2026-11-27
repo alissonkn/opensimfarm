@@ -606,3 +606,232 @@ def crop_icon(s, name, frame):
     for box in ((0, 0, 1, 0.08), (0, 0.92, 1, 1), (0, 0, 0.08, 1), (0.92, 0, 1, 1)):
         c.rect(*box, frame)
     return c.done()
+
+
+# ------------------------------------------------------------------------------------- the farmhouse and its yard
+
+LAWN = (0x5C, 0xA4, 0x48)
+
+
+def lawn(c, w, h, seed=3):
+    c.rect(0, 0, w, h, LAWN)
+    import random
+    rng = random.Random(seed)
+    for _ in range(int(14 * w * h)):
+        x, y = rng.uniform(0, w), rng.uniform(0, h)
+        c.line([(x, y), (x + 0.015, y - 0.05)], shade(LAWN, rng.choice((0.85, 1.15))), 0.012)
+
+
+def house(tier, s):
+    """The farmhouse at richness `tier` (0 cabin, 1 farmhouse, 2 and up a big house), two tiles square, on lawn."""
+    c = Cv(2, 2, s)
+    lawn(c, 2, 2, 5 + tier)
+    c.shadow(0.12, 1.3, 1.95, 1.98, 70)
+    if tier == 0:
+        wall, roof, trim = (0x9A, 0x6A, 0x3C), (0x6C, 0x70, 0x78), (0x6A, 0x46, 0x26)
+        x0, x1, ytop, ywall = 0.3, 1.7, 0.5, 0.95
+    elif tier == 1:
+        wall, roof, trim = (0xF0, 0xEA, 0xDA), (0xB0, 0x38, 0x2C), (0xFF, 0xFF, 0xFF)
+        x0, x1, ytop, ywall = 0.15, 1.85, 0.3, 0.85
+    else:
+        wall, roof, trim = (0xE8, 0xD8, 0xA8), (0x5A, 0x3A, 0x68), (0xFF, 0xFF, 0xFF)
+        x0, x1, ytop, ywall = 0.08, 1.92, 0.15, 0.78
+    c.rect(x0, ywall, x1, 1.88, wall)
+    c.rect(x0, 1.84, x1, 1.9, shade(wall, 0.7))
+    c.poly([(x0 - 0.1, ywall + 0.04), (x0 + 0.2, ytop), (x1 - 0.2, ytop), (x1 + 0.1, ywall + 0.04)], roof)
+    c.poly([(x0 + 0.2, ytop), (x1 - 0.2, ytop), (x1 - 0.3, ytop + 0.12), (x0 + 0.3, ytop + 0.12)], shade(roof, 1.25))
+    for k in range(1, 5):
+        y = ytop + (ywall - ytop) * k / 5
+        c.line([(x0 - 0.08 + 0.3 * (1 - k / 5), y), (x1 + 0.08 - 0.3 * (1 - k / 5), y)], shade(roof, 0.8), 0.015)
+    if tier >= 1:
+        c.rect(x1 - 0.5, ytop - 0.18, x1 - 0.32, ytop + 0.25, (0x8C, 0x4A, 0x38))  # chimney
+        c.rect(x1 - 0.52, ytop - 0.2, x1 - 0.3, ytop - 0.14, (0x60, 0x30, 0x24))
+    mid = (x0 + x1) / 2
+    c.rect(mid - 0.14, 1.2, mid + 0.14, 1.88, (0x6A, 0x3A, 0x1E))  # door
+    c.ellipse(mid + 0.07, 1.52, mid + 0.11, 1.56, (0xE0, 0xC0, 0x40))
+    for wx in (x0 + 0.25, x1 - 0.25 - 0.3):
+        c.rect(wx, 1.15, wx + 0.3, 1.5, trim)
+        c.rect(wx + 0.03, 1.18, wx + 0.27, 1.47, GLASS)
+        c.line([(wx + 0.15, 1.18), (wx + 0.15, 1.47)], trim, 0.02)
+        c.line([(wx + 0.03, 1.325), (wx + 0.27, 1.325)], trim, 0.02)
+    if tier >= 2:
+        c.rect(mid - 0.45, 1.12, mid + 0.45, 1.18, trim)  # a porch roof on posts
+        for px in (mid - 0.42, mid + 0.38):
+            c.rect(px, 1.18, px + 0.05, 1.88, trim)
+        c.rect(mid - 0.14, 0.45, mid + 0.14, 0.7, trim)
+        c.rect(mid - 0.11, 0.48, mid + 0.11, 0.67, GLASS)
+    return c.done()
+
+
+def yard(piece, s):
+    """Yard pieces 0 .. 10 (tiles 518 .. 528) on lawn: a mailbox, flower beds, hedges, a tree, a bench, a birdbath, a well..."""
+    c = Cv(1, 1, s)
+    lawn(c, 1, 1, 40 + piece)
+    c.shadow(0.15, 0.6, 0.9, 0.97, 55)
+    if piece == 0:  # mailbox
+        c.rect(0.46, 0.45, 0.54, 0.92, (0x6A, 0x46, 0x26))
+        c.rect(0.28, 0.25, 0.72, 0.5, (0x30, 0x58, 0xB0))
+        c.rect(0.66, 0.2, 0.7, 0.34, (0xD0, 0x30, 0x28))
+    elif piece in (1, 2, 8):  # flower beds
+        c.rect(0.1, 0.3, 0.9, 0.85, (0x6A, 0x4A, 0x32))
+        cols = {1: ((0xE0, 0x30, 0x40), (0xF0, 0x80, 0xA0)), 2: ((0xF4, 0xD0, 0x30), (0xFF, 0xF0, 0x90)), 8: ((0xA0, 0x50, 0xD0), (0xE0, 0xA0, 0xFF))}[piece]
+        for i in range(8):
+            x, y = 0.2 + (i % 4) * 0.2, 0.42 + (i // 4) * 0.27
+            c.line([(x, y + 0.1), (x, y)], (0x3E, 0x9A, 0x3A), 0.02)
+            c.ellipse(x - 0.06, y - 0.06, x + 0.06, y + 0.06, cols[i % 2])
+    elif piece in (3, 4):  # hedges
+        w = (0.05, 0.95) if piece == 3 else (0.05, 0.6)
+        c.rect(w[0], 0.35, w[1], 0.85, (0x2C, 0x78, 0x34))
+        for i in range(6):
+            c.ellipse(w[0] + 0.02 + i * 0.14, 0.3 + (i % 2) * 0.05, w[0] + 0.2 + i * 0.14, 0.5 + (i % 2) * 0.05, (0x3C, 0x92, 0x44))
+    elif piece == 5:  # small tree
+        c.rect(0.46, 0.55, 0.54, 0.9, (0x6B, 0x42, 0x1F))
+        c.ellipse(0.2, 0.1, 0.8, 0.65, (0x2F, 0x7D, 0x32))
+        c.ellipse(0.3, 0.16, 0.55, 0.38, (0x4C, 0xA8, 0x4F))
+    elif piece == 6:  # bench
+        c.rect(0.15, 0.45, 0.85, 0.55, (0x9C, 0x6B, 0x3A))
+        c.rect(0.15, 0.3, 0.85, 0.4, (0x9C, 0x6B, 0x3A))
+        for x in (0.2, 0.78):
+            c.rect(x, 0.55, x + 0.05, 0.8, (0x5A, 0x38, 0x1C))
+    elif piece == 7:  # birdbath
+        c.rect(0.45, 0.55, 0.55, 0.88, (0xA8, 0xAC, 0xB4))
+        c.ellipse(0.25, 0.38, 0.75, 0.62, (0xC4, 0xC8, 0xD0), (0x80, 0x84, 0x8C), 0.02)
+        c.ellipse(0.32, 0.43, 0.68, 0.57, (0x60, 0xB0, 0xF0))
+    elif piece == 9:  # well
+        c.ellipse(0.2, 0.45, 0.8, 0.9, (0x8C, 0x8E, 0x94), (0x5A, 0x5C, 0x62), 0.02)
+        c.ellipse(0.3, 0.52, 0.7, 0.78, (0x20, 0x40, 0x70))
+        c.rect(0.2, 0.12, 0.26, 0.6, (0x6B, 0x42, 0x1F))
+        c.rect(0.74, 0.12, 0.8, 0.6, (0x6B, 0x42, 0x1F))
+        c.poly([(0.12, 0.16), (0.5, 0.0), (0.88, 0.16)], (0xA0, 0x40, 0x30))
+    else:  # a rock garden
+        for x, y, r in ((0.3, 0.6, 0.16), (0.58, 0.5, 0.2), (0.7, 0.75, 0.12)):
+            c.ellipse(x - r, y - r * 0.8, x + r, y + r * 0.8, (0x84, 0x86, 0x8A), (0x55, 0x57, 0x5B), 0.02)
+    return c.done()
+
+
+# ------------------------------------------------------------------------------- field markers: what is wrong
+
+def marker(kind, s):
+    """One of the eight problem markers a field shows beside its sign, two tiles square: on a plaque, a picture of
+    what is wrong. kind: pests, wet, toxic, dry, weeds, disease, wilt, hungry."""
+    c = Cv(2, 2, s)
+    c.rect(0, 0, 2, 2, (0x6A, 0x4A, 0x32))
+    for k in range(8):
+        c.line([(0, 0.12 + 0.24 * k), (2, 0.12 + 0.24 * k)], (0x55, 0x3A, 0x26), 0.05)
+    plaque = {"pests": (0xC0, 0x30, 0x2C), "wet": (0x34, 0x6C, 0xC0), "toxic": (0x7A, 0x44, 0xA8), "dry": (0xD0, 0x84, 0x20),
+              "weeds": (0x2C, 0x80, 0x34), "disease": (0xB0, 0xA0, 0x20), "wilt": (0x80, 0x80, 0x84), "hungry": (0x8A, 0x62, 0x3C)}[kind]
+    c.rect(0.1, 0.1, 1.9, 1.9, (0x20, 0x20, 0x20))
+    c.rect(0.16, 0.16, 1.84, 1.84, plaque)
+    c.rect(0.16, 0.16, 1.84, 0.3, shade(plaque, 1.3))
+    W = (0xFF, 0xFF, 0xFF)
+    if kind == "pests":  # a beetle
+        c.ellipse(0.62, 0.55, 1.38, 1.5, (0x20, 0x20, 0x24), W, 0.03)
+        c.ellipse(0.78, 0.35, 1.22, 0.7, (0x20, 0x20, 0x24), W, 0.03)
+        c.line([(1.0, 0.7), (1.0, 1.45)], W, 0.03)
+        for dy in (0.75, 0.98, 1.2):
+            c.line([(0.62, dy), (0.35, dy - 0.12)], W, 0.04)
+            c.line([(1.38, dy), (1.65, dy - 0.12)], W, 0.04)
+        c.line([(0.9, 0.38), (0.78, 0.2)], W, 0.03)
+        c.line([(1.1, 0.38), (1.22, 0.2)], W, 0.03)
+    elif kind == "wet":  # a big drop and waves
+        c.poly([(1.0, 0.35), (0.62, 1.0), (1.38, 1.0)], (0xBC, 0xE0, 0xFF))
+        c.ellipse(0.62, 0.75, 1.38, 1.4, (0xBC, 0xE0, 0xFF))
+        for y in (1.55, 1.7):
+            c.line([(0.4, y), (0.7, y - 0.07), (1.0, y), (1.3, y - 0.07), (1.6, y)], W, 0.04)
+    elif kind == "toxic":  # a skull
+        c.ellipse(0.55, 0.38, 1.45, 1.2, W)
+        c.rect(0.72, 1.0, 1.28, 1.52, W)
+        for x in (0.7, 1.05):
+            c.ellipse(x, 0.68, x + 0.25, 0.98, (0x20, 0x10, 0x30))
+        c.poly([(1.0, 1.0), (0.93, 1.12), (1.07, 1.12)], (0x20, 0x10, 0x30))
+        for x in (0.85, 1.0, 1.15):
+            c.line([(x, 1.32), (x, 1.5)], (0x20, 0x10, 0x30), 0.03)
+    elif kind == "dry":  # a sun over cracked ground
+        c.ellipse(0.65, 0.3, 1.35, 1.0, (0xFF, 0xE0, 0x40), (0xFF, 0xFF, 0xA0), 0.04)
+        for a in range(0, 360, 45):
+            r = math.radians(a)
+            c.line([(1.0 + 0.45 * math.cos(r), 0.65 + 0.45 * math.sin(r)), (1.0 + 0.62 * math.cos(r), 0.65 + 0.62 * math.sin(r))], (0xFF, 0xE0, 0x40), 0.05)
+        c.line([(0.3, 1.5), (0.7, 1.4), (1.0, 1.6), (1.4, 1.45), (1.7, 1.55)], (0x40, 0x20, 0x10), 0.05)
+        c.line([(1.0, 1.6), (0.9, 1.8)], (0x40, 0x20, 0x10), 0.04)
+    elif kind == "weeds":  # a jagged weed
+        c.line([(1.0, 1.7), (1.0, 0.9)], (0x10, 0x40, 0x14), 0.07)
+        for ang, ln in ((-60, 0.7), (-25, 0.85), (25, 0.85), (60, 0.7), (0, 0.9)):
+            r = math.radians(ang)
+            c.poly([(1.0, 1.2), (1.0 + ln * math.sin(r) - 0.08, 1.2 - ln * math.cos(r)), (1.0 + ln * math.sin(r) * 1.05, 1.2 - ln * math.cos(r) * 1.05 - 0.04), (1.0 + ln * math.sin(r) + 0.08, 1.2 - ln * math.cos(r))], (0xB8, 0xF0, 0x70))
+    elif kind == "disease":  # a spotted leaf
+        c.poly([(1.0, 0.3), (1.55, 0.95), (1.0, 1.7), (0.45, 0.95)], (0x8C, 0xB8, 0x48))
+        c.line([(1.0, 0.4), (1.0, 1.7)], (0x4C, 0x70, 0x24), 0.04)
+        for x, y, r in ((0.85, 0.8, 0.12), (1.2, 1.0, 0.15), (0.9, 1.25, 0.1), (1.12, 0.65, 0.08)):
+            c.ellipse(x - r, y - r, x + r, y + r, (0x70, 0x30, 0x20))
+    elif kind == "wilt":  # an exclamation mark
+        c.poly([(0.88, 0.35), (1.12, 0.35), (1.06, 1.15), (0.94, 1.15)], W)
+        c.ellipse(0.88, 1.3, 1.12, 1.54, W)
+    else:  # hungry: a bag with a low gauge and a down arrow
+        c.rect(0.55, 0.35, 1.45, 1.05, (0xE8, 0xD8, 0xB0))
+        c.rect(0.55, 0.85, 1.45, 1.05, (0x70, 0x50, 0x30))
+        c.line([(0.82, 0.75), (0.82, 0.45), (1.18, 0.75), (1.18, 0.45)], (0x30, 0x20, 0x10), 0.06)
+        c.poly([(0.75, 1.2), (1.25, 1.2), (1.0, 1.65)], W)
+    return c.done()
+
+
+# --------------------------------------------------------------------------------------------- weather pictures
+
+PAPER = (0xEC, 0xF2, 0xFA)
+
+
+def sun(c, x, y, r, rays=True):
+    if rays:
+        for a in range(0, 360, 45):
+            t = math.radians(a)
+            c.line([(x + (r + 0.05) * math.cos(t), y + (r + 0.05) * math.sin(t)), (x + (r + 0.2) * math.cos(t), y + (r + 0.2) * math.sin(t))], (0xF0, 0xB0, 0x20), 0.07)
+    c.ellipse(x - r, y - r, x + r, y + r, (0xFF, 0xD8, 0x30), (0xE8, 0xA0, 0x10), 0.03)
+
+
+def cloud(c, x, y, w, col=(0xF8, 0xF8, 0xFC), edge=(0x90, 0x9C, 0xB0)):
+    for dx, dy, r in ((0.25, 0.25, 0.22), (0.5, 0.15, 0.27), (0.75, 0.27, 0.2)):
+        c.ellipse(x + dx * w - r * w, y + dy * w - r * w, x + dx * w + r * w, y + dy * w + r * w, edge)
+    for dx, dy, r in ((0.25, 0.25, 0.2), (0.5, 0.15, 0.25), (0.75, 0.27, 0.18)):
+        c.ellipse(x + dx * w - r * w, y + dy * w - r * w, x + dx * w + r * w, y + dy * w + r * w, col)
+    c.rect(x + 0.1 * w, y + 0.28 * w, x + 0.9 * w, y + 0.44 * w, col)
+
+
+def weather_icon(kind, s):
+    """Tiles 200..208: the seasons (winter, spring, summer, autumn) and the day's sky (clear, fair, cloudy, rain, snow)."""
+    c = Cv(1, 1, s)
+    c.rect(0, 0, 1, 1, PAPER)
+    if kind == "winter":
+        c.ellipse(0.28, 0.5, 0.72, 0.95, (0xFF, 0xFF, 0xFF), (0x90, 0xA0, 0xC0), 0.03)
+        c.ellipse(0.34, 0.2, 0.66, 0.52, (0xFF, 0xFF, 0xFF), (0x90, 0xA0, 0xC0), 0.03)
+        c.ellipse(0.42, 0.3, 0.46, 0.34, (0x20, 0x20, 0x20)); c.ellipse(0.54, 0.3, 0.58, 0.34, (0x20, 0x20, 0x20))
+        c.poly([(0.5, 0.36), (0.66, 0.4), (0.5, 0.42)], (0xF0, 0x80, 0x20))
+        c.rect(0.34, 0.14, 0.66, 0.22, (0x30, 0x40, 0x90))
+    elif kind == "spring":
+        c.line([(0.5, 0.95), (0.5, 0.45)], (0x3E, 0x9A, 0x3A), 0.07)
+        c.ellipse(0.2, 0.4, 0.5, 0.62, (0x5C, 0xB8, 0x4A)); c.ellipse(0.5, 0.5, 0.8, 0.72, (0x5C, 0xB8, 0x4A))
+        for a in range(0, 360, 72):
+            t = math.radians(a)
+            c.ellipse(0.5 + 0.16 * math.cos(t) - 0.1, 0.3 + 0.16 * math.sin(t) - 0.1, 0.5 + 0.16 * math.cos(t) + 0.1, 0.3 + 0.16 * math.sin(t) + 0.1, (0xF0, 0x70, 0xB0))
+        c.ellipse(0.42, 0.22, 0.58, 0.38, (0xFF, 0xE0, 0x40))
+    elif kind == "summer":
+        sun(c, 0.5, 0.5, 0.2)
+    elif kind == "autumn":
+        c.poly([(0.5, 0.1), (0.62, 0.3), (0.85, 0.3), (0.72, 0.5), (0.85, 0.62), (0.58, 0.64), (0.5, 0.85), (0.42, 0.64), (0.15, 0.62), (0.28, 0.5), (0.15, 0.3), (0.38, 0.3)], (0xD8, 0x60, 0x20))
+        c.line([(0.5, 0.35), (0.5, 0.95)], (0x70, 0x40, 0x20), 0.06)
+    elif kind == "clear":
+        sun(c, 0.5, 0.5, 0.22)
+    elif kind == "fair":
+        sun(c, 0.4, 0.4, 0.2)
+        cloud(c, 0.3, 0.45, 0.65)
+    elif kind == "cloudy":
+        cloud(c, 0.08, 0.15, 0.6, (0xC8, 0xCE, 0xD8))
+        cloud(c, 0.3, 0.35, 0.65, (0xF0, 0xF2, 0xF8))
+    elif kind == "rain":
+        cloud(c, 0.15, 0.08, 0.7, (0xB4, 0xBC, 0xC8))
+        for x in (0.3, 0.48, 0.66):
+            c.line([(x, 0.62), (x - 0.06, 0.82)], (0x34, 0x6C, 0xC0), 0.06)
+    else:  # snow
+        cloud(c, 0.15, 0.08, 0.7, (0xC8, 0xCE, 0xD8))
+        for x, y in ((0.3, 0.7), (0.5, 0.82), (0.68, 0.68), (0.4, 0.58)):
+            c.line([(x - 0.06, y), (x + 0.06, y)], (0x60, 0x80, 0xD0), 0.04)
+            c.line([(x, y - 0.06), (x, y + 0.06)], (0x60, 0x80, 0xD0), 0.04)
+    return c.done()

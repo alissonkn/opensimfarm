@@ -1390,6 +1390,22 @@ def build(size, labels):
                                  (451, art.shed(3, 3, size), 3, 3), (460, art.barn(3, 3, size), 3, 3), (469, art.barn(4, 3, size), 4, 3)):
         for k in range(w * h):  # a building's tiles are numbered along x first
             plain[first + k] = picture.crop(((k % w) * size, (k // w) * size, (k % w + 1) * size, (k // w + 1) * size))
+    # the farmhouse (a 2 x 2 picture at three richness levels: tiles b, b + 1, b + 40, b + 41) and its yard
+    for b, tier in ((252, 0), (272, 1), (274, 2)):
+        pic = art.house(tier, size)
+        for k, off in enumerate((0, 1, 40, 41)):
+            plain[b + off] = pic.crop(((k % 2) * size, (k // 2) * size, (k % 2 + 1) * size, (k // 2 + 1) * size))
+    for k in range(11):
+        plain[518 + k] = art.yard(k, size)
+    pc = art.Cv(1, 1, size); art.lawn(pc, 1, 1, 9); plain[79] = pc.done()
+    # the problem markers a field shows beside its sign: eight 2 x 2 pictures, tiles 603 .. 634
+    for i, kind in enumerate(("pests", "wet", "toxic", "dry", "weeds", "disease", "wilt", "hungry")):
+        pic = art.marker(kind, size)
+        for k in range(4):
+            plain[603 + 4 * i + k] = pic.crop(((k % 2) * size, (k // 2) * size, (k % 2 + 1) * size, (k // 2 + 1) * size))
+    # the weather: the four seasons (200..203) and the day's sky (204..208)
+    for i, kind in enumerate(("winter", "spring", "summer", "autumn", "clear", "fair", "cloudy", "rain", "snow")):
+        plain[200 + i] = art.weather_icon(kind, size)
     plain[120] = art.pump(size)
     plain[481] = art.water_tower(size)
     plain[0x95] = art.water_tower(size, broken=True)
