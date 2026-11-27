@@ -112,6 +112,24 @@
         "columns": 2
       },
       {
+        "key": "alltiles.btl#{n}",
+        "file": "ui/alltiles-bank.png",
+        "count": 96,
+        "columns": 8
+      },
+      {
+        "key": "wethsky.btl#{n}",
+        "file": "ui/wethsky-bank.png",
+        "count": 4,
+        "columns": 4
+      },
+      {
+        "key": "wethgrnd.btl#{n}",
+        "file": "ui/wethgrnd-bank.png",
+        "count": 4,
+        "columns": 4
+      },
+      {
         "key": "airplane.spr@{n}",
         "file": "ui/airplane-frames.png",
         "count": 8,
@@ -154,6 +172,33 @@
         "columns": 4
       }
     ]
+  },
+  "sounds": {
+    "click.voc": "sounds/click.wav",
+    "uhoh.voc": "sounds/uhoh.wav",
+    "plopitem.voc": "sounds/plopitem.wav",
+    "ploptool.voc": "sounds/ploptool.wav",
+    "bulldoze.voc": "sounds/bulldoze.wav",
+    "cheers.voc": "sounds/cheers.wav",
+    "boos.voc": "sounds/boos.wav",
+    "explode.voc": "sounds/explode.wav",
+    "bird1.voc": "sounds/bird1.wav",
+    "bird2.voc": "sounds/bird2.wav",
+    "cow1.voc": "sounds/cow1.wav",
+    "cow2.voc": "sounds/cow2.wav",
+    "horse1.voc": "sounds/horse1.wav",
+    "pig.voc": "sounds/pig.wav",
+    "sheep1.voc": "sounds/sheep1.wav",
+    "sheep2.voc": "sounds/sheep2.wav",
+    "rooster.voc": "sounds/rooster.wav",
+    "thunder.voc": "sounds/thunder.wav",
+    "wind.voc": "sounds/wind.wav",
+    "flood.voc": "sounds/flood.wav",
+    "plane.voc": "sounds/plane.wav",
+    "swarm.voc": "sounds/swarm.wav",
+    "tornado.voc": "sounds/tornado.wav",
+    "smack.voc": "sounds/smack.wav",
+    "compbeep.voc": "sounds/compbeep.wav"
   },
   "theme": {
     "black": "#000000",
@@ -1362,6 +1407,224 @@
         "18 weeks to grow."
       ],
       "info": "Apples~Temperature: Cool~Rain: Medium~Days: 126"
+    }
+  ],
+  "cards": [
+    {
+      "id": 1,
+      "items": [
+        {
+          "picture": 66,
+          "x": 24,
+          "y": 40
+        },
+        {
+          "text": "Hello! I am the Farm Expert. What would you like to know about?",
+          "x": 150,
+          "y": 44,
+          "width": 230
+        },
+        {
+          "text": "Getting started",
+          "x": 40,
+          "y": 100,
+          "width": 200
+        },
+        {
+          "button": 4,
+          "x": 280,
+          "y": 88,
+          "goto": 2
+        },
+        {
+          "text": "Fields and crops",
+          "x": 40,
+          "y": 124,
+          "width": 200
+        },
+        {
+          "button": 4,
+          "x": 280,
+          "y": 112,
+          "goto": 3
+        },
+        {
+          "text": "Machines and storage",
+          "x": 40,
+          "y": 148,
+          "width": 200
+        },
+        {
+          "button": 4,
+          "x": 280,
+          "y": 136,
+          "goto": 4
+        },
+        {
+          "text": "Weather and water",
+          "x": 40,
+          "y": 172,
+          "width": 200
+        },
+        {
+          "button": 4,
+          "x": 280,
+          "y": 160,
+          "goto": 5
+        },
+        {
+          "text": "Money and the town",
+          "x": 40,
+          "y": 196,
+          "width": 200
+        },
+        {
+          "button": 4,
+          "x": 280,
+          "y": 184,
+          "goto": 6
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "items": [
+        {
+          "picture": 66,
+          "x": 24,
+          "y": 36
+        },
+        {
+          "text": "GETTING STARTED",
+          "x": 150,
+          "y": 40,
+          "width": 230
+        },
+        {
+          "text": "Click BUY to buy machines and buildings, then click your own land to place them. A farm needs a tractor, a plow, a planter, a sprayer, a harvester and a trailer. Plot a field, pick a crop from the list on the left and click the field to plant it. The date and your cash are at the top right.",
+          "x": 24,
+          "y": 112,
+          "width": 352
+        },
+        {
+          "button": 3,
+          "x": 336,
+          "y": 200,
+          "goto": 1
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "items": [
+        {
+          "picture": 0,
+          "x": 24,
+          "y": 36
+        },
+        {
+          "text": "FIELDS AND CROPS",
+          "x": 150,
+          "y": 40,
+          "width": 230
+        },
+        {
+          "text": "A field is a block of land you farm. Crops need warmth and water, and weeds, pests and disease slow them down: spray a field when its status shows a problem. Poor soil needs fertilizer. Harvest when the crop is ripe, or it spoils. Open EVAL to see how the farm is doing and which crops to try.",
+          "x": 24,
+          "y": 112,
+          "width": 352
+        },
+        {
+          "button": 3,
+          "x": 336,
+          "y": 200,
+          "goto": 1
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "items": [
+        {
+          "picture": 34,
+          "x": 24,
+          "y": 36
+        },
+        {
+          "text": "MACHINES AND STORAGE",
+          "x": 150,
+          "y": 40,
+          "width": 230
+        },
+        {
+          "text": "A tractor pulls a plow and a planter. A harvester cuts the crop and a trailer carries it. Park machines in a shed or a barn so that they wear out slowly. A silo keeps the harvest until you sell it; seed and spray are kept in barns.",
+          "x": 24,
+          "y": 112,
+          "width": 352
+        },
+        {
+          "button": 3,
+          "x": 336,
+          "y": 200,
+          "goto": 1
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "items": [
+        {
+          "picture": 57,
+          "x": 24,
+          "y": 36
+        },
+        {
+          "text": "WEATHER AND WATER",
+          "x": 150,
+          "y": 40,
+          "width": 230
+        },
+        {
+          "text": "Open WTHR for today's weather and the forecast. Rain wets the soil. A field that is too dry or too wet grows badly: dig ditches, and add a pump, a windmill or a water tower to bring water where it is needed.",
+          "x": 24,
+          "y": 112,
+          "width": 352
+        },
+        {
+          "button": 3,
+          "x": 336,
+          "y": 200,
+          "goto": 1
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "items": [
+        {
+          "picture": 76,
+          "x": 24,
+          "y": 36
+        },
+        {
+          "text": "MONEY AND THE TOWN",
+          "x": 150,
+          "y": 40,
+          "width": 230
+        },
+        {
+          "text": "Open MKT for the price of each crop over the last thirty weeks, BAL for your balance sheet and BANK to borrow money. Taxes fall due every year. As the town grows it buys more, and it holds a fair or a rodeo now and then.",
+          "x": 24,
+          "y": 112,
+          "width": 352
+        },
+        {
+          "button": 3,
+          "x": 336,
+          "y": 200,
+          "goto": 1
+        }
+      ]
     }
   ],
   "tables": {

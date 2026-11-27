@@ -8,7 +8,7 @@ Every one of the 848 plain, 200 masked and 105 event tiles is made, in the PNG-s
 engine/TRUECOLOUR.md, and so are placeholder pictures for the interface (windows, buttons, gauges, sprites, the
 full-screen pictures), at 2 pixels per interface unit (--no-pictures leaves them out), and placeholder data tables
 (climate, region map, town layout, message texts, item texts, overview colours; --no-tables leaves them out) and the
-interface theme (16 RGB colours) and the weather look (a veil for rain and for frost), and the template farm (the item catalogue every new world starts from) and 24 crops with their pictures. The families the engine knows by name (ground, water, ditches, roads, fences, gates, trees,
+interface theme (16 RGB colours) and the weather look (a veil for rain and for frost), and the template farm (the item catalogue every new world starts from) and 24 crops with their pictures, the sound effects, and the Farm Expert's help cards. The families the engine knows by name (ground, water, ditches, roads, fences, gates, trees,
 rocks, bridges, crop pictures, event grounds) are drawn as what they are, connected pieces with the right arms; every
 other tile is coloured by the tile family it belongs to. Each tile carries its number (--no-labels leaves them off),
 so the pack doubles as a map of what the engine uses where. Needs Pillow (pip install pillow).
@@ -21,7 +21,9 @@ import math
 import os
 import random
 import re
+import struct
 import sys
+import wave
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -724,6 +726,144 @@ def sprite_frame(n, frame, hue):
     return img
 
 
+# ---- the picture banks: alltiles.btl (the BUY window's pictures, the message boxes', the Farm Expert's), wethsky.btl and
+# wethgrnd.btl (the weather window's sky and ground). Records of 112 x 64 units (the weather ones 112 x 32).
+def bank_names():
+    """What the engine uses each alltiles.btl record for (game/Shop.cpp, game/Machines.cpp, the event calls)."""
+    names = {}
+    for i, row in enumerate(CROP_ROWS):
+        names[i] = row[1]                                           # 0..23 the crops
+    for first, name in ((26, "Sheep"), (28, "Pig"), (30, "Horse"), (32, "Cow")):
+        names[first], names[first + 1] = name, name + " (expecting)"  # 26..33 the animals
+    for i, name in enumerate(("Tractor", "Plow", "Planter", "Sprayer", "Harvester", "Trailer", "Truck", "Crop Duster")):
+        names[34 + i] = name                                         # 34..41 the machines
+    names.update({42: "Silo", 43: "Shed", 44: "Barn", 45: "Windmill", 50: "Water Tower", 51: "Water Pump"})   # the buildings
+    for i, name in enumerate(("Fertilizer", "Pesticide", "Herbicide", "Fungicide")):
+        names[52 + i] = name                                         # 52..55 the supplies
+    names.update({47: "Locusts", 56: "Frost", 57: "Windstorm", 58: "Drought", 62: "Flood", 63: "Tornado", 66: "Farm Expert",
+                  74: "Notice", 75: "Airport", 76: "Bank"})           # the event boxes' pictures
+    return names
+
+
+def bank_picture(index, name):
+    w, h, k = 112, 64, PIC_SCALE
+    hue = (index * 0.0833) % 1.0
+    top = tuple(int(255 * v) for v in colorsys.hsv_to_rgb(hue, 0.35, 0.95))
+    bottom = tuple(int(255 * v) for v in colorsys.hsv_to_rgb(hue, 0.55, 0.65))
+    img = Image.new("RGBA", (w * k, h * k))
+    px = img.load()
+    for y in range(h * k):
+        c = lerp(top, bottom, y / (h * k - 1))
+        for x in range(w * k):
+            px[x, y] = c + (255,)
+    d = ImageDraw.Draw(img)
+    d.rectangle([0, 0, w * k - 1, h * k - 1], outline=(0, 0, 0, 255), width=k)
+    put_text(d, k, str(index), 3, 3, 40, 0, px=8, fill=(0x20, 0x20, 0x20, 255))
+    put_text(d, k, name or "Picture", 4, 26, w - 8, 1, px=12, fill=(0x10, 0x10, 0x10, 255))
+    return img
+
+
+def weather_sky(i):
+    w, h, k = 112, 32, PIC_SCALE
+    colours = [(0x55, 0xAA, 0xFF), (0x7A, 0xB8, 0xF0), (0xA0, 0xA8, 0xB4), (0x60, 0x68, 0x78)]
+    img = Image.new("RGBA", (w * k, h * k), colours[i] + (255,))
+    d = ImageDraw.Draw(img)
+    if i <= 1:
+        d.ellipse([80 * k, 4 * k, 100 * k, 24 * k], fill=(0xFF, 0xE1, 0x4D, 255))
+    if i >= 1:
+        for cx in (20, 50, 80)[: 1 + i]:
+            d.ellipse([(cx - 14) * k, 8 * k, (cx + 14) * k, 22 * k], fill=(0xF0, 0xF0, 0xF4, 255) if i < 3 else (0x90, 0x94, 0xA0, 255))
+    if i == 3:
+        for x in range(6, 108, 10):
+            d.line([(x * k, 22 * k), ((x - 3) * k, 30 * k)], fill=(0xA0, 0xC8, 0xFF, 255), width=k)
+    return img
+
+
+def weather_ground(i):
+    w, h, k = 112, 32, PIC_SCALE
+    colours = [(0xE8, 0xF0, 0xF8), (0x7C, 0xC0, 0x5C), (0x3C, 0x9A, 0x3A), (0xC8, 0x8C, 0x3C)]  # winter, spring, summer, autumn
+    img = Image.new("RGBA", (w * k, h * k), colours[i] + (255,))
+    d = ImageDraw.Draw(img)
+    for x in range(4, 112, 14):
+        d.line([(x * k, h * k), ((x + 3) * k, (h - 9) * k)], fill=shade(colours[i], 0.8) + (255,), width=k)
+    return img
+
+
+# ---- the sound effects: tones, sweeps and noise made with nothing but arithmetic (8 kHz, 16 bits, one channel)
+RATE = 8000
+
+
+def _env(n, i, attack=0.02, release=0.3):
+    t = i / float(n)
+    return min(1.0, t / attack if attack else 1.0) * (1.0 - max(0.0, (t - (1 - release)) / release))
+
+
+def tone(freq, dur, vol=0.5, vibrato=0.0, square=False, f1=None):
+    n = int(RATE * dur)
+    out, phase = [], 0.0
+    for i in range(n):
+        f = freq if f1 is None else freq + (f1 - freq) * i / n
+        f *= 1.0 + vibrato * math.sin(2 * math.pi * 6 * i / RATE)
+        phase += 2 * math.pi * f / RATE
+        v = math.sin(phase)
+        out.append((1.0 if v >= 0 else -1.0) * 0.6 * _env(n, i) * vol if square else v * _env(n, i) * vol)
+    return out
+
+
+def noise(dur, vol=0.5, smooth=0.0, decay=True, seed=1):
+    rng = random.Random(seed)
+    n = int(RATE * dur)
+    out, prev = [], 0.0
+    for i in range(n):
+        prev = prev * smooth + rng.uniform(-1, 1) * (1 - smooth)
+        out.append(prev * vol * (1.0 - i / n if decay else _env(n, i, 0.2, 0.4)))
+    return out
+
+
+def mix(*parts):
+    n = max(len(p) for p in parts)
+    return [sum(p[i] for p in parts if i < len(p)) for i in range(n)]
+
+
+def save_wav(path, samples):
+    peak = max(1e-6, max(abs(v) for v in samples))
+    data = struct.pack("<%dh" % len(samples), *[int(max(-1.0, min(1.0, v / max(1.0, peak))) * 30000) for v in samples])
+    with wave.open(path, "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(RATE)
+        w.writeframes(data)
+
+
+def sound_effects():
+    """The effects the game asks for by name, as sample lists."""
+    chirps = lambda f0, f1, k, seed: sum((tone(f0 + 200 * j, 0.07, 0.4, f1=f1 + 200 * j) + [0.0] * int(RATE * 0.04) for j in range(k)), [])
+    return {
+        "click.voc": noise(0.04, 0.8, 0.2),
+        "uhoh.voc": tone(440, 0.16, 0.5, square=True) + tone(330, 0.22, 0.5, square=True),
+        "plopitem.voc": tone(300, 0.12, 0.6, f1=620),
+        "ploptool.voc": tone(620, 0.09, 0.6, f1=300),
+        "bulldoze.voc": mix(noise(0.55, 0.7, 0.85, decay=False, seed=2), tone(70, 0.55, 0.5, vibrato=0.1)),
+        "cheers.voc": mix(noise(0.9, 0.5, 0.35, decay=False, seed=3), tone(520, 0.9, 0.12, vibrato=0.04)),
+        "boos.voc": tone(150, 0.8, 0.6, vibrato=0.06, f1=110),
+        "explode.voc": mix(noise(0.8, 0.9, 0.7, seed=4), tone(55, 0.8, 0.6, f1=30)),
+        "bird1.voc": chirps(1800, 2400, 3, 1), "bird2.voc": chirps(2400, 1900, 4, 2),
+        "cow1.voc": tone(120, 0.7, 0.6, vibrato=0.05, f1=100), "cow2.voc": tone(95, 0.9, 0.6, vibrato=0.07, f1=130),
+        "horse1.voc": tone(750, 0.55, 0.5, vibrato=0.08, f1=300),
+        "pig.voc": tone(210, 0.12, 0.5, square=True) + [0.0] * 600 + tone(180, 0.14, 0.5, square=True),
+        "sheep1.voc": tone(360, 0.5, 0.5, vibrato=0.12), "sheep2.voc": tone(420, 0.4, 0.5, vibrato=0.15, f1=340),
+        "rooster.voc": tone(500, 0.18, 0.5, f1=900) + tone(900, 0.2, 0.5, f1=700) + tone(700, 0.3, 0.5, f1=380),
+        "thunder.voc": mix(noise(1.4, 0.9, 0.9, seed=5), tone(45, 1.4, 0.4, f1=30)),
+        "wind.voc": noise(1.2, 0.5, 0.8, decay=False, seed=6),
+        "flood.voc": mix(noise(1.0, 0.5, 0.6, decay=False, seed=7), tone(160, 1.0, 0.2, vibrato=0.2)),
+        "plane.voc": mix(tone(90, 0.9, 0.5, vibrato=0.03, square=True), noise(0.9, 0.2, 0.8, decay=False, seed=8)),
+        "swarm.voc": mix(tone(210, 0.8, 0.4, vibrato=0.25, square=True), noise(0.8, 0.2, 0.3, decay=False, seed=9)),
+        "tornado.voc": mix(noise(1.2, 0.6, 0.88, decay=False, seed=10), tone(60, 1.2, 0.4, vibrato=0.2)),
+        "smack.voc": noise(0.12, 0.9, 0.3, seed=11),
+        "compbeep.voc": tone(880, 0.16, 0.5, square=True),
+    }
+
+
 def grid(images, columns):
     cw, ch = images[0].size
     rows = (len(images) + columns - 1) // columns
@@ -755,6 +895,13 @@ def build_pictures(out):
         columns = 6 if count > 6 else count
         grid(faces, columns).save(os.path.join(out, png), optimize=True)
         sets.append({"key": name + "${n}", "file": png, "count": count, "columns": columns})
+    names = bank_names()
+    grid([bank_picture(i, names.get(i)) for i in range(96)], 8).save(os.path.join(out, "ui", "alltiles-bank.png"), optimize=True)
+    sets.append({"key": "alltiles.btl#{n}", "file": "ui/alltiles-bank.png", "count": 96, "columns": 8})
+    grid([weather_sky(i) for i in range(4)], 4).save(os.path.join(out, "ui", "wethsky-bank.png"), optimize=True)
+    sets.append({"key": "wethsky.btl#{n}", "file": "ui/wethsky-bank.png", "count": 4, "columns": 4})
+    grid([weather_ground(i) for i in range(4)], 4).save(os.path.join(out, "ui", "wethgrnd-bank.png"), optimize=True)
+    sets.append({"key": "wethgrnd.btl#{n}", "file": "ui/wethgrnd-bank.png", "count": 4, "columns": 4})
     for si, (name, frames) in enumerate(SPRITES):
         png = "ui/" + name.replace(".spr", "-frames.png")
         grid([sprite_frame(name, f, si) for f in range(frames)], min(frames, 4)).save(os.path.join(out, png), optimize=True)
@@ -1048,6 +1195,53 @@ def overview_colours():
     return {"default": T["green"], "ranges": [{"from": a, "to": b, "colours": c} for a, b, c in ranges]}
 
 
+def cards_block():
+    """The Farm Expert: a welcome card with five topics, each a card of plain advice with a way back. Positions count from the
+    window's top-left corner (the title bar is the first 16); text is wrapped by the engine."""
+    topics = [
+        (2, "Getting started", 66,
+         "Click BUY to buy machines and buildings, then click your own land to place them. A farm needs a tractor, a plow, a planter, "
+         "a sprayer, a harvester and a trailer. Plot a field, pick a crop from the list on the left and click the field to plant it. "
+         "The date and your cash are at the top right."),
+        (3, "Fields and crops", 0,
+         "A field is a block of land you farm. Crops need warmth and water, and weeds, pests and disease slow them down: spray a field "
+         "when its status shows a problem. Poor soil needs fertilizer. Harvest when the crop is ripe, or it spoils. Open EVAL to see how "
+         "the farm is doing and which crops to try."),
+        (4, "Machines and storage", 34,
+         "A tractor pulls a plow and a planter. A harvester cuts the crop and a trailer carries it. Park machines in a shed or a barn "
+         "so that they wear out slowly. A silo keeps the harvest until you sell it; seed and spray are kept in barns."),
+        (5, "Weather and water", 57,
+         "Open WTHR for today's weather and the forecast. Rain wets the soil. A field that is too dry or too wet grows badly: dig "
+         "ditches, and add a pump, a windmill or a water tower to bring water where it is needed."),
+        (6, "Money and the town", 76,
+         "Open MKT for the price of each crop over the last thirty weeks, BAL for your balance sheet and BANK to borrow money. "
+         "Taxes fall due every year. As the town grows it buys more, and it holds a fair or a rodeo now and then."),
+    ]
+    cards = [{"id": 1, "items": [
+        {"picture": 66, "x": 24, "y": 40},
+        {"text": "Hello! I am the Farm Expert. What would you like to know about?", "x": 150, "y": 44, "width": 230},
+    ] + [item for row, (cid, title, pic, body) in enumerate(topics) for item in (
+        {"text": title, "x": 40, "y": 92 + 24 * row + 8, "width": 200},
+        {"button": 4, "x": 280, "y": 88 + 24 * row, "goto": cid})]}]
+    for cid, title, pic, body in topics:
+        cards.append({"id": cid, "items": [
+            {"picture": pic, "x": 24, "y": 36},
+            {"text": title.upper(), "x": 150, "y": 40, "width": 230},
+            {"text": body, "x": 24, "y": 112, "width": 352},
+            {"button": 3, "x": 336, "y": 200, "goto": 1}]})
+    return cards
+
+
+def build_sounds(out):
+    """Writes the effects under out/sounds and returns the manifest's "sounds" block."""
+    os.makedirs(os.path.join(out, "sounds"), exist_ok=True)
+    block = {}
+    for name, samples in sound_effects().items():
+        save_wav(os.path.join(out, "sounds", name.replace(".voc", ".wav")), samples)
+        block[name] = "sounds/" + name.replace(".voc", ".wav")
+    return block
+
+
 def build_tables():
     return {
         "climate": climate_tables(),
@@ -1112,6 +1306,7 @@ def main():
     ap.add_argument("--no-labels", action="store_true", help="leave the tile numbers off")
     ap.add_argument("--no-pictures", action="store_true", help="leave the interface pictures out")
     ap.add_argument("--no-tables", action="store_true", help="leave the data tables out")
+    ap.add_argument("--no-sounds", action="store_true", help="leave the sound effects out")
     a = ap.parse_args()
     if not 8 <= a.size <= 128:
         sys.exit("--size must be from 8 to 128")
@@ -1132,11 +1327,14 @@ def main():
     }
     if not a.no_pictures:
         meta["pictures"] = build_pictures(a.out)
+    if not a.no_sounds:
+        meta["sounds"] = build_sounds(a.out)
     meta["theme"] = THEME
     meta["weather"] = WEATHER
     if not a.no_tables:
         meta["template"] = template_block()
         meta["crops"] = crop_block(a.size, a.out)
+        meta["cards"] = cards_block()
     if not a.no_tables:
         meta["tables"] = build_tables()
     with open(os.path.join(a.out, "tilepack.json"), "w") as f:
