@@ -466,7 +466,7 @@ def windmill(s, k):
 
 
 def hay(s, level):
-    """A heap of hay: `level` 0..4, one more bale each."""
+    """A heap of hay: `level` 0 (one bale) .. 4 (five bales)."""
     c = Cv(1, 1, s)
     c.shadow(0.1, 0.55, 0.92, 0.95, 60)
     n = level + 1

@@ -447,7 +447,7 @@ def masked_sprite(t, size):
         sp, r = divmod(t - 946, 16)
         return art.spun(art.animal(sp, size, r % 2 == 1), r // 2)
     if 1010 <= t < 1014: return art.windmill(size, t - 1010)
-    if 1020 <= t < 1025: return art.hay(size, t - 1020)
+    if 1020 <= t < 1025: return art.hay(size, 1024 - t)  # 1020 is a full pile, 1024 nearly eaten (Simulation.cpp HayTile)
     if 1028 <= t < 1036: return art.turned(art.machine("plane", size), (t - 1028) % 4)
     if 1038 <= t < 1042: return art.animal(t - 1038, size, True, kick=True)  # horse, cow, pig, sheep
     if 932 <= t < 946: return art.figure(size, [(0x3A, 0x5A, 0xC0), (0xC0, 0x40, 0x30), (0x3A, 0x9A, 0x4A), (0xD0, 0xA0, 0x30)][t % 4])
