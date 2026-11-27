@@ -54,5 +54,8 @@ bool LoadMapGraphics(const Megadata& mega, MapGraphics& out);
 // growth 688 + 8 * slot .. +7, sign 539 + 4 * slot .. +3, icons 816 + slot and 832 + slot.
 // Returns false if art is too short.
 bool ApplyCropArt(TileSheet& sheet, int slot, const std::vector<uint8_t>& art);
+// The same for a truecolour sheet: the crop's 14 tiles as `artSize` x `artSize` ARGB pixels each (CropDef::artArgb) over
+// the slot's tile ids, as above. False unless the sheet is truecolour with that tile size and the art holds 14 tiles.
+bool ApplyCropArtArgb(TileSheet& sheet, int slot, const std::vector<uint32_t>& art, int artSize);
 
 } // namespace osf

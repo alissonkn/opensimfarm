@@ -241,7 +241,7 @@ private:
         const int rows = PopupRows();
         return { b.x + 112 * (i / rows), b.y + 17 + 17 * (i % rows), 112, 17 };
     }
-    struct SpareCrop { std::string file, name; std::vector<uint8_t> icon; };
+    struct SpareCrop { std::string file, name; std::vector<uint8_t> icon; std::vector<uint32_t> iconArgb; };
     std::vector<SpareCrop> _spareCrops;
     struct PlantEntry { std::string name; int slot; int spare; }; // slot >= 0: a loaded crop, else _spareCrops[spare]
     std::vector<PlantEntry> _plantList;

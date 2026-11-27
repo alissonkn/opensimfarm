@@ -92,6 +92,7 @@ add_executable(opensimfarm
     src/assets/PicturePack.cpp
     src/ui/TruecolourTest.cpp
     src/ui/TablesTest.cpp
+    src/ui/CropsTest.cpp
     src/ui/TemplateTest.cpp
     src/ui/OverviewImage.cpp
     src/assets/Picture.cpp
@@ -116,6 +117,7 @@ add_executable(opensimfarm
     src/game/Simulation.cpp
     src/game/WorldGen.cpp
     src/game/Template.cpp
+    src/game/PackCrops.cpp
     src/ui/GameUi.cpp
     src/ui/Gfx.cpp
     src/ui/PictureText.cpp

@@ -309,16 +309,15 @@ void FinishWorld(const std::string& gameDir, const Megadata& mega, GameState& s,
     s.animalCount = s.object20Count = s.machineCount = s.fieldCount = s.structureCount = s.itemCount = s.carCount = 0;
 
     // default crops and market prices at twice the base
-    static const char* const files[16] = { "corn.crp", "wheat.crp", "barley.crp", "potatoes.crp", "oats.crp", "rice.crp", "sorghum.crp", "soybeans.crp",
-                                           "cotton.crp", "onions.crp", "tomatoes.crp", "lettuce.crp", "carrots.crp", "strawber.crp", "sugar.crp", "peanuts.crp" };
+    const std::vector<std::string> files = DefaultCropFiles(); // (a pack's first 16 crops, else the original's)
     for (int c = 0; c < 16; ++c)
     {
+        const std::string file = c < static_cast<int>(files.size()) ? files[static_cast<size_t>(c)] : std::string();
         for (int k = 0; k < 14; ++k)
-            Wr8(s.cropNames, static_cast<size_t>(c) * 14 + k, files[c][k] ? files[c][k] : 0);
-        for (int k = static_cast<int>(std::string(files[c]).size()); k < 14; ++k)
-            Wr8(s.cropNames, static_cast<size_t>(c) * 14 + k, 0);
+            Wr8(s.cropNames, static_cast<size_t>(c) * 14 + k, k < static_cast<int>(file.size()) ? file[static_cast<size_t>(k)] : 0);
         s.crops[c] = CropDef{};
-        LoadCropFile(gameDir, files[c], s.crops[c]);
+        if (!file.empty())
+            LoadCropFile(gameDir, file, s.crops[c]);
         const int price = std::max(10, s.crops[c].BasePrice()); // a new game starts at the crop file's price (CMP0)
         s.SetMarketPrice(c, price);
         s.SetCatalogPrice(50 + c, price);

@@ -163,10 +163,13 @@ public:
                 g.DrawTile(832 + e.slot, area.x, y);
             else if (e.spare >= 0 && e.spare < static_cast<int>(spares.size()))
             {
-                const auto& icon = spares[static_cast<size_t>(e.spare)].icon;
+                const auto& sp = spares[static_cast<size_t>(e.spare)];
                 std::vector<uint32_t> img(256, argb(kLightGrey));
-                for (size_t q = 0; q < 256 && q < icon.size(); ++q)
-                    img[q] = argb(icon[q]);
+                if (!sp.iconArgb.empty()) // (a pack's icon is RGB)
+                    img = sp.iconArgb;
+                else
+                    for (size_t q = 0; q < 256 && q < sp.icon.size(); ++q)
+                        img[q] = argb(sp.icon[q]);
                 g.DrawPixels(img, 16, 16, area.x, y, 16, 16);
             }
             g.Text(area.x + 18, y + 4, e.name.substr(0, 12), chosen ? kWhite : kBlack);

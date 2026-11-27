@@ -140,7 +140,8 @@ void GameUi::DrawSheetIcon(int icon, int x, int y)
         {
             std::vector<uint32_t> img(256);
             for (size_t p = 0; p < 256; ++p)
-                img[p] = _g.Argb16(p < _spareCrops[k].icon.size() ? _spareCrops[k].icon[p] : static_cast<uint8_t>(kLightGrey));
+                img[p] = !_spareCrops[k].iconArgb.empty() ? _spareCrops[k].iconArgb[p]
+                                                          : _g.Argb16(p < _spareCrops[k].icon.size() ? _spareCrops[k].icon[p] : static_cast<uint8_t>(kLightGrey));
             _g.DrawPixels(img, 16, 16, x + 4, y + 4, 16, 16);
         }
     }

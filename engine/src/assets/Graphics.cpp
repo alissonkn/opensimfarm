@@ -57,6 +57,19 @@ bool ApplyCropArt(TileSheet& sheet, int slot, const std::vector<uint8_t>& art)
     return true;
 }
 
+bool ApplyCropArtArgb(TileSheet& sheet, int slot, const std::vector<uint32_t>& art, int artSize)
+{
+    if (!sheet.TrueColour() || sheet.size != artSize || artSize < 1 || art.size() < static_cast<size_t>(14) * artSize * artSize || slot < 0 || slot >= 16 || sheet.count < 848)
+        return false;
+    const size_t n = static_cast<size_t>(artSize) * artSize;
+    for (int k = 0; k < 14; ++k)
+    {
+        const int id = k < 8 ? 688 + 8 * slot + k : k < 12 ? 539 + 4 * slot + (k - 8) : (k == 12 ? 816 : 832) + slot;
+        std::copy(art.begin() + static_cast<long>(k * n), art.begin() + static_cast<long>((k + 1) * n), sheet.argb.begin() + static_cast<long>(id * n));
+    }
+    return true;
+}
+
 bool LoadMapGraphics(const Megadata& mega, MapGraphics& out)
 {
     const auto pal = mega.Read("simfarm.pal");

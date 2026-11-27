@@ -20,8 +20,10 @@
 #include "assets/PicturePack.h"
 #include "assets/Theme.h"
 #include "assets/Weather.h"
+#include "game/PackCrops.h"
 #include "game/Template.h"
 #include "assets/TilePack.h"
+#include "ui/CropsTest.h"
 #include "ui/TablesTest.h"
 #include "ui/TemplateTest.h"
 #include "ui/TruecolourTest.h"
@@ -2704,6 +2706,8 @@ int main(int argc, char** argv)
     }
     if (argc > 1 && std::strcmp(argv[1], "--touchtest") == 0)
         return TouchSelfTest() ? 1 : 0; // the touch gestures (no game folder needed)
+    if (argc > 1 && std::strcmp(argv[1], "--cropstest") == 0)
+        return CropsSelfTest(argc > 2 ? argv[2] : nullptr); // a pack's crops, no game files needed
     if (argc > 1 && std::strcmp(argv[1], "--templatetest") == 0)
         return TemplateSelfTest(argc > 2 ? argv[2] : nullptr); // the template farm, no game files needed
     if (argc > 1 && std::strcmp(argv[1], "--tablestest") == 0)
@@ -3746,6 +3750,18 @@ int main(int argc, char** argv)
                 }
                 else if (hasWeather)
                     std::fprintf(stderr, "tile pack %s: weather\n", pack);
+                SetPackCrops({});
+                {
+                    std::vector<CropDef> packCrops;
+                    bool hasCrops = false;
+                    if (!LoadPackCrops(pack, packCrops, hasCrops, packError))
+                        std::fprintf(stderr, "tile pack %s: crops not used: %s\n", pack, packError.c_str());
+                    else if (hasCrops)
+                    {
+                        std::fprintf(stderr, "tile pack %s: %zu crops\n", pack, packCrops.size());
+                        SetPackCrops(std::move(packCrops));
+                    }
+                }
                 std::vector<uint8_t> templateFarm;
                 bool hasTemplate = false;
                 if (!LoadPackTemplate(pack, templateFarm, hasTemplate, packError))
@@ -4550,7 +4566,28 @@ int main(int argc, char** argv)
                 // (a tile pack's tiles are truecolour: no palette to swap and no crop pictures to patch into them yet; its
                 // weather is a veil over the map)
                 if (gfx.TrueColour())
+                {
                     view.SetWeatherTint(TintOfDay(g_weatherLook, playPalette));
+                    // each loaded crop's own pictures go over its slot's tiles when the crops change (not at a weather change)
+                    std::string artSig;
+                    for (const auto& c : state->crops)
+                        artSig += c.fileName + '|';
+                    static std::string shownArt;
+                    if (artSig != shownArt)
+                    {
+                        shownArt = artSig;
+                        MapGraphics patched = gfx;
+                        bool any = false;
+                        for (int i = 0; i < static_cast<int>(state->crops.size()) && i < 16; ++i)
+                            if (state->crops[i].HasArgbArt())
+                                any = ApplyCropArtArgb(patched.plain, i, state->crops[i].artArgb, state->crops[i].artSize) || any;
+                        if (any)
+                        {
+                            view.SetPlainTiles(renderer, patched);
+                            gfxUi.SetPlainTiles(patched.plain);
+                        }
+                    }
+                }
                 else
                 {
                     MapGraphics patched = gfx;

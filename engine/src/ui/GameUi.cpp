@@ -1011,10 +1011,13 @@ void GameUi::DrawPalette()
                 else
                 {
                     // a crop file not loaded: its icon from the file
-                    const auto& icon = _spareCrops[static_cast<size_t>(pe.spare)].icon;
+                    const SpareCrop& sc = _spareCrops[static_cast<size_t>(pe.spare)];
                     std::vector<uint32_t> img(256, argb(kLightGrey));
-                    for (size_t p = 0; p < 256 && p < icon.size(); ++p)
-                        img[p] = argb(icon[p]);
+                    if (!sc.iconArgb.empty()) // (a pack's icon is RGB)
+                        img = sc.iconArgb;
+                    else
+                        for (size_t p = 0; p < 256 && p < sc.icon.size(); ++p)
+                            img[p] = argb(sc.icon[p]);
                     _g.DrawPixels(img, 16, 16, r.x, r.y, 16, 16);
                 }
                 _g.Text(r.x + 16, r.y + 4, pe.name.substr(0, 12), ink);
@@ -1038,13 +1041,6 @@ void GameUi::ListSpareCrops()
         BuildPlantList();
         return;
     }
-    std::error_code ec;
-    const auto dir = FindFileNoCase(_ctx.gameDir, "CROPS");
-    if (!dir)
-    {
-        BuildPlantList();
-        return;
-    }
     std::set<std::string> loaded;
     for (const CropDef& c : _ctx.state->crops)
     {
@@ -1053,23 +1049,18 @@ void GameUi::ListSpareCrops()
             ch = static_cast<char>(std::toupper(static_cast<unsigned char>(ch)));
         loaded.insert(n);
     }
-    std::vector<std::string> files;
-    for (const auto& e : std::filesystem::directory_iterator(*dir, ec))
-    {
-        std::string n = e.path().filename().string();
-        for (char& ch : n)
-            ch = static_cast<char>(std::toupper(static_cast<unsigned char>(ch)));
-        if (n.size() > 4 && n.substr(n.size() - 4) == ".CRP" && !loaded.count(n))
-            files.push_back(n);
-    }
-    std::sort(files.begin(), files.end());
-    for (const std::string& n : files)
+    for (const std::string& n : CropFiles(_ctx.gameDir)) // (a pack's crops, else the CROPS folder's, sorted)
     {
         CropDef def;
-        if (_spareCrops.size() >= 64 || !LoadCropFile(_ctx.gameDir, n, def) || def.art.size() < 14 * 128)
+        if (loaded.count(n) || _spareCrops.size() >= 64 || !LoadCropFile(_ctx.gameDir, n, def) || (def.art.size() < 14 * 128 && !def.HasArgbArt()))
             continue;
-        const TileSheet t = DecodeTiles16(def.art, 14);
-        _spareCrops.push_back({ n, def.name, std::vector<uint8_t>(t.Tile(13), t.Tile(13) + 256) });
+        if (def.HasArgbArt())
+            _spareCrops.push_back({ n, def.name, {}, def.IconArgb16() });
+        else
+        {
+            const TileSheet t = DecodeTiles16(def.art, 14);
+            _spareCrops.push_back({ n, def.name, std::vector<uint8_t>(t.Tile(13), t.Tile(13) + 256), {} });
+        }
     }
     BuildPlantList();
 }

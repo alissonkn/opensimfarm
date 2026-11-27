@@ -20,10 +20,18 @@ struct CropDef
     // 32x32 sign as 4 tiles (4608..5119), a small icon with a tan frame (5120..5247) and one with a green frame
     // (5248..5375); the game copies them over the slot's tiles 688 + 8s, 539 + 4s, 816 + s and 832 + s
     std::vector<uint8_t> art;
+    // a pack's truecolour pictures of the crop: the same 14 tiles (8 growth stages, 4 for the sign, 2 icons) as artSize x
+    // artSize ARGB pixels each, one after another. Empty for a crop of the original's files, which has `art`
+    std::vector<uint32_t> artArgb;
+    int artSize = 0;
     std::vector<std::string> help; // the item help card's text lines (title line left out), shown in the BUY window
     std::string info;              // the Crop Information card text ('~' = new line), shown by the Farm Expert
     int regrowAge = 0;             // name-field byte 18: a perennial's age after each harvest (apples, oranges 1)
     bool loaded = false;
+
+    bool HasArgbArt() const { return !artArgb.empty(); }
+    // the icon with the green frame (tile 13 of the art) as 16 x 16 opaque ARGB; empty without truecolour art
+    std::vector<uint32_t> IconArgb16() const;
 
     int B(int off) const { return p[off]; }
     int P6() const { return p[6]; }               // first stage picture of the timeline
@@ -65,5 +73,15 @@ std::vector<std::string> CropHelp(const CropDef& c);
 std::string CropInfo(const CropDef& c);
 
 bool LoadCropFile(const std::string& gameDir, const std::string& fileName, CropDef& out);
+
+// A pack's crops (game/PackCrops.h) stand in for the CROPS folder: LoadCropFile finds them by file name (any case)
+// before looking in the folder, and CropFiles and DefaultCropFiles name them. An empty list puts the folder back.
+void SetPackCrops(std::vector<CropDef> crops);
+bool HavePackCrops();
+// the crop files to choose from, upper case and sorted: a pack's crops when it has them, else the *.CRP files of the game
+// folder's CROPS folder
+std::vector<std::string> CropFiles(const std::string& gameDir);
+// the 16 crops a new world starts with, by file name: a pack's first 16, else the original's
+std::vector<std::string> DefaultCropFiles();
 
 } // namespace osf
