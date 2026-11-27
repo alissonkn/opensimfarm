@@ -461,6 +461,21 @@ sometimes landed on a rock.
 
 The earlier tests check the parts: `--tilepacktest`, `--tablestest [pack]`, `--templatetest [pack]`, `--cropstest [pack]`.
 
+## Placeholder art
+
+The placeholder pack's pictures are drawn by `tools/placeholder_art.py` (called from `make_placeholder_pack.py`) from
+plain shapes, nothing of the original's: top-down machines (tractor, plow, planter, sprayer, harvester, trailer and truck,
+loaded or not, crop duster), animals (horse, cow, pig, sheep; young and adult, eight headings, kicking), cars, barrels, a
+windmill, hay, silos, sheds, barns, the pump and the water tower, soil for fields, and a plant for each of the 24 crops
+(grain, corn, bush, root, leaf, flower, spike, cane, vine, tree) at eight growth stages, with the sign and icons. The shop
+and Examine pictures (`alltiles.btl`) show the same drawings. Machines and animals are drawn once facing up and turned
+for the other headings, so a replacement pack needs every heading too.
+
+**Inside a building.** Right-clicking a barn, shed or silo (not the pump or windmill) flips it to its inside: every cell
+becomes the floor (tile 217, `0xD9`) with the picture of what is stored in each slot on it (crop icons, barrels); a water
+tower shows its tank, filled to its level (tiles 83..86). Right-click again closes it. The Examine tool shows the same
+slots on a card. The pictures it needs from a pack are those tiles.
+
 ## Next steps
 
 * Custom mouse cursors in a pack (`cursors`), the one thing a pack still takes from the system.

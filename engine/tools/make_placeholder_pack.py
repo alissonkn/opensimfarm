@@ -27,6 +27,9 @@ import wave
 
 from PIL import Image, ImageDraw, ImageFont
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import placeholder_art as art
+
 PLAIN_TILES, MASKED_TILES, EVENT_TILES = 848, 200, 105
 PLAIN_COLS, MASKED_COLS, EVENT_COLS = 32, 20, 15
 
@@ -165,6 +168,9 @@ def ground_colour(i):
     return lerp((0xC9, 0xA9, 0x6B), (0x4A, 0x32, 0x22), i / 15.0)
 
 
+art.install(Painter, ground_colour)
+
+
 def draw_ground(p, size, i, seed):
     c = ground_colour(i)
     p.rect(0, 0, size, size, c + (255,))
@@ -297,6 +303,15 @@ def draw_plain(t, size, labels):
             p.ellipse(size * 0.1, size * 0.1, size * 0.9, size * 0.9, (0x20, 0x20, 0x20, 200))
         p.line([(size * 0.2, size * 0.3), (size * 0.8, size * 0.7)], (0x70, 0x70, 0x78, 255), size * 0.05)
         p.line([(size * 0.25, size * 0.75), (size * 0.7, size * 0.25)], (0x90, 0x60, 0x40, 255), size * 0.05)
+    elif t in (12, 36):
+        # a field's own soil: bare (36, as the crop pictures' background) and plowed (12, with deep furrows)
+        p.rect(0, 0, size, size, (0x6A, 0x4A, 0x32, 255) if t == 36 else (0x5C, 0x3E, 0x2A, 255))
+        speckles(p, size, [(0x55, 0x3A, 0x26), (0x7C, 0x5A, 0x3E)], 14, seed, alpha=160)
+        for k in range(4):
+            y = size * (0.12 + 0.24 * k)
+            p.line([(0, y), (size, y)], (0x4A, 0x32, 0x20, 255) if t == 12 else (0x55, 0x3A, 0x26, 255), size * (0.09 if t == 12 else 0.05))
+            if t == 12:
+                p.line([(0, y + size * 0.07), (size, y + size * 0.07)], (0x86, 0x62, 0x44, 255), size * 0.03)
     elif SIGNS <= t < SIGNS + 64:
         pass  # (made as 2 x 2 signs below)
     elif CROP_GROWTH <= t < CROP_GROWTH + 128:
@@ -318,23 +333,8 @@ def draw_plain(t, size, labels):
 # ------------------------------------------------------------------------------------- crops, signs, icons
 
 def draw_crop_stage(size, slot, stage):
-    """Growth tile `stage` (0..7) of a crop slot: rows of plants that grow, the last stage in the crop's colour."""
-    p = Painter(size, size, shade((0x6A, 0x4A, 0x32), 1.0) + (255,))
-    for k in range(4):
-        y = size * (0.12 + 0.24 * k)
-        p.line([(0, y), (size, y)], (0x55, 0x3A, 0x26, 255), size * 0.05)  # furrows
-    col = CROP_COLOURS[slot]
-    green = (0x3E, 0x9A, 0x3A)
-    t = stage / 7.0
-    leaf = lerp(green, col, max(0.0, (t - 0.55) / 0.45))
-    for row in range(4):
-        for cx in (0.25, 0.75):
-            x, y = size * cx, size * (0.2 + 0.24 * row)
-            r = size * (0.015 + 0.075 * t) if stage else size * 0.012
-            p.ellipse(x - r, y - r, x + r, y + r, leaf + (255,))
-            if stage >= 6:
-                p.ellipse(x - r * 0.4, y - r * 0.4, x + r * 0.4, y + r * 0.4, shade(col, 1.25) + (255,))
-    return p.finish()
+    """Growth tile `stage` (0..7) of a crop slot: rows of that crop's plants, growing and ripening."""
+    return art.crop_stage(size, CROP_ROWS[slot][1], stage)
 
 
 def draw_sign(size, slot):
@@ -360,12 +360,7 @@ def draw_sign(size, slot):
 
 
 def draw_icon(size, slot, frame):
-    p = Painter(size, size, frame + (255,))
-    p.rect(size * 0.08, size * 0.08, size * 0.92, size * 0.92, (0x22, 0x22, 0x22, 255))
-    p.ellipse(size * 0.22, size * 0.22, size * 0.78, size * 0.78, CROP_COLOURS[slot] + (255,))
-    with p.group():
-        p.ellipse(size * 0.34, size * 0.3, size * 0.5, size * 0.44, (255, 255, 255, 110))
-    return p.finish()
+    return art.crop_icon(size, CROP_ROWS[slot][1], frame)
 
 
 def draw_event_ground(size, bank):
@@ -394,23 +389,61 @@ def draw_event_ground(size, bank):
 
 # ----------------------------------------------------------------------------------------------- masked tiles
 
+SPECIES_OF = {"Horse": 0, "Cow": 1, "Pig": 2, "Sheep": 3}
+BARREL_COLOURS = {912: (0x30, 0x70, 0xC0), 913: (0xC0, 0x34, 0x30), 914: (0xD0, 0x80, 0x20), 915: (0x4C, 0x9A, 0x3A)}
+CAR_COLOURS = [(0xC8, 0x32, 0x28), (0x34, 0x68, 0xC0), (0xEC, 0xEC, 0xE8), (0x3C, 0x9A, 0x4C)]
+
+
+def cell(img, k, horizontal):
+    """Cell k of a two-cell picture: the left one if it lies across, else the top one."""
+    w, h = img.size
+    n = 2
+    return img.crop((k * w // n, 0, (k + 1) * w // n, h)) if horizontal else img.crop((0, k * h // n, w, (k + 1) * h // n))
+
+
+def masked_sprite(t, size):
+    """The picture of masked tile `t` (848..1047), turned and cut the way the engine lays machines, animals and cars out."""
+    two = {860: "harvester", 876: "trailer", 896: "truck"}
+    if 848 <= t < 852: return art.turned(art.machine("tractor", size), t - 848)
+    if 852 <= t < 856: return art.turned(art.machine("plow", size), t - 852)
+    if 856 <= t < 860: return art.turned(art.machine("planter", size), t - 856)
+    if 860 <= t < 868:
+        h, k = divmod(t - 860, 2)
+        return cell(art.turned(art.machine("harvester", size), h), k, h % 2 == 1)
+    if 868 <= t < 876:
+        h, v = divmod(t - 868, 2)
+        return art.turned(art.machine("sprayer", size, spraying=bool(v)), h)
+    for base, kind in ((876, "trailer"), (896, "truck")):
+        if base <= t < base + 16:
+            h, r = divmod(t - base, 4)
+            return cell(art.turned(art.machine(kind, size, loaded=r >= 2), h), r % 2, h % 2 == 1)
+    if t in BARREL_COLOURS: return art.barrel(size, BARREL_COLOURS[t])
+    if 916 <= t < 932: return art.car(size, CAR_COLOURS[(t - 916) // 4], (t - 916) % 4)
+    if 946 <= t < 1010:
+        sp, r = divmod(t - 946, 16)
+        return art.spun(art.animal(sp, size, r % 2 == 1), r // 2)
+    if 1010 <= t < 1014: return art.windmill(size, t - 1010)
+    if 1020 <= t < 1025: return art.hay(size, t - 1020)
+    if 1028 <= t < 1036: return art.turned(art.machine("plane", size), (t - 1028) % 4)
+    if 1038 <= t < 1042: return art.animal(t - 1038, size, True, kick=True)  # horse, cow, pig, sheep
+    if 932 <= t < 946: return art.figure(size, [(0x3A, 0x5A, 0xC0), (0xC0, 0x40, 0x30), (0x3A, 0x9A, 0x4A), (0xD0, 0xA0, 0x30)][t % 4])
+    return None
+
+
 def draw_masked(m, size):
     """One masked tile (RGBA, see-through around the picture); overlay id 0x350 + m, tile id 848 + m."""
     t = 848 + m
-    p = Painter(size, size, (0, 0, 0, 0))
-    c = band_colour(t, s=0.55, v=0.85)
-    if HAY <= t < HAY + 5:
-        with p.group():
-            p.ellipse(size * 0.15, size * 0.55, size * 0.85, size * 0.9, (0, 0, 0, 60))
-        p.rect(size * 0.2, size * 0.3, size * 0.8, size * 0.75, (0xD8, 0xB8, 0x48, 255))
-        for k in range(1, 4):
-            p.line([(size * 0.2, size * (0.3 + 0.11 * k)), (size * 0.8, size * (0.3 + 0.11 * k))], (0xA8, 0x88, 0x28, 255), size * 0.025)
-    else:
-        with p.group():
-            p.ellipse(size * 0.12, size * 0.5, size * 0.88, size * 0.92, (0, 0, 0, 70))  # shadow
-        p.ellipse(size * 0.14, size * 0.14, size * 0.86, size * 0.8, c + (255,), shade(c, 0.55) + (255,), size * 0.035)
-        with p.group():
-            p.ellipse(size * 0.3, size * 0.24, size * 0.5, size * 0.4, (255, 255, 255, 90))
+    img = masked_sprite(t, size)
+    if img is not None:
+        return img.convert("RGBA")
+    p = Painter(size, size, (0, 0, 0, 0))  # anything else the engine has no use for here: a small crate
+    c = band_colour(t, s=0.45, v=0.8)
+    with p.group():
+        p.ellipse(size * 0.12, size * 0.6, size * 0.9, size * 0.92, (0, 0, 0, 60))
+    p.rect(size * 0.2, size * 0.3, size * 0.8, size * 0.8, c + (255,))
+    p.rect(size * 0.2, size * 0.3, size * 0.8, size * 0.38, shade(c, 1.2) + (255,))
+    p.line([(size * 0.2, size * 0.3), (size * 0.8, size * 0.8)], shade(c, 0.6) + (255,), size * 0.03)
+    p.line([(size * 0.8, size * 0.3), (size * 0.2, size * 0.8)], shade(c, 0.6) + (255,), size * 0.03)
     return p.finish()
 
 
@@ -770,21 +803,48 @@ def bank_names():
     return names
 
 
+def bank_sprite(index):
+    """The drawing a shop or Examine picture shows for alltiles.btl record `index` (see bank_names), or None."""
+    r = 96
+    if index < 24:
+        return art.crop_icon(r, CROP_ROWS[index][1], (0x4C, 0xA0, 0x4C))
+    if 26 <= index < 34:
+        species = {26: 3, 28: 2, 30: 0, 32: 1}[index & ~1]
+        return art.animal(species, r, True)
+    if 34 <= index < 42:
+        kind = ("tractor", "plow", "planter", "sprayer", "harvester", "trailer", "truck", "plane")[index - 34]
+        img = art.machine(kind, r, loaded=kind == "truck")
+        return img.rotate(-90, expand=True) if img.size[1] > img.size[0] else img
+    return {42: lambda: art.silo(2, r), 43: lambda: art.shed(3, 2, r), 44: lambda: art.barn(3, 3, r), 45: lambda: art.windmill(r, 0),
+            50: lambda: art.water_tower(r), 51: lambda: art.pump(r),
+            **{52 + i: (lambda c=c: art.barrel(r, c)) for i, c in enumerate((BARREL_COLOURS[915], BARREL_COLOURS[914], BARREL_COLOURS[913], BARREL_COLOURS[912]))}
+            }.get(index, lambda: None)()
+
+
 def bank_picture(index, name):
     w, h, k = 112, 64, PIC_SCALE
     hue = (index * 0.0833) % 1.0
-    top = tuple(int(255 * v) for v in colorsys.hsv_to_rgb(hue, 0.35, 0.95))
-    bottom = tuple(int(255 * v) for v in colorsys.hsv_to_rgb(hue, 0.55, 0.65))
+    top = tuple(int(255 * v) for v in colorsys.hsv_to_rgb(hue, 0.22, 0.97))
+    bottom = tuple(int(255 * v) for v in colorsys.hsv_to_rgb(hue, 0.45, 0.78))
     img = Image.new("RGBA", (w * k, h * k))
     px = img.load()
     for y in range(h * k):
         c = lerp(top, bottom, y / (h * k - 1))
         for x in range(w * k):
             px[x, y] = c + (255,)
+    sprite = bank_sprite(index)
+    if sprite is not None:
+        box_w, box_h = 100 * k, 44 * k
+        f = min(box_w / sprite.size[0], box_h / sprite.size[1])
+        sprite = sprite.resize((max(1, int(sprite.size[0] * f)), max(1, int(sprite.size[1] * f))), Image.LANCZOS)
+        img.alpha_composite(sprite, ((w * k - sprite.size[0]) // 2, 3 * k + (box_h - sprite.size[1]) // 2))
     d = ImageDraw.Draw(img)
     d.rectangle([0, 0, w * k - 1, h * k - 1], outline=(0, 0, 0, 255), width=k)
-    put_text(d, k, str(index), 3, 3, 40, 0, px=8, fill=(0x20, 0x20, 0x20, 255))
-    put_text(d, k, name or "Picture", 4, 26, w - 8, 1, px=12, fill=(0x10, 0x10, 0x10, 255))
+    if sprite is None:
+        put_text(d, k, str(index), 3, 3, 40, 0, px=8, fill=(0x20, 0x20, 0x20, 255))
+        put_text(d, k, name or "Picture", 4, 26, w - 8, 1, px=12, fill=(0x10, 0x10, 0x10, 255))
+    else:
+        put_text(d, k, name or "", 4, 51, w - 8, 1, px=9, fill=(0x10, 0x10, 0x10, 255))
     return img
 
 
@@ -1092,6 +1152,9 @@ CROP_ROWS = [
 ]
 
 
+CROP_COLOURS = [art.RIPE[row[1]] for row in CROP_ROWS]  # the colour of each crop's harvest (signs, popups, icons)
+
+
 def crop_block(size, out):
     """The crops block, and a strip of 14 pictures for each crop under out/crops."""
     os.makedirs(os.path.join(out, "crops"), exist_ok=True)
@@ -1299,6 +1362,16 @@ def build(size, labels):
             plain[SIGNS + 4 * slot + q] = sign.crop(((q % 2) * size, (q // 2) * size, (q % 2 + 1) * size, (q // 2 + 1) * size))
         plain[CROP_ICON_A + slot] = draw_icon(size, slot, (0xC8, 0xB0, 0x78))  # a tan frame
         plain[CROP_ICON_B + slot] = draw_icon(size, slot, (0x4C, 0xA0, 0x4C))  # a green frame
+    for first, picture, w, h in ((440, art.silo(1, size), 1, 1), (441, art.silo(2, size), 2, 2), (445, art.shed(3, 2, size), 3, 2),
+                                 (451, art.shed(3, 3, size), 3, 3), (460, art.barn(3, 3, size), 3, 3), (469, art.barn(4, 3, size), 4, 3)):
+        for k in range(w * h):  # a building's tiles are numbered along x first
+            plain[first + k] = picture.crop(((k % w) * size, (k // w) * size, (k % w + 1) * size, (k // w + 1) * size))
+    plain[120] = art.pump(size)
+    plain[481] = art.water_tower(size)
+    plain[0x95] = art.water_tower(size, broken=True)
+    plain[0xD9] = art.floor(size)  # inside a building: the floor a stored item lies on
+    for k, level in enumerate((0.12, 0.4, 0.7, 1.0)):
+        plain[0x53 + k] = art.tank_inside(size, level)  # inside a water tower
     block = draw_event_ground(size, 0)
     for k in range(35):
         plain[EVENT_GROUND + k] = block.crop(((k % 7) * size, (k // 7) * size, (k % 7 + 1) * size, (k // 7 + 1) * size))
