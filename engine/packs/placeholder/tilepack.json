@@ -183,6 +183,442 @@
       "strength": 0.45
     }
   },
+  "template": {
+    "version": 1,
+    "catalogue": [
+      {
+        "id": 0,
+        "family": 40,
+        "kind": 0,
+        "price": 12000,
+        "size": [1, 1],
+        "turns": 2
+      },
+      {
+        "id": 1,
+        "family": 41,
+        "kind": 1,
+        "price": 4000,
+        "size": [1, 1],
+        "turns": 2
+      },
+      {
+        "id": 2,
+        "family": 44,
+        "kind": 2,
+        "price": 6500,
+        "size": [1, 1],
+        "turns": 2
+      },
+      {
+        "id": 3,
+        "family": 50,
+        "kind": 3,
+        "price": 5200,
+        "size": [1, 1],
+        "turns": 2
+      },
+      {
+        "id": 4,
+        "family": 52,
+        "kind": 4,
+        "price": 16000,
+        "size": [1, 2],
+        "turns": 2
+      },
+      {
+        "id": 5,
+        "family": 54,
+        "kind": 5,
+        "price": 3000,
+        "size": [1, 2],
+        "turns": 2
+      },
+      {
+        "id": 7,
+        "family": 72,
+        "kind": 7,
+        "price": 9500,
+        "size": [1, 2],
+        "turns": 2
+      },
+      {
+        "id": 8,
+        "family": 82,
+        "kind": 8,
+        "price": 22000,
+        "size": [1, 1],
+        "turns": 2
+      },
+      {
+        "id": 12,
+        "family": 6,
+        "kind": 64,
+        "price": 800,
+        "size": [1, 1]
+      },
+      {
+        "id": 13,
+        "family": 7,
+        "kind": 65,
+        "price": 2200,
+        "size": [2, 2]
+      },
+      {
+        "id": 14,
+        "family": 8,
+        "kind": 66,
+        "price": 1500,
+        "size": [3, 2]
+      },
+      {
+        "id": 15,
+        "family": 9,
+        "kind": 67,
+        "price": 3200,
+        "size": [3, 3]
+      },
+      {
+        "id": 16,
+        "family": 10,
+        "kind": 68,
+        "price": 2800,
+        "size": [3, 3]
+      },
+      {
+        "id": 17,
+        "family": 11,
+        "kind": 69,
+        "price": 5200,
+        "size": [4, 3]
+      },
+      {
+        "id": 18,
+        "family": 61,
+        "kind": 70,
+        "price": 1800,
+        "size": [1, 1]
+      },
+      {
+        "id": 19,
+        "family": 60,
+        "kind": 71,
+        "price": 2400,
+        "size": [1, 1]
+      },
+      {
+        "id": 20,
+        "family": 103,
+        "kind": 72,
+        "price": 3000,
+        "size": [1, 1]
+      },
+      {
+        "id": 21,
+        "family": 18,
+        "kind": 168,
+        "price": 100
+      },
+      {
+        "id": 22,
+        "family": 19,
+        "kind": 169,
+        "price": 100
+      },
+      {
+        "id": 23,
+        "family": 20,
+        "kind": 170,
+        "price": 100
+      },
+      {
+        "id": 24,
+        "family": 21,
+        "kind": 171,
+        "price": 100
+      },
+      {
+        "id": 25,
+        "family": 22,
+        "kind": 172,
+        "price": 100
+      },
+      {
+        "id": 26,
+        "family": 23,
+        "kind": 173,
+        "price": 100
+      },
+      {
+        "id": 27,
+        "family": 24,
+        "kind": 174,
+        "price": 100
+      },
+      {
+        "id": 28,
+        "family": 25,
+        "kind": 175,
+        "price": 100
+      },
+      {
+        "id": 29,
+        "family": 26,
+        "kind": 176,
+        "price": 100
+      },
+      {
+        "id": 30,
+        "family": 27,
+        "kind": 177,
+        "price": 100
+      },
+      {
+        "id": 31,
+        "family": 28,
+        "kind": 178,
+        "price": 100
+      },
+      {
+        "id": 32,
+        "family": 29,
+        "kind": 179,
+        "price": 100
+      },
+      {
+        "id": 33,
+        "family": 30,
+        "kind": 180,
+        "price": 100
+      },
+      {
+        "id": 34,
+        "family": 31,
+        "kind": 181,
+        "price": 100
+      },
+      {
+        "id": 35,
+        "family": 32,
+        "kind": 182,
+        "price": 100
+      },
+      {
+        "id": 36,
+        "family": 33,
+        "kind": 183,
+        "price": 100
+      },
+      {
+        "id": 45,
+        "family": 37,
+        "kind": 160,
+        "price": 1200
+      },
+      {
+        "id": 46,
+        "family": 34,
+        "kind": 161,
+        "price": 900
+      },
+      {
+        "id": 47,
+        "family": 35,
+        "kind": 162,
+        "price": 400
+      },
+      {
+        "id": 48,
+        "family": 36,
+        "kind": 163,
+        "price": 300
+      },
+      {
+        "id": 50,
+        "kind": 168,
+        "price": 100
+      },
+      {
+        "id": 51,
+        "kind": 169,
+        "price": 100
+      },
+      {
+        "id": 52,
+        "kind": 170,
+        "price": 100
+      },
+      {
+        "id": 53,
+        "kind": 171,
+        "price": 100
+      },
+      {
+        "id": 54,
+        "kind": 172,
+        "price": 100
+      },
+      {
+        "id": 55,
+        "kind": 173,
+        "price": 100
+      },
+      {
+        "id": 56,
+        "kind": 174,
+        "price": 100
+      },
+      {
+        "id": 57,
+        "kind": 175,
+        "price": 100
+      },
+      {
+        "id": 58,
+        "kind": 176,
+        "price": 100
+      },
+      {
+        "id": 59,
+        "kind": 177,
+        "price": 100
+      },
+      {
+        "id": 60,
+        "kind": 178,
+        "price": 100
+      },
+      {
+        "id": 61,
+        "kind": 179,
+        "price": 100
+      },
+      {
+        "id": 62,
+        "kind": 180,
+        "price": 100
+      },
+      {
+        "id": 63,
+        "kind": 181,
+        "price": 100
+      },
+      {
+        "id": 64,
+        "kind": 182,
+        "price": 100
+      },
+      {
+        "id": 65,
+        "kind": 183,
+        "price": 100
+      },
+      {
+        "id": 66,
+        "kind": 192,
+        "price": 25
+      },
+      {
+        "id": 67,
+        "kind": 193,
+        "price": 25
+      },
+      {
+        "id": 68,
+        "kind": 194,
+        "price": 25
+      },
+      {
+        "id": 69,
+        "kind": 195,
+        "price": 25
+      },
+      {
+        "id": 70,
+        "kind": 196,
+        "price": 25
+      },
+      {
+        "id": 71,
+        "kind": 197,
+        "price": 25
+      },
+      {
+        "id": 72,
+        "kind": 198,
+        "price": 25
+      },
+      {
+        "id": 73,
+        "kind": 199,
+        "price": 25
+      },
+      {
+        "id": 74,
+        "kind": 200,
+        "price": 25
+      },
+      {
+        "id": 75,
+        "kind": 201,
+        "price": 25
+      },
+      {
+        "id": 76,
+        "kind": 202,
+        "price": 25
+      },
+      {
+        "id": 77,
+        "kind": 203,
+        "price": 25
+      },
+      {
+        "id": 78,
+        "kind": 204,
+        "price": 25
+      },
+      {
+        "id": 79,
+        "kind": 205,
+        "price": 25
+      },
+      {
+        "id": 80,
+        "kind": 206,
+        "price": 25
+      },
+      {
+        "id": 81,
+        "kind": 207,
+        "price": 25
+      },
+      {
+        "id": 82,
+        "family": 74,
+        "kind": 220,
+        "price": 60
+      },
+      {
+        "id": 83,
+        "family": 75,
+        "kind": 221,
+        "price": 80
+      },
+      {
+        "id": 84,
+        "family": 76,
+        "kind": 222,
+        "price": 70
+      },
+      {
+        "id": 85,
+        "family": 51,
+        "kind": 223,
+        "price": 90
+      }
+    ]
+  },
   "tables": {
     "climate": {
       "rain": [
@@ -1040,519 +1476,209 @@
     ],
     "items": [
       {
-        "id": 0,
-        "name": "Item 0",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 1,
-        "name": "Item 1",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 2,
-        "name": "Item 2",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 3,
-        "name": "Item 3",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 4,
-        "name": "Item 4",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 5,
-        "name": "Item 5",
-        "description": "A placeholder item."
-      },
-      {
         "id": 6,
-        "name": "Item 6",
-        "description": "A placeholder item."
+        "name": "Small Silo",
+        "description": "Holds a little grain."
       },
       {
         "id": 7,
-        "name": "Item 7",
-        "description": "A placeholder item."
+        "name": "Large Silo",
+        "description": "Holds a lot of grain."
       },
       {
         "id": 8,
-        "name": "Item 8",
-        "description": "A placeholder item."
+        "name": "Small Shed",
+        "description": "Shelters machines."
       },
       {
         "id": 9,
-        "name": "Item 9",
-        "description": "A placeholder item."
+        "name": "Large Shed",
+        "description": "Shelters more machines."
       },
       {
         "id": 10,
-        "name": "Item 10",
-        "description": "A placeholder item."
+        "name": "Small Barn",
+        "description": "Stores seed and spray."
       },
       {
         "id": 11,
-        "name": "Item 11",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 12,
-        "name": "Item 12",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 13,
-        "name": "Item 13",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 14,
-        "name": "Item 14",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 15,
-        "name": "Item 15",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 16,
-        "name": "Item 16",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 17,
-        "name": "Item 17",
-        "description": "A placeholder item."
+        "name": "Large Barn",
+        "description": "Stores much seed and spray."
       },
       {
         "id": 18,
-        "name": "Item 18",
-        "description": "A placeholder item."
+        "name": "Corn",
+        "description": "A crop to grow."
       },
       {
         "id": 19,
-        "name": "Item 19",
-        "description": "A placeholder item."
+        "name": "Wheat",
+        "description": "A crop to grow."
       },
       {
         "id": 20,
-        "name": "Item 20",
-        "description": "A placeholder item."
+        "name": "Barley",
+        "description": "A crop to grow."
       },
       {
         "id": 21,
-        "name": "Item 21",
-        "description": "A placeholder item."
+        "name": "Potatoes",
+        "description": "A crop to grow."
       },
       {
         "id": 22,
-        "name": "Item 22",
-        "description": "A placeholder item."
+        "name": "Oats",
+        "description": "A crop to grow."
       },
       {
         "id": 23,
-        "name": "Item 23",
-        "description": "A placeholder item."
+        "name": "Rice",
+        "description": "A crop to grow."
       },
       {
         "id": 24,
-        "name": "Item 24",
-        "description": "A placeholder item."
+        "name": "Sorghum",
+        "description": "A crop to grow."
       },
       {
         "id": 25,
-        "name": "Item 25",
-        "description": "A placeholder item."
+        "name": "Soybeans",
+        "description": "A crop to grow."
       },
       {
         "id": 26,
-        "name": "Item 26",
-        "description": "A placeholder item."
+        "name": "Cotton",
+        "description": "A crop to grow."
       },
       {
         "id": 27,
-        "name": "Item 27",
-        "description": "A placeholder item."
+        "name": "Onions",
+        "description": "A crop to grow."
       },
       {
         "id": 28,
-        "name": "Item 28",
-        "description": "A placeholder item."
+        "name": "Tomatoes",
+        "description": "A crop to grow."
       },
       {
         "id": 29,
-        "name": "Item 29",
-        "description": "A placeholder item."
+        "name": "Lettuce",
+        "description": "A crop to grow."
       },
       {
         "id": 30,
-        "name": "Item 30",
-        "description": "A placeholder item."
+        "name": "Carrots",
+        "description": "A crop to grow."
       },
       {
         "id": 31,
-        "name": "Item 31",
-        "description": "A placeholder item."
+        "name": "Strawberries",
+        "description": "A crop to grow."
       },
       {
         "id": 32,
-        "name": "Item 32",
-        "description": "A placeholder item."
+        "name": "Sugar",
+        "description": "A crop to grow."
       },
       {
         "id": 33,
-        "name": "Item 33",
-        "description": "A placeholder item."
+        "name": "Peanuts",
+        "description": "A crop to grow."
       },
       {
         "id": 34,
-        "name": "Item 34",
-        "description": "A placeholder item."
+        "name": "Cow",
+        "description": "Gives milk."
       },
       {
         "id": 35,
-        "name": "Item 35",
-        "description": "A placeholder item."
+        "name": "Pig",
+        "description": "Eats almost anything."
       },
       {
         "id": 36,
-        "name": "Item 36",
-        "description": "A placeholder item."
+        "name": "Sheep",
+        "description": "Grazes and gives wool."
       },
       {
         "id": 37,
-        "name": "Item 37",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 38,
-        "name": "Item 38",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 39,
-        "name": "Item 39",
-        "description": "A placeholder item."
+        "name": "Horse",
+        "description": "Eats hay and grazes."
       },
       {
         "id": 40,
-        "name": "Item 40",
-        "description": "A placeholder item."
+        "name": "Tractor",
+        "description": "Pulls the plow and other tools."
       },
       {
         "id": 41,
-        "name": "Item 41",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 42,
-        "name": "Item 42",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 43,
-        "name": "Item 43",
-        "description": "A placeholder item."
+        "name": "Plow",
+        "description": "Turns the soil before planting."
       },
       {
         "id": 44,
-        "name": "Item 44",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 45,
-        "name": "Item 45",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 46,
-        "name": "Item 46",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 47,
-        "name": "Item 47",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 48,
-        "name": "Item 48",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 49,
-        "name": "Item 49",
-        "description": "A placeholder item."
+        "name": "Planter",
+        "description": "Sows seed in rows."
       },
       {
         "id": 50,
-        "name": "Item 50",
-        "description": "A placeholder item."
+        "name": "Sprayer",
+        "description": "Sprays chemicals on a field."
       },
       {
         "id": 51,
-        "name": "Item 51",
-        "description": "A placeholder item."
+        "name": "Fungicide",
+        "description": "Stops crop disease."
       },
       {
         "id": 52,
-        "name": "Item 52",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 53,
-        "name": "Item 53",
-        "description": "A placeholder item."
+        "name": "Harvester",
+        "description": "Cuts and gathers the crop."
       },
       {
         "id": 54,
-        "name": "Item 54",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 55,
-        "name": "Item 55",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 56,
-        "name": "Item 56",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 57,
-        "name": "Item 57",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 58,
-        "name": "Item 58",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 59,
-        "name": "Item 59",
-        "description": "A placeholder item."
+        "name": "Trailer",
+        "description": "Hauls the harvest."
       },
       {
         "id": 60,
-        "name": "Item 60",
-        "description": "A placeholder item."
+        "name": "Windmill",
+        "description": "Pumps water free."
       },
       {
         "id": 61,
-        "name": "Item 61",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 62,
-        "name": "Item 62",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 63,
-        "name": "Item 63",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 64,
-        "name": "Item 64",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 65,
-        "name": "Item 65",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 66,
-        "name": "Item 66",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 67,
-        "name": "Item 67",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 68,
-        "name": "Item 68",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 69,
-        "name": "Item 69",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 70,
-        "name": "Item 70",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 71,
-        "name": "Item 71",
-        "description": "A placeholder item."
+        "name": "Water Pump",
+        "description": "Draws water for ditches."
       },
       {
         "id": 72,
-        "name": "Item 72",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 73,
-        "name": "Item 73",
-        "description": "A placeholder item."
+        "name": "Truck",
+        "description": "Carries goods to town."
       },
       {
         "id": 74,
-        "name": "Item 74",
-        "description": "A placeholder item."
+        "name": "Fertilizer",
+        "description": "Feeds the soil."
       },
       {
         "id": 75,
-        "name": "Item 75",
-        "description": "A placeholder item."
+        "name": "Pesticide",
+        "description": "Kills crop pests."
       },
       {
         "id": 76,
-        "name": "Item 76",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 77,
-        "name": "Item 77",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 78,
-        "name": "Item 78",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 79,
-        "name": "Item 79",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 80,
-        "name": "Item 80",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 81,
-        "name": "Item 81",
-        "description": "A placeholder item."
+        "name": "Herbicide",
+        "description": "Kills weeds."
       },
       {
         "id": 82,
-        "name": "Item 82",
-        "description": "A placeholder item."
+        "name": "Crop Duster",
+        "description": "A plane that sprays fields."
       },
       {
-        "id": 83,
-        "name": "Item 83",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 84,
-        "name": "Item 84",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 85,
-        "name": "Item 85",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 86,
-        "name": "Item 86",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 87,
-        "name": "Item 87",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 88,
-        "name": "Item 88",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 89,
-        "name": "Item 89",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 90,
-        "name": "Item 90",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 91,
-        "name": "Item 91",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 92,
-        "name": "Item 92",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 93,
-        "name": "Item 93",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 94,
-        "name": "Item 94",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 95,
-        "name": "Item 95",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 96,
-        "name": "Item 96",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 97,
-        "name": "Item 97",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 98,
-        "name": "Item 98",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 99,
-        "name": "Item 99",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 100,
-        "name": "Item 100",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 101,
-        "name": "Item 101",
-        "description": "A placeholder item."
-      },
-      {
-        "id": 102,
-        "name": "Item 102",
-        "description": "A placeholder item."
+        "id": 103,
+        "name": "Water Tower",
+        "description": "Stores water for ditches."
       }
     ],
     "overview": {

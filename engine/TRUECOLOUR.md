@@ -187,6 +187,64 @@ the reader it replaced on varied blobs, makes every table from JSON and reads it
 the engine's own consumers (`GenerateTerrain` for the climate, `PlaceTownPlotCells` for the town), and checks 36
 bad tables. With a folder it also checks that pack's tables.
 
+## Template farm
+
+Every new world starts from a *template farm*: the world generator copies it, then replaces the map, the plots, the
+weather and every table of things (animals, machines, fields, buildings, items), and keeps the rest. In the original
+the template is the prebuilt farm `SCEN0.SSM`. What survives from it into a new game is small: the **item
+catalogue** (103 records of 18 bytes: what each machine, building, animal, seed and supply is, costs and covers), the
+save's version byte and a few scalar defaults. A pack gives them in an optional `template` block:
+
+```json
+"template": {
+  "version": 1,
+  "catalogue": [
+    { "id": 12, "family": 6, "kind": 64, "price": 800, "size": [1, 1] },
+    { "id": 0, "family": 40, "kind": 0, "price": 12000, "size": [1, 1], "turns": 2 }
+  ],
+  "scalars": { "menu_6": 0 }
+}
+```
+
+The engine fixes what each record *number* is: 0..8 machines (tractor, plow, planter, sprayer, harvester, trailer, one
+unused, truck, crop duster), 12..20 buildings (small and large silo, shed and barn, water pump, windmill, water tower),
+21..44 the crops' market records, 45..48 the animals (horse, cow, pig, sheep), 50..65 the crops' stored stacks, 66..81
+the seeds, 82..85 the supplies (fertilizer, pesticide, herbicide, fungicide). A record's fields, all optional but `id`:
+
+| Field | Offset | Meaning |
+|---|---|---|
+| `family` | +0, u16 | the tile family of its picture (`FamilyStart` in `game/Shop.cpp`), which is also the id of its item text (`itemtext.dat`) |
+| `kind` | +2, u16 | its ledger code, as `Simulation::Spend` sorts expenses: machines 0..63 (their type), buildings 0x40..0x48, livestock 0xA0..0xA3, seeds 0xC0 + crop, supplies 0xDC..0xDF |
+| `own` | +4, u16 | how many the player starts with |
+| `price` | +6, u16 | what it costs; the crops' prices are set when a world is made |
+| `size` | +8, +9, i8 | cells across and down (a building's picture is that many consecutive tiles, row by row) |
+| `turns` | +10 | for a machine: how many of its pictures face one way (the turned ones follow after size x turns) |
+| `picture` | +11, i8 | the record of the picture bank shown in the BUY window |
+| `extra` | +12..17 | six bytes the engine does not read yet, kept so that nothing is lost |
+
+`scalars` are defaults for the save's scalar tail by name; the cash, the calendar and the speed are not allowed (a
+world sets them itself), and most scalars the simulation sets for itself, so a template rarely needs any.
+
+How it works: the codec (`game/Template.{h,cpp}`) builds a blank 96 x 96 farm to the save format's exact size
+(`MakeBlankFarm`; the save's tail holds more than the named scalars, so its length is what makes the file the right
+size), fills it from the block and writes it as a save file: the entry `template.ssm`, laid into the archive like the
+other tables. `LoadTemplateState` gives a new world its template from that entry when a pack has one, else from
+`SCEN0.SSM`; `GameState` gained `LoadBytes` and `Serialize` (what `Load` and `Save` now go through) for this. The new
+world screen, the map editor's test and the startup check use it.
+
+`opensimfarm --templatetest [pack folder]` needs no game files. It checks the blank farm and the save format, a block
+made into a save and read back, 28 bad blocks, and which source wins (a pack's over `SCEN0.SSM`). With a pack folder it
+runs the game on that pack's template: a world is generated from it, **every building, machine, animal and supply the
+shop offers and a seed bag is bought** (each costing its catalogue price and appearing), and half a year is simulated.
+
+What the shipped placeholder catalogue is: values from the engine's own role tables (families found from each thing's
+first tile, ledger codes, building sizes that match the tiles their pictures take) with invented prices, so it is
+playable but unbalanced, and unchecked beyond what the smoke test does. The crops' own numbers (prices, seed prices)
+come from their crop files, which a pack does not have yet.
+
+**Not covered yet:** the farm a game *starts* in is still loaded from `SCEN0.SSM` (the template only serves new
+worlds), as are the other prebuilt farms on the region map (`SCEN1..7.SSM`); without crop files no crop is loaded.
+
 ## The placeholder pack
 
 `packs/placeholder/` is a complete pack at 32 px, made by `tools/make_placeholder_pack.py` (Python and Pillow; one
@@ -208,9 +266,10 @@ contains nothing of the original game:
   the cursors are not made yet.
 * The interface theme and the weather look: the engine's own 16 colours and rain and frost veils written out in
   `tilepack.json`, ready to change.
+* The template farm (with `--no-tables` left out): the item catalogue, made from the engine's own role tables.
 * The data tables (`--no-tables` leaves them out): synthetic climate (seasons and weather by class), a region map in
   gradients, a dirt-road cross in each town block, 80 message texts (the engine's own English words for the ids it
-  raises, found in `game/*.cpp`), 103 item texts, and overview colours by tile family, in RGB from the theme's own
+  raises, found in `game/*.cpp`), 41 item texts (by tile family, the ids the template catalogue gives), and overview colours by tile family, in RGB from the theme's own
   colours.
 
 `opensimfarm --packpreview packs/placeholder /tmp/shot` draws a pack with the real map view and interface into
@@ -258,7 +317,7 @@ with none of its files, these remain:
 | Picture banks `alltiles.btl`, `wethgrnd.btl`, `wethsky.btl`; `cursors.til` | message box pictures (event ids pick a record), the Expert's faces, weather art | bank sets in `pictures`; cursors |
 | Crop files `CROPS/*.crp` | 16 crops: name, 70 parameters, 14 pictures, help card | a `crops` table; the pictures come from the pack |
 | Help cards `cardN.hc` | the Farm Expert's scripted cards | a JSON card format |
-| Prebuilt farms `SCEN0..N.SSM` | `SCEN0.SSM` is the template every new world starts from (item catalogue, prices, tables) | the template as JSON, a built-in default state |
+| Prebuilt farms `SCEN0..7.SSM` | `SCEN0.SSM` is also the farm a game opens in, and the others are the farms on the region map. (As the template for *new worlds* it is replaced: see Template farm) | start from a generated world; the region map's farms generated from their region |
 | Sounds `*.voc` and songs `*.xmi` | effects and music | a sound set in the pack |
 | `uicolour.map`, `mskdtile.msk` | the Windows edition's colours and masks | not needed by a pack |
 
@@ -267,6 +326,6 @@ with none of its files, these remain:
 1. Give the interface's hard-coded layout (window contents, the labels `PictureText.cpp` places) a home in the pack's
    JSON, so that a pack can move things; picture banks and cursors in packs.
 2. Weather as a tint or overlay for truecolour tiles; crop pictures in the pack (`crops.json`).
-3. The rest of the list above, in this order: the crop files, the template farm, picture banks, the help cards,
-   sounds, the archive itself; each with placeholder data in the shipped pack until the game runs with none of the
+3. The rest of the list above, in this order: the crop files, the starting farm (generated, and the region map's
+   farms), picture banks, the help cards, sounds, the archive itself; each with placeholder data in the shipped pack until the game runs with none of the
    original's files.

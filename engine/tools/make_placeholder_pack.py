@@ -8,7 +8,7 @@ Every one of the 848 plain, 200 masked and 105 event tiles is made, in the PNG-s
 engine/TRUECOLOUR.md, and so are placeholder pictures for the interface (windows, buttons, gauges, sprites, the
 full-screen pictures), at 2 pixels per interface unit (--no-pictures leaves them out), and placeholder data tables
 (climate, region map, town layout, message texts, item texts, overview colours; --no-tables leaves them out) and the
-interface theme (16 RGB colours) and the weather look (a veil for rain and for frost). The families the engine knows by name (ground, water, ditches, roads, fences, gates, trees,
+interface theme (16 RGB colours) and the weather look (a veil for rain and for frost), and the template farm (the item catalogue every new world starts from). The families the engine knows by name (ground, water, ditches, roads, fences, gates, trees,
 rocks, bridges, crop pictures, event grounds) are drawn as what they are, connected pieces with the right arms; every
 other tile is coloured by the tile family it belongs to. Each tile carries its number (--no-labels leaves them off),
 so the pack doubles as a map of what the engine uses where. Needs Pillow (pip install pillow).
@@ -670,8 +670,75 @@ def event_texts():
     return events
 
 
+def family_of(tile):
+    """The tile family that starts at `tile` (the first one when several do): an item's family is also its text's id."""
+    return FAMILY_START.index(tile)
+
+
+# What each catalogue record is, by the engine's own role table (game/Shop.cpp, game/Machines.cpp, game/Simulation.cpp):
+# (record, name, first tile of its picture, ledger code "kind", price, size (across, down)). The prices are placeholder
+# balance; the sizes are the number of consecutive tiles each building's picture takes (small silo 1, large silo 2 x 2,
+# small shed 3 x 2, large shed and small barn 3 x 3, large barn 4 x 3).
+MACHINES = [  # record = the machine's type; the tile is its upright picture's first (overlay 0x350.. + 848)
+    (0, "Tractor", 848, 12000, (1, 1)), (1, "Plow", 852, 4000, (1, 1)), (2, "Planter", 856, 6500, (1, 1)),
+    (3, "Sprayer", 868, 5200, (1, 1)), (4, "Harvester", 860, 16000, (1, 2)), (5, "Trailer", 876, 3000, (1, 2)),
+    (7, "Truck", 896, 9500, (1, 2)), (8, "Crop Duster", 1028, 22000, (1, 1)),
+]
+BUILDINGS = [  # records 12..20, kind 0x40..0x48
+    ("Small Silo", 440, 800, (1, 1)), ("Large Silo", 441, 2200, (2, 2)), ("Small Shed", 445, 1500, (3, 2)),
+    ("Large Shed", 451, 3200, (3, 3)), ("Small Barn", 460, 2800, (3, 3)), ("Large Barn", 469, 5200, (4, 3)),
+    ("Water Pump", 120, 1800, (1, 1)), ("Windmill", 1010, 2400, (1, 1)), ("Water Tower", 481, 3000, (1, 1)),
+]
+ANIMALS = [("Horse", 946, 1200), ("Cow", 962, 900), ("Pig", 978, 400), ("Sheep", 994, 300)]  # records 45..48, kind 0xA0 + species
+SUPPLIES = [("Fertilizer", 915, 60), ("Pesticide", 914, 80), ("Herbicide", 913, 70), ("Fungicide", 912, 90)]  # records 82..85, kind 0xDC..
+CROPS = ["Corn", "Wheat", "Barley", "Potatoes", "Oats", "Rice", "Sorghum", "Soybeans", "Cotton", "Onions", "Tomatoes", "Lettuce", "Carrots",
+         "Strawberries", "Sugar", "Peanuts"]
+
+
+def template_block():
+    """The template farm: the item catalogue (103 records of 18 bytes) the engine starts every new world from."""
+    recs = []
+    for rec, name, tile, price, size in MACHINES:
+        recs.append({"id": rec, "family": family_of(tile), "kind": rec, "price": price, "size": list(size), "turns": 2})
+    for k, (name, tile, price, size) in enumerate(BUILDINGS):
+        recs.append({"id": 12 + k, "family": family_of(tile), "kind": 0x40 + k, "price": price, "size": list(size)})
+    for c in range(16):  # the crops' market records: family 18 + c (the growth pictures), ledger code 168 + c; prices at world creation
+        recs.append({"id": 21 + c, "family": 18 + c, "kind": 168 + c, "price": 100})
+    for sp, (name, tile, price) in enumerate(ANIMALS):
+        recs.append({"id": 45 + sp, "family": family_of(tile), "kind": 0xA0 + sp, "price": price})
+    for c in range(16):  # the crops' stored stacks and seeds: prices at world creation
+        recs.append({"id": 50 + c, "kind": 168 + c, "price": 100})
+        recs.append({"id": 66 + c, "kind": 0xC0 + c, "price": 25})
+    for k, (name, tile, price) in enumerate(SUPPLIES):
+        recs.append({"id": 82 + k, "family": family_of(tile), "kind": 0xDC + k, "price": price})
+    recs.sort(key=lambda r: r["id"])
+    return {"version": 1, "catalogue": recs}
+
+
+DESCRIPTIONS = {
+    "Tractor": "Pulls the plow and other tools.", "Plow": "Turns the soil before planting.", "Planter": "Sows seed in rows.",
+    "Sprayer": "Sprays chemicals on a field.", "Harvester": "Cuts and gathers the crop.", "Trailer": "Hauls the harvest.",
+    "Truck": "Carries goods to town.", "Crop Duster": "A plane that sprays fields.", "Small Silo": "Holds a little grain.",
+    "Large Silo": "Holds a lot of grain.", "Small Shed": "Shelters machines.", "Large Shed": "Shelters more machines.",
+    "Small Barn": "Stores seed and spray.", "Large Barn": "Stores much seed and spray.", "Water Pump": "Draws water for ditches.",
+    "Windmill": "Pumps water free.", "Water Tower": "Stores water for ditches.", "Horse": "Eats hay and grazes.",
+    "Cow": "Gives milk.", "Pig": "Eats almost anything.", "Sheep": "Grazes and gives wool.", "Fertilizer": "Feeds the soil.",
+    "Pesticide": "Kills crop pests.", "Herbicide": "Kills weeds.", "Fungicide": "Stops crop disease.",
+}
+
+
 def item_texts():
-    return [{"id": i, "name": "Item %d" % i, "description": "A placeholder item."} for i in range(103)]
+    """Item help texts by the id the engine looks them up with: the item's tile family (see template_block)."""
+    items = {}
+    for rec, name, tile, price, size in MACHINES:
+        items[family_of(tile)] = (name, DESCRIPTIONS[name])
+    for name, tile, price, size in BUILDINGS:
+        items[family_of(tile)] = (name, DESCRIPTIONS[name])
+    for name, tile, price in ANIMALS + SUPPLIES:
+        items[family_of(tile)] = (name, DESCRIPTIONS[name])
+    for c, name in enumerate(CROPS):
+        items[18 + c] = (name, "A crop to grow.")
+    return [{"id": i, "name": n, "description": d} for i, (n, d) in sorted(items.items())]
 
 
 # The interface's 16 colours as RGB (engine/src/assets/Theme.h): what the interface draws fills, frames, text and the
@@ -805,6 +872,8 @@ def main():
         meta["pictures"] = build_pictures(a.out)
     meta["theme"] = THEME
     meta["weather"] = WEATHER
+    if not a.no_tables:
+        meta["template"] = template_block()
     if not a.no_tables:
         meta["tables"] = build_tables()
     with open(os.path.join(a.out, "tilepack.json"), "w") as f:
