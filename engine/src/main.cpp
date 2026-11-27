@@ -2673,7 +2673,8 @@ static WeatherLook g_weatherLook = DefaultWeatherLook(); // how rain and frost l
 // starts a comment. Commands: click X Y, rclick X Y, move X Y (window pixels), key NAME (SDL key names: Return, Escape, F1,
 // Space, a ...), shot FILE (the next frame is saved as a bitmap), quit, and expectations that fail the run (a message on
 // stderr and exit code 1) when the game is not as said: expect cash N, expect game | start (in a game, or still on the start
-// screens), expect machines N | structures N | animals N | fields N, expect open WINDOWID.
+// screens), expect machines N | structures N | animals N | fields N (also fields_atleast N, machines_atleast N, structures_atleast N),
+// expect open WINDOWID.
 struct InputScript
 {
     struct Command
@@ -4555,7 +4556,11 @@ int main(int argc, char** argv)
             if (atStart || !state)
                 return "not in a game";
             auto is = [&](long long have) { return have == v ? std::string() : "it is " + std::to_string(have); };
+            auto atLeast = [&](long long have) { return have >= v ? std::string() : "it is " + std::to_string(have); };
             if (what == "cash") return is(state->cash);
+            if (what == "fields_atleast") return atLeast(state->fieldCount);
+            if (what == "machines_atleast") return atLeast(state->machineCount);
+            if (what == "structures_atleast") return atLeast(state->structureCount);
             if (what == "machines") return is(state->machineCount);
             if (what == "structures") return is(state->structureCount);
             if (what == "animals") return is(state->animalCount);

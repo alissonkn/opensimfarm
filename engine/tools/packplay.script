@@ -13,8 +13,15 @@
 210 click 660 420     # a spot on the farm
 230 expect cash 34000
 230 expect machines 1
-240 click 238 7       # the Windows menu
-250 click 260 120     # Farm Expert
-270 expect open 6     # the Farm Expert window
-280 shot /tmp/packplay.bmp
-290 quit x
+235 click 14 345      # the PLANT button of the palette: the list of crops
+250 click 65 332      # Corn
+# a field needs 8 x 8 cells of clear ground on the player's own land. The world is fixed (OSF_WORLDSEED=7 in the runner), so
+# this spot, at the top of the farm beside the map window, fits; a second one is there in case the world generator changes
+260 click 400 110
+280 click 480 380
+340 expect fields_atleast 1
+350 click 238 7       # the Windows menu
+360 click 260 120     # Farm Expert
+380 expect open 6     # the Farm Expert window
+390 shot /tmp/packplay.bmp
+400 quit x

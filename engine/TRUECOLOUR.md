@@ -347,7 +347,7 @@ harvests for at least 8,000, keep its soil neither soaked nor parched, and not w
 ## The placeholder pack
 
 `packs/placeholder/` is a complete pack at 32 px, made by `tools/make_placeholder_pack.py` (Python and Pillow; one
-second; `--size 8..128`, `--no-labels`). It is drawn from nothing but the engine's own tile tables, so it needs and
+second; `--size 8..128`, `--labels`). It is drawn from nothing but the engine's own tile tables, so it needs and
 contains nothing of the original game:
 
 * Families the engine names are drawn as what they are: the ground ramp (15..30, dry to wet), water with sandy shore
@@ -357,7 +357,8 @@ contains nothing of the original game:
 * Connected pieces (roads, fences, ditches) have the right arms: the piece number 0..10 is the engine's neighbour-mask
   shape (`kShape` in `game/Editing.cpp`).
 * Every other tile is coloured by the tile family it belongs to (`FamilyStart` in `game/Shop.cpp`), so a family is
-  recognisable at a glance, and every tile carries its number: the pack is a map of what the engine uses where.
+  recognisable at a glance. With `--labels` (not in the shipped pack, which is clean to play) every tile also carries its
+  number: the pack is then a map of what the engine uses where, for an artist.
 * The interface pictures are blank panels at the sizes the engine expects (`ArchivePictureTest` in `main.cpp`): the 18
   windows with their file name and size, the toolbar with a ruler every 32 units (where the interface cuts it), the
   editor's icons and the button, gauge and weather-vane faces numbered, four full-screen pictures, and numbered
@@ -450,10 +451,13 @@ card of plain advice with a way back.
 
 `tools/packplay_test.sh [program] [pack]` plays a game from a pack alone, through the interface, with no display and no
 person (`SDL_VIDEODRIVER=dummy`), using the input script `tools/packplay.script`: it starts the program, clicks through
-the intro and the title, plays the placeholder region, opens BUY, buys a tractor and clicks it onto the farm, and opens the
-Farm Expert from the Windows menu. The script checks the game as it goes with `expect` lines (`expect cash 34000`,
+the intro and the title, plays the placeholder region, opens BUY, buys a tractor and clicks it onto the farm, picks Corn
+from the PLANT list and makes a field, and opens the Farm Expert from the Windows menu. The script checks the game as it goes with `expect` lines (`expect cash 34000`,
 `expect machines 1`, `expect open 6`, ...); a check that fails prints what is wrong and the program ends with exit code 1.
-The input script and its expectations are described under Playing with a pack alone.
+The input script and its expectations are described under Playing with a pack alone. The runner fixes `OSF_WORLDSEED=7`
+(the first farm and the region screen's world) and `OSF_SEED=7` (the game's own chances), so that the world is the same
+every run and the clicks fit it; with a time-based seed the script failed one run in three, because its fixed click spots
+sometimes landed on a rock.
 
 The earlier tests check the parts: `--tilepacktest`, `--tablestest [pack]`, `--templatetest [pack]`, `--cropstest [pack]`.
 

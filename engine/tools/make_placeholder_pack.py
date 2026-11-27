@@ -2,7 +2,7 @@
 """Makes OpenSimFarm's placeholder tile pack: full-colour, flat vector-style tiles at any size from 8 to 128 px,
 drawn from nothing but the engine's own tile tables (nothing of the original game is read or copied).
 
-    python3 engine/tools/make_placeholder_pack.py [--size 32] [--out engine/packs/placeholder] [--no-labels]
+    python3 engine/tools/make_placeholder_pack.py [--size 32] [--out engine/packs/placeholder] [--labels]
 
 Every one of the 848 plain, 200 masked and 105 event tiles is made, in the PNG-sheet format of
 engine/TRUECOLOUR.md, and so are placeholder pictures for the interface (windows, buttons, gauges, sprites, the
@@ -10,8 +10,8 @@ full-screen pictures), at 2 pixels per interface unit (--no-pictures leaves them
 (climate, region map, town layout, message texts, item texts, overview colours; --no-tables leaves them out) and the
 interface theme (16 RGB colours) and the weather look (a veil for rain and for frost), and the template farm (the item catalogue every new world starts from) and 24 crops with their pictures, the sound effects, and the Farm Expert's help cards. The families the engine knows by name (ground, water, ditches, roads, fences, gates, trees,
 rocks, bridges, crop pictures, event grounds) are drawn as what they are, connected pieces with the right arms; every
-other tile is coloured by the tile family it belongs to. Each tile carries its number (--no-labels leaves them off),
-so the pack doubles as a map of what the engine uses where. Needs Pillow (pip install pillow).
+other tile is coloured by the tile family it belongs to. With --labels each tile carries its number, so the pack
+doubles as a map of what the engine uses where (the shipped pack is without, to play). Needs Pillow (pip install pillow).
 """
 import argparse
 import colorsys
@@ -477,6 +477,14 @@ def text_centre(d, box, text, px, fill):
 SRC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src")
 
 
+# Regions of window pictures that the engine reads clicks in but nowhere names as a button (found in the click handlers of
+# Windows.cpp: BuyWindow, SellWindow): (x, y, w, h, label).
+EXTRA_BUTTONS = {
+    "buywndo.bmp": [(11, 7 + 30 * c, 27, 27, t) for c, t in enumerate(("MACH", "SEED", "LIVE", "BLDG", "SPLY"))] + [(177, 73, 26, 26, "^"), (208, 73, 26, 26, "v")],
+    "sellwndo.bmp": [(17, 3 + 30 * c, 27, 27, t) for c, t in enumerate(("CROP", "MACH", "LIVE"))] + [(16, 96, 16, 16, "^"), (16, 176, 16, 16, "v")],
+}
+
+
 def read_src(*parts):
     path = os.path.join(SRC, *parts)
     if not os.path.exists(path):
@@ -512,6 +520,9 @@ def source_layout():
             if text.startswith(prefix):
                 text, kind = text[len(prefix):], k
         add(pic, kind=kind, x=int(x), y=int(y), w=int(room), h=8, text=text, align=int(align), lines=int(lines), lh=int(lh), wrap=int(wrap))
+    for pic, buttons in EXTRA_BUTTONS.items():
+        for x, y, w, h, text in buttons:
+            add(pic, kind="button", x=x, y=y, w=w, h=h, text=text, align=1, lines=1, lh=8, wrap=0, exact=True, small=len(text) > 1)
     windows = read_src("ui", "Windows.cpp")
     found = list(WINDOW_RE.finditer(windows))
     for i, m in enumerate(found):
@@ -582,7 +593,8 @@ def draw_layout(d, k, items):
             else:  # the label sits inside its button
                 bx, by, bw, bh = it["x"] - 4, it["y"] - 6, it["w"] + 8, 20
             face_rect(d, bx, by, bw, bh, k)
-            put_text(d, k, it["text"], bx, by + (bh - 8) // 2, bw, 1)
+            px = 6 if it.get("small") else 8
+            put_text(d, k, it["text"], bx, by + (bh - px) // 2 + (3 if it.get("small") and bh > 20 else 0), bw, 1, px=px)
         elif it["kind"] == "gauge":
             put_text(d, k, it["text"], it["x"], it["y"], it["w"], 1, px=7)
         else:
@@ -603,6 +615,14 @@ def panel(w, h, name, tint, items=()):
     if h >= 64 and not items:
         text_centre(d, (0, 4 * k, w * k, 20 * k), f"{name}  {w} x {h}", 9 * k, (0x20, 0x20, 0x20, 255))
     draw_layout(d, k, items)
+    if name == "buywndo.bmp":
+        # the two small pictures the editor's PLANT and SPRAY buttons are cut from (16 x 16 at 16, 42 and 18 x 18 at 15, 131):
+        # a framed ear of corn and a barrel
+        d.rectangle([16 * k, 42 * k, 32 * k - 1, 58 * k - 1], fill=(0x3C, 0x9A, 0x3A, 255), outline=(0, 0, 0, 255), width=k)
+        d.ellipse([21 * k, 44 * k, 27 * k, 56 * k], fill=(0xF0, 0xD0, 0x40, 255))
+        d.rectangle([15 * k, 131 * k, 33 * k - 1, 149 * k - 1], fill=(0x80, 0x50, 0x2A, 255), outline=(0, 0, 0, 255), width=k)
+        for yy in (136, 144):
+            d.line([(15 * k, yy * k), (33 * k - 1, yy * k)], fill=(0x40, 0x40, 0x48, 255), width=k)
     return img, d
 
 
@@ -623,15 +643,20 @@ def toolbar():
     return img
 
 
+TOOL_ICONS = ["Move", "Exam", "Road", "Dirt", "Fence", "Gate", "Ditch", "Valve", "Feed", "Trough", "Trees", "Doze"]  # GameUi's kToolNames
+
+
 def editeasy():
+    """editeasy.lzs: the editor palette's 12 tool icons, 24 x 24 each in two columns of six, in the order of the engine's
+    kToolNames (Move, Examine, Paved Road, Dirt Road, Fence, Gate, Ditch, Valve, Feed, Trough, Trees, Bulldoze)."""
     w, h = EDITEASY
     k = PIC_SCALE
     img = Image.new("RGBA", (w * k, h * k), (0xC0, 0xC0, 0xC0, 255))
     d = ImageDraw.Draw(img)
-    for i in range(16):
+    for i, name in enumerate(TOOL_ICONS):
         x, y = (i % 2) * 24 * k, (i // 2) * 24 * k
-        d.rectangle([x + k, y + k, x + 23 * k, y + 23 * k], fill=band_colour(i * 7, 0.4, 0.9) + (255,), outline=(0x30, 0x30, 0x30, 255), width=k)
-        text_centre(d, (x, y, x + 24 * k, y + 24 * k), str(i), 9 * k, (0x20, 0x20, 0x20, 255))
+        d.rectangle([x, y, x + 24 * k - 1, y + 24 * k - 1], fill=band_colour((i // 2) * 11 + 3, 0.35, 0.92) + (255,), outline=(0x30, 0x30, 0x30, 255), width=k)
+        put_text(d, k, name, x // k, y // k + 8, 24, 1, px=6)
     return img
 
 
@@ -1303,7 +1328,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--size", type=int, default=32, help="pixels a tile, 8..128 (default 32)")
     ap.add_argument("--out", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "packs", "placeholder"))
-    ap.add_argument("--no-labels", action="store_true", help="leave the tile numbers off")
+    ap.add_argument("--labels", action="store_true", help="print each tile's number on it, for artists (the shipped pack is clean)")
     ap.add_argument("--no-pictures", action="store_true", help="leave the interface pictures out")
     ap.add_argument("--no-tables", action="store_true", help="leave the data tables out")
     ap.add_argument("--no-sounds", action="store_true", help="leave the sound effects out")
@@ -1311,7 +1336,7 @@ def main():
     if not 8 <= a.size <= 128:
         sys.exit("--size must be from 8 to 128")
     os.makedirs(a.out, exist_ok=True)
-    plain, masked, events = build(a.size, not a.no_labels)
+    plain, masked, events = build(a.size, a.labels)
     sheet(plain, PLAIN_COLS, a.size).save(os.path.join(a.out, "plain.png"), optimize=True)
     sheet(masked, MASKED_COLS, a.size).save(os.path.join(a.out, "masked.png"), optimize=True)
     sheet(events, EVENT_COLS, a.size).save(os.path.join(a.out, "events.png"), optimize=True)

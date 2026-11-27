@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cmath>
+#include <cstdlib>
 #include <filesystem>
 
 namespace osf {
@@ -231,6 +232,8 @@ void StartScreen::Generate(bool byButton)
     if (!LoadTemplateState(*mega, _gameDir, _template, _note)) // (a pack's template farm, else SCEN0.SSM)
         return;
     _opt.seed = static_cast<unsigned>(SDL_GetTicks()) * 2654435761u + 7u;
+    if (const char* fixed = std::getenv("OSF_WORLDSEED")) // a test run's fixed seed (the first farm of --pack honours it too)
+        _opt.seed = static_cast<unsigned>(std::atoi(fixed));
     std::string err;
     // the ground shade term: the design screen's GENERATE WORLD sets it to rainfall x 4 first (live:
     // rainfall 0 gave the driest ground 15-17); entering the screen and Use This Region keep the live soil
