@@ -2807,8 +2807,12 @@ static bool ApplyPack(const std::string& pack, Megadata& mega, MapGraphics& gfx,
     std::string packError;
     bool tiles = false;
     g_picturePack = PicturePack();
+    std::string tilesFailure;
     if (!LoadTilePack(pack, gfx, packError, &tiles))
+    {
+        tilesFailure = packError;
         std::fprintf(stderr, "tile pack %s: tiles not used: %s\n", pack.c_str(), packError.c_str());
+    }
     else if (tiles)
         std::fprintf(stderr, "tile pack %s: %d px tiles\n", pack.c_str(), gfx.plain.size);
     if (!LoadPicturePack(pack, g_picturePack, packError))
@@ -2889,7 +2893,7 @@ static bool ApplyPack(const std::string& pack, Megadata& mega, MapGraphics& gfx,
     }
     if (tilesRequired && !tiles)
     {
-        error = "the pack " + pack + " has no tile sheets (\"sheets\" in tilepack.json)";
+        error = !tilesFailure.empty() ? tilesFailure : "the pack " + pack + " has no tile sheets (\"sheets\" in tilepack.json)";
         return false;
     }
     return true;
