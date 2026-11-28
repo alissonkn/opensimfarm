@@ -103,8 +103,100 @@ std::string CropInfo(const CropDef& c)
     return out;
 }
 
+namespace {
+std::vector<CropDef>& PackCropList()
+{
+    static std::vector<CropDef> crops;
+    return crops;
+}
+std::string Upper(std::string s)
+{
+    for (char& c : s)
+        c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+    return s;
+}
+} // namespace
+
+void SetPackCrops(std::vector<CropDef> crops) { PackCropList() = std::move(crops); }
+
+bool HavePackCrops() { return !PackCropList().empty(); }
+
+std::vector<std::string> CropFiles(const std::string& gameDir)
+{
+    std::vector<std::string> files;
+    if (HavePackCrops())
+    {
+        for (const CropDef& c : PackCropList())
+            files.push_back(Upper(c.fileName));
+        std::sort(files.begin(), files.end());
+        return files;
+    }
+    std::error_code ec;
+    const auto dir = gameDir.empty() ? std::nullopt : FindFileNoCase(gameDir, "CROPS");
+    if (!dir)
+        return files;
+    for (const auto& e : std::filesystem::directory_iterator(*dir, ec))
+    {
+        const std::string n = Upper(e.path().filename().string());
+        if (n.size() > 4 && n.substr(n.size() - 4) == ".CRP")
+            files.push_back(n);
+    }
+    std::sort(files.begin(), files.end());
+    return files;
+}
+
+std::vector<std::string> DefaultCropFiles()
+{
+    if (HavePackCrops())
+    {
+        std::vector<std::string> files;
+        for (size_t i = 0; i < 16 && i < PackCropList().size(); ++i)
+            files.push_back(PackCropList()[i].fileName);
+        return files;
+    }
+    return { "corn.crp", "wheat.crp", "barley.crp", "potatoes.crp", "oats.crp", "rice.crp", "sorghum.crp", "soybeans.crp",
+             "cotton.crp", "onions.crp", "tomatoes.crp", "lettuce.crp", "carrots.crp", "strawber.crp", "sugar.crp", "peanuts.crp" };
+}
+
+std::vector<uint32_t> CropDef::IconArgb16() const
+{
+    std::vector<uint32_t> out;
+    if (artArgb.empty() || artSize < 1 || artArgb.size() < static_cast<size_t>(14) * artSize * artSize)
+        return out;
+    const uint32_t* tile = &artArgb[static_cast<size_t>(13) * artSize * artSize];
+    out.assign(256, 0xFF000000u);
+    for (int y = 0; y < 16; ++y)
+        for (int x = 0; x < 16; ++x)
+        {
+            // the mean of the source pixels this one covers (a box filter, which is right for the shrinking and plain for
+            // a small tile)
+            const int x0 = x * artSize / 16, x1 = std::max(x0 + 1, (x + 1) * artSize / 16), y0 = y * artSize / 16, y1 = std::max(y0 + 1, (y + 1) * artSize / 16);
+            uint32_t sum[3] = { 0, 0, 0 }, n = 0;
+            for (int sy = y0; sy < y1 && sy < artSize; ++sy)
+                for (int sx = x0; sx < x1 && sx < artSize; ++sx, ++n)
+                    for (int k = 0; k < 3; ++k)
+                        sum[k] += (tile[sy * artSize + sx] >> (16 - 8 * k)) & 0xFF;
+            if (n)
+                out[static_cast<size_t>(y) * 16 + x] = 0xFF000000u | ((sum[0] / n) << 16) | ((sum[1] / n) << 8) | (sum[2] / n);
+        }
+    return out;
+}
+
 bool LoadCropFile(const std::string& gameDir, const std::string& fileName, CropDef& out)
 {
+    if (HavePackCrops())
+    {
+        const std::string want = Upper(fileName);
+        for (const CropDef& c : PackCropList())
+            if (Upper(c.fileName) == want)
+            {
+                out = c;
+                out.fileName = fileName; // (as the folder's loader keeps the name it was asked for)
+                out.loaded = true;
+                return true;
+            }
+        return false; // (a pack's crops are all there are)
+    }
     auto cropsDir = FindFileNoCase(gameDir, "CROPS");
     if (!cropsDir)
         return false;

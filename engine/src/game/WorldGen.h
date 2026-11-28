@@ -36,6 +36,13 @@ struct WorldSites
     int townCol = 0, townRow = 0; // the town's home plot
     int farmCol = 0, farmRow = 0; // the farm's top-left plot (the farm is 3 x 3 plots)
 };
+// The eight prebuilt farms of the region screen: each one's cell on the 18 x 18 region map (the climate it has).
+constexpr int kPrebuiltFarmGx[8] = { 0, 1, 1, 3, 9, 11, 13, 15 }, kPrebuiltFarmGy[8] = { 8, 11, 3, 6, 7, 6, 11, 8 };
+// Prebuilt farm n (0..7) for a game with no SCEN*.SSM files: a world with the climate of its region cell (the region
+// map of the archive's or the pack's scenario.odt) and a fixed seed, so that farm n is the same farm every time; some
+// have a river, some a lake. False with `error` set when the world cannot be made.
+bool GeneratePrebuiltFarm(int n, const std::string& gameDir, const Megadata& mega, const GameState& tmpl, GameState& out, std::string& error);
+
 bool GenerateTerrain(const Megadata& mega, const GameState& tmpl, const WorldOptions& opt, GameState& out, WorldSites& sites, std::string& error);
 void FinishWorld(const std::string& gameDir, const Megadata& mega, GameState& s, const WorldSites& sites);
 

@@ -3,6 +3,7 @@
 #pragma once
 #include "assets/Graphics.h"
 #include "assets/SaveGame.h"
+#include "assets/Weather.h"
 
 #include <SDL.h>
 
@@ -26,6 +27,9 @@ public:
     void SetPlainTiles(SDL_Renderer* renderer, const MapGraphics& gfx);   // after crop pictures changed
     void SetEventTiles(SDL_Renderer* renderer, const MapGraphics& gfx);   // after a palette change
     ~MapView();
+    // The day's weather as a translucent veil over the map (assets/Weather.h): for a pack's truecolour tiles, which have
+    // no palette entry to recolour as the original does. A tint with no alpha is no veil.
+    void SetWeatherTint(const WeatherTint& tint) { _weather = tint; }
     void SetModern(bool on);
     bool Modern() const { return _modern; }
     // a thing drawn over the map at cells (cx, cy) with size w x h cells (the tornado, the swarm): its window
@@ -107,6 +111,7 @@ private:
     };
     SDL_Renderer* _renderer = nullptr;
     bool _modern = false;
+    WeatherTint _weather;                   // the veil over the map
     MapGraphics _src;                       // the sheets and palettes the atlases were last made from
     Palette _maskedPal{};
     Palette _plainPal{}, _eventsPal{}; // the palettes the plain and event atlases were made with

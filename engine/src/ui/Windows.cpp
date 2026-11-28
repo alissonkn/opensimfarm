@@ -8,11 +8,13 @@
 #include "core/Lang.h"
 #include "audio/Sound.h"
 
+#include "assets/TableFormats.h"
 #include "assets/Megadata.h"
 #include "game/Crops.h"
 #include "game/Shop.h"
 #include "game/Disasters.h"
 #include "ui/MapView.h"
+#include "ui/OverviewImage.h"
 
 #include <algorithm>
 #include <cctype>
@@ -148,11 +150,7 @@ public:
         // their own icon; alphabetical, eight rows, a scroll bar on the right
         const Rect area = ListArea();
         g.Fill(area.x, area.y, area.w, area.h, kLightGrey);
-        const auto& pal = g.Pal();
-        auto argb = [&](int v) {
-            const auto& p = pal[static_cast<size_t>(v & 15)];
-            return 0xFF000000u | (static_cast<uint32_t>(p[0]) << 16) | (static_cast<uint32_t>(p[1]) << 8) | p[2];
-        };
+        auto argb = [&](int v) { return g.Argb16(v); };
         _top = std::clamp(_top, 0, std::max(0, static_cast<int>(_list.size()) - kRows));
         for (int r = 0; r < kRows && _top + r < static_cast<int>(_list.size()); ++r)
         {
@@ -165,10 +163,13 @@ public:
                 g.DrawTile(832 + e.slot, area.x, y);
             else if (e.spare >= 0 && e.spare < static_cast<int>(spares.size()))
             {
-                const auto& icon = spares[static_cast<size_t>(e.spare)].icon;
+                const auto& sp = spares[static_cast<size_t>(e.spare)];
                 std::vector<uint32_t> img(256, argb(kLightGrey));
-                for (size_t q = 0; q < 256 && q < icon.size(); ++q)
-                    img[q] = argb(icon[q]);
+                if (!sp.iconArgb.empty()) // (a pack's icon is RGB)
+                    img = sp.iconArgb;
+                else
+                    for (size_t q = 0; q < 256 && q < sp.icon.size(); ++q)
+                        img[q] = argb(sp.icon[q]);
                 g.DrawPixels(img, 16, 16, area.x, y, 16, 16);
             }
             g.Text(area.x + 18, y + 4, e.name.substr(0, 12), chosen ? kWhite : kBlack);
@@ -477,10 +478,10 @@ public:
     {
         GameState& s = *ctx.state;
         // every cell is drawn as a 2x2 block of the overview colours of a tile (far_mapc.mbm: 2 bytes per tile id,
-        // one per pixel row, four 2-bit plane fields, left pixel in the high bit). The mode picks
-        // the tile: the terrain, the plot-ownership tile, or a step 0x1D0 + value / 8 of the 32-step ramp
-        if (_mapc.empty() && ctx.mega)
-            _mapc = ctx.mega->Read("far_mapc.mbm");
+        // one per pixel row, four 2-bit plane fields, left pixel in the high bit; a pack's overview.rgb: RGB). The mode
+        // picks the tile: the terrain, the plot-ownership tile, or a step 0x1D0 + value / 8 of the 32-step ramp
+        if (_mapc.blob.empty() && ctx.mega)
+            _mapc = MakeOverview(ctx.mega->Read("overview.rgb"), ctx.mega->Read("far_mapc.mbm"));
         // a larger world (an engine addition) is drawn the same way at two pixels a cell, then scaled into the box
         const int N = s.world.size, D = 2 * N, P = s.Plots();
         std::vector<int> tile(static_cast<size_t>(N) * N);
@@ -513,39 +514,13 @@ public:
                     for (int y = f.Y(); y < std::min(N, f.Y() + f.H()); ++y)
                         tile[static_cast<size_t>(x) * N + y] = t;
             }
-        std::vector<uint8_t> ix(static_cast<size_t>(D) * D);
-        for (int x = 0; x < N; ++x)
-            for (int y = 0; y < N; ++y)
-            {
-                const int t = tile[static_cast<size_t>(x) * N + y];
-                for (int r = 0; r < 2; ++r)
-                {
-                    const int b = 2 * t + r < static_cast<int>(_mapc.size()) ? _mapc[static_cast<size_t>(2 * t + r)] : 0;
-                    for (int c = 0; c < 2; ++c)
-                    {
-                        int idx = 0;
-                        for (int plane = 0; plane < 4; ++plane)
-                            idx |= ((b >> (6 - 2 * plane + (1 - c))) & 1) << plane;
-                        ix[static_cast<size_t>(2 * y + r) * D + 2 * x + c] = static_cast<uint8_t>(idx);
-                    }
-                }
-            }
+        OverviewImage image(_mapc, tile, N);
         // a larger world's picture is scaled into the 192 x 192 box here, before the lines below, so that they stay whole
-        if (D != 192)
-        {
-            std::vector<uint8_t> box(192 * 192);
-            for (int y = 0; y < 192; ++y)
-                for (int x = 0; x < 192; ++x)
-                    box[static_cast<size_t>(y) * 192 + x] = ix[static_cast<size_t>(y * D / 192) * D + x * D / 192];
-            ix.swap(box);
-        }
+        image.ScaleTo(192);
         auto sc = [&](int v) { return v * 192 / D; }; // map pixels (two a cell) to box pixels
         // the original draws the chosen plot and the view frame in XOR mode with colour 15 (palette index ^ 15):
         // horizontal lines stop before their end x, vertical lines include their end y
-        auto xorPixel = [&](int x, int y) {
-            if (x >= 0 && y >= 0 && x < 192 && y < 192)
-                ix[static_cast<size_t>(y) * 192 + x] ^= 15;
-        };
+        auto xorPixel = [&](int x, int y) { image.Invert(x, y); };
         auto xorH = [&](int x1, int x2, int y) { for (int x = x1; x < x2; ++x) xorPixel(x, y); };
         auto xorV = [&](int x, int y1, int y2) { for (int y = y1; y <= y2; ++y) xorPixel(x, y); };
         if (_mode == kProperty && _plotC >= 0)
@@ -570,10 +545,7 @@ public:
             viewCol = std::clamp(static_cast<int>(vx + vw / 2) / 8, 0, P - 1);
             viewRow = std::clamp(static_cast<int>(vy + vh / 2) / 8, 0, P - 1);
         }
-        const Palette& pal = g.Pal();
-        std::vector<uint32_t> px(192 * 192);
-        for (size_t i = 0; i < px.size(); ++i)
-            px[i] = 0xFF000000u | (pal[ix[i]][0] << 16) | (pal[ix[i]][1] << 8) | pal[ix[i]][2];
+        const std::vector<uint32_t> px = image.ToArgb([&](int i) { return g.Argb16(i); });
         g.DrawPixels(px, 192, 192, 72, 0, 192, 192);
 
         // property mode: the plot grid in yellow, twelve lines each way from the map's top-left corner, over the
@@ -621,17 +593,13 @@ public:
             g.Text(80, 199, Tr("High"), kBlack);
             for (int k = 0; k < 32; ++k)
                 for (int r = 0; r < 8; ++r)
-                {
-                    const size_t at = static_cast<size_t>(2 * (0x1D0 + k) + (r & 1));
-                    const int b = at < _mapc.size() ? _mapc[at] : 0;
                     for (int c = 0; c < 2; ++c)
                     {
-                        int idx = 0;
-                        for (int plane = 0; plane < 4; ++plane)
-                            idx |= ((b >> (6 - 2 * plane + (1 - c))) & 1) << plane;
-                        g.Fill(32 + 2 * k + c, 210 + r, 1, 1, idx);
+                        if (_mapc.rgb)
+                            g.FillArgb(32 + 2 * k + c, 210 + r, 1, 1, _mapc.Argb(0x1D0 + k, r & 1, c));
+                        else
+                            g.Fill(32 + 2 * k + c, 210 + r, 1, 1, _mapc.Index(0x1D0 + k, r & 1, c));
                     }
-                }
             g.Fill(30, 208, 66, 1, kGrey);
             g.Fill(30, 209, 65, 1, kGrey);
             g.Fill(30, 208, 1, 11, kGrey);
@@ -738,7 +706,7 @@ private:
     static inline int _mode = kOverhead;
     static inline int _plotC = -1, _plotR = -1;
     bool _toggled[8] = {};        // a mode button once pressed
-    std::vector<uint8_t> _mapc;   // far_mapc.mbm
+    OverviewTable _mapc;          // far_mapc.mbm, or a pack's overview.rgb
 };
 
 // The game's plain rectangle fill writes whole video bytes: both edges fall back to the 8-pixel column
@@ -1061,21 +1029,7 @@ static std::vector<std::string> ItemText(const Megadata* mega, int id)
         return out;
     static std::vector<std::string> lines;
     if (lines.empty())
-    {
-        const std::vector<uint8_t> d = mega->Read("itemtext.dat");
-        std::string cur;
-        for (uint8_t c : d)
-        {
-            if (c == '\n')
-            {
-                lines.push_back(cur);
-                cur.clear();
-            }
-            else if (c != '\r')
-                cur += static_cast<char>(c == '@' || c == '~' ? ' ' : c);
-        }
-        lines.push_back(cur);
-    }
+        lines = DecodeTextLines(mega->Read("itemtext.dat"), true);
     // a translation ("item:<id>"): the name, '~', the description
     if (const std::string tr = TrId("item:" + std::to_string(id), ""); !tr.empty())
     {
@@ -1084,12 +1038,7 @@ static std::vector<std::string> ItemText(const Megadata* mega, int id)
         std::replace(rest.begin(), rest.end(), '~', ' ');
         return { tr.substr(0, cut), rest };
     }
-    for (int k = 0; k < 7; ++k)
-    {
-        const size_t i = static_cast<size_t>(id) * 8 + k;
-        out.push_back(i < lines.size() ? lines[i] : std::string());
-    }
-    return out;
+    return ItemLines(lines, id);
 }
 
 // the original's raised box (the scroll thumb): black frame, two-pixel white top/left and grey bottom/right edges
@@ -1688,25 +1637,12 @@ private:
     }
     void Load(UiContext& ctx)
     {
-        static const std::map<int, std::pair<int, bool>> spec = { { 0x83, { 5, false } }, { 0x84, { 4, false } }, { 0x86, { 3, false } }, { 0x87, { 3, true } },
-                                                                   { 0x89, { 3, false } }, { 0x8a, { 4, true } }, { 0x8b, { 2, false } }, { 0x8c, { 5, false } } };
         _ops.clear();
         _loaded = _card;
-        const std::vector<uint8_t> d = ctx.mega ? ctx.mega->Read("card" + std::to_string(_card) + ".hc") : std::vector<uint8_t>();
-        size_t i = 0;
         int texts = 0;
-        while (i < d.size() && d[i] != 0xFF)
+        for (CardOp& c : DecodeCard(ctx.mega ? ctx.mega->Read("card" + std::to_string(_card) + ".hc") : std::vector<uint8_t>()))
         {
-            const auto it = spec.find(d[i]);
-            if (it == spec.end())
-                break;
-            Op o{ d[i++], {}, {} };
-            for (int k = 0; k < it->second.first && i + 1 < d.size(); ++k, i += 2)
-                o.a.push_back(d[i] | (d[i + 1] << 8));
-            if (it->second.second)
-                while (i < d.size() && d[i])
-                    o.text += static_cast<char>(d[i++]);
-            i += it->second.second ? 1 : 0;
+            Op o{ c.op, std::move(c.a), std::move(c.text) };
             if (o.op == 0x87) // a text box: its translation by "card:<card>:<n>", n counting the card's text boxes
                 o.text = TrId("card:" + std::to_string(_card) + ":" + std::to_string(texts++), o.text);
             _ops.push_back(std::move(o));
@@ -1880,18 +1816,10 @@ private:
     static Rect Slot(int c) { return { 16 + (c % 4) * 32, 48 + (c / 4) * 32, 32, 32 }; }
     void Scan(UiContext& ctx)
     {
-        // every .CRP file of the crops folder, in file-name order, shown by the crop's own name; the first is chosen
-        std::error_code ec;
-        auto dir = FindFileNoCase(ctx.gameDir, "CROPS");
-        if (!dir)
-            return;
-        for (const auto& e : std::filesystem::directory_iterator(*dir, ec))
+        // every crop file (a pack's crops, else the .CRP files of the crops folder), in file-name order, shown by the crop's own
+        // name; the first is chosen
+        for (const std::string& n : CropFiles(ctx.gameDir))
         {
-            std::string n = e.path().filename().string();
-            for (char& c : n)
-                c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
-            if (n.size() <= 4 || n.substr(n.size() - 4) != ".CRP")
-                continue;
             CropDef def;
             _files.emplace_back(n, LoadCropFile(ctx.gameDir, n, def) ? CropName(def) : n);
         }

@@ -208,4 +208,60 @@ std::vector<uint32_t> PlainPicture(const uint8_t* px, int w, int h, const Palett
     return out;
 }
 
+std::vector<uint32_t> ResampleSmooth(const std::vector<uint32_t>& src, int w, int h, int outW, int outH)
+{
+    if (w <= 0 || h <= 0 || outW <= 0 || outH <= 0)
+        return std::vector<uint32_t>(static_cast<size_t>(std::max(0, outW)) * std::max(0, outH));
+    if (outW <= w || outH <= h)
+        return Resample(src, w, h, outW, outH); // (the same size: a copy)
+    // bilinear: output pixel centres mapped onto the source's pixel centres
+    std::vector<uint32_t> out(static_cast<size_t>(outW) * outH);
+    for (int y = 0; y < outH; ++y)
+    {
+        const double fy = std::clamp((y + 0.5) * h / outH - 0.5, 0.0, h - 1.0);
+        const int y0 = static_cast<int>(fy), y1 = std::min(y0 + 1, h - 1);
+        const double ty = fy - y0;
+        for (int x = 0; x < outW; ++x)
+        {
+            const double fx = std::clamp((x + 0.5) * w / outW - 0.5, 0.0, w - 1.0);
+            const int x0 = static_cast<int>(fx), x1 = std::min(x0 + 1, w - 1);
+            const double tx = fx - x0;
+            const uint32_t p[4] = { src[static_cast<size_t>(y0) * w + x0], src[static_cast<size_t>(y0) * w + x1],
+                                    src[static_cast<size_t>(y1) * w + x0], src[static_cast<size_t>(y1) * w + x1] };
+            const double wgt[4] = { (1 - tx) * (1 - ty), tx * (1 - ty), (1 - tx) * ty, tx * ty };
+            double a = 0, r = 0, g = 0, b = 0;
+            for (int k = 0; k < 4; ++k)
+            {
+                const double pa = Al(p[k]) * wgt[k];
+                a += pa;
+                r += Rd(p[k]) * pa;
+                g += Gr(p[k]) * pa;
+                b += Bl(p[k]) * pa;
+            }
+            uint32_t v = 0;
+            if (a > 0)
+                v = (static_cast<uint32_t>(std::lround(a)) << 24) | (static_cast<uint32_t>(std::lround(r / a)) << 16) |
+                    (static_cast<uint32_t>(std::lround(g / a)) << 8) | static_cast<uint32_t>(std::lround(b / a));
+            out[static_cast<size_t>(y) * outW + x] = v;
+        }
+    }
+    return out;
+}
+
+std::vector<uint32_t> SheetTileArgb(const TileSheet& sheet, int t, const Palette& pal, bool seeThrough, int outSize, bool smooth)
+{
+    if (sheet.TrueColour())
+    {
+        const uint32_t* tile = sheet.TileArgb(t);
+        std::vector<uint32_t> px = ResampleSmooth(std::vector<uint32_t>(tile, tile + static_cast<size_t>(sheet.size) * sheet.size), sheet.size,
+                                                  sheet.size, outSize, outSize);
+        if (!seeThrough)
+            for (uint32_t& v : px)
+                v |= 0xFF000000u;
+        return px;
+    }
+    return smooth ? UpscalePicture(sheet.Tile(t), 16, 16, pal, seeThrough ? kSeeThrough : -1, outSize, outSize)
+                  : PlainPicture(sheet.Tile(t), 16, 16, pal, seeThrough ? kSeeThrough : -1, outSize, outSize);
+}
+
 } // namespace osf

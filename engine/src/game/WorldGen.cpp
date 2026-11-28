@@ -3,6 +3,7 @@
 #include "game/WorldGen.h"
 #include "core/Lang.h"
 
+#include "assets/TableFormats.h"
 #include "assets/Megadata.h"
 #include "core/Paths.h"
 #include "game/Editing.h"
@@ -23,15 +24,7 @@ namespace {
 // one of the 12 climate tables: 60 lines x 4 comma-separated values = 240 weeks
 bool ReadTable(const Megadata& mega, const std::string& name, std::vector<int>& out)
 {
-    out.clear();
-    std::string text;
-    for (uint8_t c : mega.Read(name))
-        text += (c == ',' || c == '\r' || c == '\n') ? ' ' : static_cast<char>(c);
-    std::istringstream in(text);
-    int v;
-    while (in >> v && out.size() < 240)
-        out.push_back(v);
-    return out.size() == 240;
+    return DecodeClimateTable(mega.Read(name), out);
 }
 
 // The two generators of world creation: G2's shift register and the additive
@@ -97,6 +90,28 @@ void Reshore(World& w, int x0, int y0, int x1, int y1, const std::function<int()
             const int id = shore[mask] < 0 ? kWater : shore[mask] + coin();
             c.base = static_cast<uint16_t>((c.base & 0xF800) | id);
         }
+}
+
+bool GeneratePrebuiltFarm(int n, const std::string& gameDir, const Megadata& mega, const GameState& tmpl, GameState& out, std::string& error)
+{
+    n = std::clamp(n, 0, 7);
+    const auto grids = DecodeScenarioGrids(mega.Read("scenario.odt"));
+    auto cls = [&](const char* name) {
+        const auto it = grids.find(name);
+        const int gx = kPrebuiltFarmGx[n], gy = kPrebuiltFarmGy[n];
+        if (it == grids.end() || gy >= static_cast<int>(it->second.size()) || gx >= static_cast<int>(it->second[static_cast<size_t>(gy)].size()))
+            return 1;
+        return std::clamp(it->second[static_cast<size_t>(gy)][static_cast<size_t>(gx)] - 'a', 0, 3);
+    };
+    WorldOptions opt;
+    opt.rain = cls("rain data");
+    opt.temperature = cls("temp data");
+    opt.wind = cls("wind data");
+    opt.seed = 4001u + 97u * static_cast<unsigned>(n);
+    opt.river = n % 3 == 0;
+    opt.lake = n % 3 == 1;
+    opt.wetness = 2; // as Use This Region
+    return GenerateWorld(gameDir, mega, tmpl, opt, out, error);
 }
 
 bool GenerateWorld(const std::string& gameDir, const Megadata& mega, const GameState& tmpl, const WorldOptions& opt, GameState& s, std::string& error)
@@ -282,10 +297,7 @@ void FinishWorld(const std::string& gameDir, const Megadata& mega, GameState& s,
     // the town's home plot (type 0 at level 10): the roads of block 0 of the town layout file (960
     // little-endian words) on bare ground, every cell flagged as town. (The engine used to read the file as bytes,
     // found the size wrong and left the plot as plain ground: no town at all on generated worlds.)
-    const std::vector<uint8_t> raw = mega.Read("townly0.cmp");
-    std::vector<uint16_t> layout;
-    for (size_t i = 0; i + 1 < raw.size() && layout.size() < 960; i += 2)
-        layout.push_back(static_cast<uint16_t>(raw[i] | (raw[i + 1] << 8)));
+    const std::vector<uint16_t> layout = DecodeTownLayout(mega.Read("townly0.cmp"));
     PlaceTownPlotCells(s, layout, tc, tr, 0);
     s.SetPlotOwner(tc, tr, 2);
     s.SetPlotType(tc, tr, 0xA0);
@@ -319,16 +331,15 @@ void FinishWorld(const std::string& gameDir, const Megadata& mega, GameState& s,
     s.animalCount = s.object20Count = s.machineCount = s.fieldCount = s.structureCount = s.itemCount = s.carCount = 0;
 
     // default crops and market prices at twice the base
-    static const char* const files[16] = { "corn.crp", "wheat.crp", "barley.crp", "potatoes.crp", "oats.crp", "rice.crp", "sorghum.crp", "soybeans.crp",
-                                           "cotton.crp", "onions.crp", "tomatoes.crp", "lettuce.crp", "carrots.crp", "strawber.crp", "sugar.crp", "peanuts.crp" };
+    const std::vector<std::string> files = DefaultCropFiles(); // (a pack's first 16 crops, else the original's)
     for (int c = 0; c < 16; ++c)
     {
+        const std::string file = c < static_cast<int>(files.size()) ? files[static_cast<size_t>(c)] : std::string();
         for (int k = 0; k < 14; ++k)
-            Wr8(s.cropNames, static_cast<size_t>(c) * 14 + k, files[c][k] ? files[c][k] : 0);
-        for (int k = static_cast<int>(std::string(files[c]).size()); k < 14; ++k)
-            Wr8(s.cropNames, static_cast<size_t>(c) * 14 + k, 0);
+            Wr8(s.cropNames, static_cast<size_t>(c) * 14 + k, k < static_cast<int>(file.size()) ? file[static_cast<size_t>(k)] : 0);
         s.crops[c] = CropDef{};
-        LoadCropFile(gameDir, files[c], s.crops[c]);
+        if (!file.empty())
+            LoadCropFile(gameDir, file, s.crops[c]);
         const int price = std::max(10, s.crops[c].BasePrice()); // a new game starts at the crop file's price (CMP0)
         s.SetMarketPrice(c, price);
         s.SetCatalogPrice(50 + c, price);

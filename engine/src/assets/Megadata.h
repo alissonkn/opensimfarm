@@ -14,9 +14,14 @@ class Megadata
 {
 public:
     bool Open(const std::string& gameDir, std::string& error);
+    // An archive with nothing in it, for playing with a pack alone: whatever the pack gives is laid in with Override
+    void OpenEmpty();
     bool Has(const std::string& name) const;
     // Returns the resource bytes, or an empty vector when missing. Names are matched case-insensitively.
     std::vector<uint8_t> Read(const std::string& name) const;
+    // Puts `bytes` in as the entry `name` (any case), replacing an entry of that name: how a pack's tables stand in for the
+    // archive's (assets/PackTables.h), as the Windows edition's own entries are added below.
+    void Override(const std::string& name, const std::vector<uint8_t>& bytes);
     const std::map<std::string, std::pair<uint32_t, uint32_t>>& Entries() const { return _entries; }
     bool WindowsEdition() const { return _windows; } // the files are SimFarm for Windows'
 

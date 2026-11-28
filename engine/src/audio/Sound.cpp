@@ -199,6 +199,11 @@ std::map<std::string, Song>::iterator SoundPlayer::LoadSong(const std::string& n
             LoadBuiltinSong(name, song); // the engine's own songs
         else if (_mega)
             ParseXmi(_mega->Read(name), song);
+        // a game song the archive does not hold (a game played with a pack alone): an engine song of the same mood
+        if (song.events.empty() && name.size() > 4 && name.compare(name.size() - 4, 4, ".xmi") == 0)
+            for (const BuiltinSongInfo& b : BuiltinSongs())
+                if (b.mood == name && LoadBuiltinSong(b.file, song))
+                    break;
         it = _songs.emplace(name, std::move(song)).first;
     }
     return it;

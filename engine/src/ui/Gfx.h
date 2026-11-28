@@ -3,9 +3,12 @@
 #pragma once
 #include "assets/Graphics.h"
 #include "assets/Picture.h"
+#include "assets/PicturePack.h"
+#include "assets/Theme.h"
 
 #include <SDL.h>
 
+#include <algorithm>
 #include <map>
 #include <string>
 #include <vector>
@@ -41,7 +44,18 @@ public:
     bool SetPlainTiles(const TileSheet& plain);   // (re)build the plain tile atlas, e.g. after crop pictures changed
     ~Gfx();
 
-    void SetScale(int s) { _scale = s < 1 ? 1 : s; }
+    void SetScale(int s)
+    {
+        _scale = s < 1 ? 1 : s;
+        if (_plain.TrueColour() && TrueTileDetail() != _tileDetail)
+            RemakeTiles(); // truecolour tiles are made at the size they are drawn at
+        if (_pack && TrueTileDetail() != _packDetail)
+            DropPackPictures(); // so are a pack's pictures (the archive's pictures stay)
+    }
+    // The truecolour pictures of a pack (assets/PicturePack.h) stand in for the archive's pictures of the same keys
+    // from now on (null: back to the archive's). The pack must outlive its use here.
+    void SetPicturePack(const PicturePack* pack);
+    const PicturePack* PicturePackInUse() const { return _pack; }
     int Scale() const { return _scale; }
     // Modern Render for the interface: every picture (windows, buttons, icons, tiles, sprites, full screens, the
     // font) is kept at `detail` texels per interface pixel, upscaled with the pixel-art scaler (ui/PixelArt.h), except
@@ -63,15 +77,32 @@ public:
     void ClearClip() { SDL_RenderSetClipRect(_r, nullptr); }
     const Megadata* Mega() const { return _mega; }
     const Palette& Pal() const { return _pal; }
-    // the RGB of one of the engine's interface colours (Colour): for the Windows edition the Windows colour that
-    // stands for it
-    const std::array<uint8_t, 3>& Ui(int c) const { return _pal[_ui[static_cast<size_t>(c & 15)]]; }
+    // the RGB of one of the engine's interface colours (Colour): the theme's when a pack gave one, else for the
+    // original the palette entry (for the Windows edition the Windows colour that stands for it)
+    const std::array<uint8_t, 3>& Ui(int c) const { return _hasTheme ? _theme[static_cast<size_t>(c & 15)] : _pal[_ui[static_cast<size_t>(c & 15)]]; }
+    // Colour number i (0..15) as opaque ARGB, for pictures drawn pixel by pixel from colour numbers (the crop icons, the
+    // overview map): the theme's colour, else the palette's own entry i
+    uint32_t Argb16(int i) const
+    {
+        const auto& p = _hasTheme ? _theme[static_cast<size_t>(i & 15)] : _pal[static_cast<size_t>(i & 15)];
+        return 0xFF000000u | (static_cast<uint32_t>(p[0]) << 16) | (static_cast<uint32_t>(p[1]) << 8) | p[2];
+    }
+    // The interface's colours as plain RGB (assets/Theme.h) from now on, in place of the palette's (null: the palette
+    // again). The theme does not change with the weather, as the palette does
+    void SetTheme(const Theme* theme)
+    {
+        _hasTheme = theme != nullptr;
+        if (theme)
+            _theme = *theme;
+    }
+    bool HasTheme() const { return _hasTheme; }
     // the play palette: 0 = simfarm.pal, 1 = rainpal.pal, 2 = frostpal.pal (they differ only in colour 7). Switching
     // remakes the tile atlas and the cached pictures, as the original reprograms the whole screen's palette
     void SetPlayPalette(int which);
     int PlayPalette() const { return _playPalette; }
 
     void Fill(int x, int y, int w, int h, int colour);
+    void FillArgb(int x, int y, int w, int h, uint32_t argb); // a rectangle in a plain RGB colour (alpha ignored)
     void Frame(int x, int y, int w, int h, int colour);
     void Bevel(int x, int y, int w, int h, bool raised);   // light 15 / shadow 13 edges
     void Line(int x0, int y0, int x1, int y1, int colour);
@@ -129,6 +160,18 @@ private:
     SDL_Texture* MakeTexture(const Picture& p, int transparent, const Palette* pal = nullptr, int cell = 0, bool upscale = true);
     void MakeFont();
     void MakeMasked();
+    // Truecolour tile sheets (a tile pack) are resampled to 16 * _tileDetail pixels a tile, the size they are drawn at
+    // (an indexed sheet is upscaled by _detail like every other picture; _tileDetail is then _detail)
+    int TrueTileDetail() const { return std::clamp(std::max(_detail, _scale), 1, 4); }
+    void RemakeTiles();
+    // Drops the picture textures (made again when next drawn); those of the pack too when `packToo`
+    void ClearPictures(bool packToo);
+    void DropPackPictures(); // only the pack's textures, and the detail they will be made at from now on
+    struct PackMeta { int logicalW = 0, logicalH = 0, texW = 0, texH = 0; }; // a pack picture's texture and its interface size
+    SDL_Texture* MakePackTexture(const std::string& key, const PackPicture& pic);
+    const PackMeta* PackMetaOf(const std::string& key) const;
+    SDL_Texture* MakeArgbTexture(const std::vector<uint32_t>& argb, int w, int h, bool blend);
+    SDL_Rect TileSrc(int index) const; // tile `index` of an atlas (plain or masked) in texture pixels
     SDL_Rect Src(int x, int y, int w, int h) const { return SDL_Rect{ x * _detail, y * _detail, w * _detail, h * _detail }; }
     SDL_Rect R(int x, int y, int w, int h) const { return SDL_Rect{ x * _scale, y * _scale, w * _scale, h * _scale }; }
 
@@ -136,12 +179,15 @@ private:
     const Megadata* _mega = nullptr;
     Palette _pal{};
     std::array<uint8_t, 16> _ui{}; // interface colour -> palette index (the same for the DOS edition)
+    Theme _theme{};                // the pack's theme, when _hasTheme
+    bool _hasTheme = false;
     int _playPalette = 0;
     TileSheet _plain;             // the plain tiles of the atlas (kept to remake it with another palette)
     TileSheet _maskedSheet;       // the masked tiles (kept to remake their atlas at another detail)
     Font8 _font8;                 // the font with its added letters (kept likewise)
     int _detail = 1;
     int _scale = 1;
+    int _tileDetail = 1;            // texels per interface pixel in the tile atlases (see TrueTileDetail)
     SDL_Texture* _font = nullptr;   // 16x16 glyph grid, white with alpha
     int _fontChoice = 1;                     // Options > Advanced (ui/ModernFont.h)
     int _fontAtlasDetail = 0;                // the pixels per unit the atlases below were made at
@@ -150,6 +196,9 @@ private:
     SDL_Texture* _tiles = nullptr;  // plain tile atlas
     SDL_Texture* _masked = nullptr; // masked tile atlas (kSeeThrough transparent)
     std::map<std::string, SDL_Texture*> _pictures;
+    std::map<std::string, PackMeta> _packMeta; // the pictures above that come from the pack
+    const PicturePack* _pack = nullptr;
+    int _packDetail = 0;                       // texels per interface unit the pack's pictures were made at (<= TrueTileDetail)
     std::vector<uint32_t> _tileColour;  // average colour of each plain tile (overview map)
     SDL_Texture* _pixels = nullptr;
     int _pixelsW = 0, _pixelsH = 0;

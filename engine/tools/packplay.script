@@ -1,0 +1,29 @@
+# A game from a pack alone, played through the interface (tools/packplay_test.sh runs it). Window coordinates: the start
+# screens are letterboxed at 1.5 x in the 1024 x 720 window the dummy video driver gives, the game itself is at 1:1.
+10 expect start 0
+20 click 500 300      # the intro picture
+50 click 500 300      # the title picture
+75 click 282 366      # PLAY THIS REGION
+150 expect game 0
+150 expect cash 40000
+150 expect machines 0
+160 click 16 31       # the BUY button of the toolbar
+175 expect open 0     # the BUY window
+177 click 139 105     # the round close box at the title's left: closes the window, and BUY opens again below
+178 click 16 31
+190 click 313 307     # its BUY button: a tractor
+210 click 660 420     # a spot on the farm
+230 expect cash 34000
+230 expect machines 1
+235 click 14 345      # the PLANT button of the palette: the list of crops
+250 click 65 332      # Corn
+# a field needs 8 x 8 cells of clear ground on the player's own land. The world is fixed (OSF_WORLDSEED=7 in the runner), so
+# this spot, at the top of the farm beside the map window, fits; a second one is there in case the world generator changes
+260 click 400 110
+280 click 480 380
+340 expect fields_atleast 1
+350 click 238 7       # the Windows menu
+360 click 260 120     # Farm Expert
+380 expect open 6     # the Farm Expert window
+390 shot /tmp/packplay.bmp
+400 quit x

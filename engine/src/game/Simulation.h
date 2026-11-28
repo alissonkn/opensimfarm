@@ -92,7 +92,7 @@ public:
     // the market of the crop files not loaded in a slot (an engine addition, user finding Q27b): each has a price and a
     // 30-week history, made at load from its file's base price and moved every week by the loaded crops' rule with
     // its own random numbers (so the loaded crops' prices go on exactly as the original's); not saved
-    struct SpareCropMarket { std::string file, name; int basePrice = 0, yield = 0; std::array<int, 30> history{}; std::vector<uint8_t> icon; };
+    struct SpareCropMarket { std::string file, name; int basePrice = 0, yield = 0; std::array<int, 30> history{}; std::vector<uint8_t> icon; std::vector<uint32_t> iconArgb; };
     const std::vector<SpareCropMarket>& SpareMarket();
     void ShockPrice(int crop, int sensitivity); // disaster shock on the last history week
     int64_t LandValue() const;

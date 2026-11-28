@@ -4,6 +4,7 @@
 #include "ui/PixelArt.h"
 #include "game/Machines.h"
 
+#include "assets/TableFormats.h"
 #include "assets/Graphics.h"
 #include "assets/Megadata.h"
 #include "audio/Music.h"
@@ -993,11 +994,7 @@ void GameUi::DrawPalette()
         _g.Fill(b.x, b.y, b.w, b.h, kLightGrey);
         _g.Frame(b.x, b.y, b.w, b.h, kBlack);
         _g.Text(b.x + 16, b.y + 4, _popup == 1 ? Tr("Plant Field") : Tr("Spray Field"), kBlack);
-        const auto& pal = _g.Pal();
-        auto argb = [&](int v) {
-            const auto& p = pal[static_cast<size_t>(v & 15)];
-            return 0xFF000000u | (static_cast<uint32_t>(p[0]) << 16) | (static_cast<uint32_t>(p[1]) << 8) | p[2];
-        };
+        auto argb = [&](int v) { return _g.Argb16(v); };
         for (int i = 0; i < PopupCount(); ++i)
         {
             const Rect r = PopupRow(i);
@@ -1014,10 +1011,13 @@ void GameUi::DrawPalette()
                 else
                 {
                     // a crop file not loaded: its icon from the file
-                    const auto& icon = _spareCrops[static_cast<size_t>(pe.spare)].icon;
+                    const SpareCrop& sc = _spareCrops[static_cast<size_t>(pe.spare)];
                     std::vector<uint32_t> img(256, argb(kLightGrey));
-                    for (size_t p = 0; p < 256 && p < icon.size(); ++p)
-                        img[p] = argb(icon[p]);
+                    if (!sc.iconArgb.empty()) // (a pack's icon is RGB)
+                        img = sc.iconArgb;
+                    else
+                        for (size_t p = 0; p < 256 && p < sc.icon.size(); ++p)
+                            img[p] = argb(sc.icon[p]);
                     _g.DrawPixels(img, 16, 16, r.x, r.y, 16, 16);
                 }
                 _g.Text(r.x + 16, r.y + 4, pe.name.substr(0, 12), ink);
@@ -1041,13 +1041,6 @@ void GameUi::ListSpareCrops()
         BuildPlantList();
         return;
     }
-    std::error_code ec;
-    const auto dir = FindFileNoCase(_ctx.gameDir, "CROPS");
-    if (!dir)
-    {
-        BuildPlantList();
-        return;
-    }
     std::set<std::string> loaded;
     for (const CropDef& c : _ctx.state->crops)
     {
@@ -1056,23 +1049,18 @@ void GameUi::ListSpareCrops()
             ch = static_cast<char>(std::toupper(static_cast<unsigned char>(ch)));
         loaded.insert(n);
     }
-    std::vector<std::string> files;
-    for (const auto& e : std::filesystem::directory_iterator(*dir, ec))
-    {
-        std::string n = e.path().filename().string();
-        for (char& ch : n)
-            ch = static_cast<char>(std::toupper(static_cast<unsigned char>(ch)));
-        if (n.size() > 4 && n.substr(n.size() - 4) == ".CRP" && !loaded.count(n))
-            files.push_back(n);
-    }
-    std::sort(files.begin(), files.end());
-    for (const std::string& n : files)
+    for (const std::string& n : CropFiles(_ctx.gameDir)) // (a pack's crops, else the CROPS folder's, sorted)
     {
         CropDef def;
-        if (_spareCrops.size() >= 64 || !LoadCropFile(_ctx.gameDir, n, def) || def.art.size() < 14 * 128)
+        if (loaded.count(n) || _spareCrops.size() >= 64 || !LoadCropFile(_ctx.gameDir, n, def) || (def.art.size() < 14 * 128 && !def.HasArgbArt()))
             continue;
-        const TileSheet t = DecodeTiles16(def.art, 14);
-        _spareCrops.push_back({ n, def.name, std::vector<uint8_t>(t.Tile(13), t.Tile(13) + 256) });
+        if (def.HasArgbArt())
+            _spareCrops.push_back({ n, def.name, {}, def.IconArgb16() });
+        else
+        {
+            const TileSheet t = DecodeTiles16(def.art, 14);
+            _spareCrops.push_back({ n, def.name, std::vector<uint8_t>(t.Tile(13), t.Tile(13) + 256), {} });
+        }
     }
     BuildPlantList();
 }
@@ -1481,27 +1469,8 @@ static std::vector<std::string> EventText(const Megadata* mega, int id)
 {
     static std::vector<std::string> lines;
     if (lines.empty() && mega)
-    {
-        std::string cur;
-        for (uint8_t c : mega->Read("events.dat"))
-        {
-            if (c == '\n')
-            {
-                lines.push_back(cur);
-                cur.clear();
-            }
-            else if (c != '\r')
-                cur += static_cast<char>(c);
-        }
-        lines.push_back(cur);
-    }
-    std::vector<std::string> out;
-    for (int k = 0; k < 7; ++k)
-    {
-        const size_t i = static_cast<size_t>(id) * 8 + k;
-        out.push_back(i < lines.size() ? lines[i] : std::string());
-    }
-    return out;
+        lines = DecodeTextLines(mega->Read("events.dat"));
+    return EventLines(lines, id);
 }
 
 // the game's box waits 1280 timer ticks (50 a second, about 25.6 s) for an answer; then it closes by itself and a

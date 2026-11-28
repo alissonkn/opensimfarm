@@ -1,0 +1,3658 @@
+{
+  "format": 1,
+  "name": "OpenSimFarm placeholder",
+  "tileSize": 32,
+  "sheets": {
+    "plain": {
+      "file": "plain.png",
+      "count": 848,
+      "columns": 32
+    },
+    "masked": {
+      "file": "masked.png",
+      "count": 200,
+      "columns": 20
+    },
+    "events": {
+      "file": "events.png",
+      "count": 105,
+      "columns": 15
+    }
+  },
+  "pictures": {
+    "scale": 2,
+    "single": {
+      "about.bmp": {
+        "file": "ui/about.png"
+      },
+      "airpwndo.bmp": {
+        "file": "ui/airpwndo.png"
+      },
+      "bankterm.bmp": {
+        "file": "ui/bankterm.png"
+      },
+      "buywndo.bmp": {
+        "file": "ui/buywndo.png"
+      },
+      "cashflow.bmp": {
+        "file": "ui/cashflow.png"
+      },
+      "choscrop.bmp": {
+        "file": "ui/choscrop.png"
+      },
+      "cntlbtnh.bmp": {
+        "file": "ui/cntlbtnh.png"
+      },
+      "evaluate.bmp": {
+        "file": "ui/evaluate.png"
+      },
+      "examine.bmp": {
+        "file": "ui/examine.png"
+      },
+      "farmburo.bmp": {
+        "file": "ui/farmburo.png"
+      },
+      "fdstatus.bmp": {
+        "file": "ui/fdstatus.png"
+      },
+      "filegenr.bmp": {
+        "file": "ui/filegenr.png"
+      },
+      "futures.bmp": {
+        "file": "ui/futures.png"
+      },
+      "mapwndo.bmp": {
+        "file": "ui/mapwndo.png"
+      },
+      "popup.bmp": {
+        "file": "ui/popup.png"
+      },
+      "sellwndo.bmp": {
+        "file": "ui/sellwndo.png"
+      },
+      "twnchoic.bmp": {
+        "file": "ui/twnchoic.png"
+      },
+      "weather.bmp": {
+        "file": "ui/weather.png"
+      },
+      "editeasy.lzs": {
+        "file": "ui/editeasy.png"
+      },
+      "sftitle.int": {
+        "file": "ui/sftitle.png"
+      },
+      "scenario.int": {
+        "file": "ui/scenario.png"
+      },
+      "prsnt480.int": {
+        "file": "ui/prsnt480.png"
+      },
+      "defworld.int": {
+        "file": "ui/defworld.png"
+      }
+    },
+    "sets": [
+      {
+        "key": "buttons.til${n}",
+        "file": "ui/buttons-faces.png",
+        "count": 18,
+        "columns": 6
+      },
+      {
+        "key": "fldgrph.til${n}",
+        "file": "ui/fldgrph-faces.png",
+        "count": 20,
+        "columns": 6
+      },
+      {
+        "key": "wethvane.til${n}",
+        "file": "ui/wethvane-faces.png",
+        "count": 2,
+        "columns": 2
+      },
+      {
+        "key": "alltiles.btl#{n}",
+        "file": "ui/alltiles-bank.png",
+        "count": 96,
+        "columns": 8
+      },
+      {
+        "key": "wethsky.btl#{n}",
+        "file": "ui/wethsky-bank.png",
+        "count": 4,
+        "columns": 4
+      },
+      {
+        "key": "wethgrnd.btl#{n}",
+        "file": "ui/wethgrnd-bank.png",
+        "count": 4,
+        "columns": 4
+      },
+      {
+        "key": "airplane.spr@{n}",
+        "file": "ui/airplane-frames.png",
+        "count": 8,
+        "columns": 4
+      },
+      {
+        "key": "apshadow.spr@{n}",
+        "file": "ui/apshadow-frames.png",
+        "count": 8,
+        "columns": 4
+      },
+      {
+        "key": "tornado.spr@{n}",
+        "file": "ui/tornado-frames.png",
+        "count": 4,
+        "columns": 4
+      },
+      {
+        "key": "swarm.spr@{n}",
+        "file": "ui/swarm-frames.png",
+        "count": 4,
+        "columns": 4
+      },
+      {
+        "key": "cowman1.spr@{n}",
+        "file": "ui/cowman1-frames.png",
+        "count": 5,
+        "columns": 4
+      },
+      {
+        "key": "cowman2.spr@{n}",
+        "file": "ui/cowman2-frames.png",
+        "count": 5,
+        "columns": 4
+      },
+      {
+        "key": "cowman3.spr@{n}",
+        "file": "ui/cowman3-frames.png",
+        "count": 5,
+        "columns": 4
+      }
+    ]
+  },
+  "sounds": {
+    "click.voc": "sounds/click.wav",
+    "uhoh.voc": "sounds/uhoh.wav",
+    "plopitem.voc": "sounds/plopitem.wav",
+    "ploptool.voc": "sounds/ploptool.wav",
+    "bulldoze.voc": "sounds/bulldoze.wav",
+    "cheers.voc": "sounds/cheers.wav",
+    "boos.voc": "sounds/boos.wav",
+    "explode.voc": "sounds/explode.wav",
+    "bird1.voc": "sounds/bird1.wav",
+    "bird2.voc": "sounds/bird2.wav",
+    "cow1.voc": "sounds/cow1.wav",
+    "cow2.voc": "sounds/cow2.wav",
+    "horse1.voc": "sounds/horse1.wav",
+    "pig.voc": "sounds/pig.wav",
+    "sheep1.voc": "sounds/sheep1.wav",
+    "sheep2.voc": "sounds/sheep2.wav",
+    "rooster.voc": "sounds/rooster.wav",
+    "thunder.voc": "sounds/thunder.wav",
+    "wind.voc": "sounds/wind.wav",
+    "flood.voc": "sounds/flood.wav",
+    "plane.voc": "sounds/plane.wav",
+    "swarm.voc": "sounds/swarm.wav",
+    "tornado.voc": "sounds/tornado.wav",
+    "smack.voc": "sounds/smack.wav",
+    "compbeep.voc": "sounds/compbeep.wav"
+  },
+  "theme": {
+    "black": "#000000",
+    "yellow": "#ffe14d",
+    "sky": "#55aaff",
+    "red": "#d03030",
+    "pink": "#f080c0",
+    "navy": "#1c2a7a",
+    "blue": "#3a5fd0",
+    "tan": "#d8c08a",
+    "green": "#3f9f3f",
+    "darkGreen": "#1f6a2e",
+    "brown": "#80502a",
+    "colour11": "#70d8d8",
+    "lightGrey": "#c4c4c4",
+    "grey": "#868686",
+    "darkGrey": "#484848",
+    "white": "#ffffff"
+  },
+  "weather": {
+    "rain": {
+      "colour": "#30508c",
+      "strength": 0.3
+    },
+    "frost": {
+      "colour": "#e8f4ff",
+      "strength": 0.45
+    }
+  },
+  "template": {
+    "version": 1,
+    "catalogue": [
+      {
+        "id": 0,
+        "family": 40,
+        "kind": 0,
+        "price": 6000,
+        "size": [1, 1],
+        "turns": 2
+      },
+      {
+        "id": 1,
+        "family": 41,
+        "kind": 1,
+        "price": 1800,
+        "size": [1, 1],
+        "turns": 2
+      },
+      {
+        "id": 2,
+        "family": 44,
+        "kind": 2,
+        "price": 2800,
+        "size": [1, 1],
+        "turns": 2
+      },
+      {
+        "id": 3,
+        "family": 50,
+        "kind": 3,
+        "price": 2200,
+        "size": [1, 1],
+        "turns": 2
+      },
+      {
+        "id": 4,
+        "family": 52,
+        "kind": 4,
+        "price": 7500,
+        "size": [1, 2],
+        "turns": 2
+      },
+      {
+        "id": 5,
+        "family": 54,
+        "kind": 5,
+        "price": 1400,
+        "size": [1, 2],
+        "turns": 2
+      },
+      {
+        "id": 7,
+        "family": 72,
+        "kind": 7,
+        "price": 4500,
+        "size": [1, 2],
+        "turns": 2
+      },
+      {
+        "id": 8,
+        "family": 82,
+        "kind": 8,
+        "price": 12000,
+        "size": [1, 1],
+        "turns": 2
+      },
+      {
+        "id": 12,
+        "family": 6,
+        "kind": 64,
+        "price": 500,
+        "size": [1, 1]
+      },
+      {
+        "id": 13,
+        "family": 7,
+        "kind": 65,
+        "price": 1400,
+        "size": [2, 2]
+      },
+      {
+        "id": 14,
+        "family": 8,
+        "kind": 66,
+        "price": 900,
+        "size": [3, 2]
+      },
+      {
+        "id": 15,
+        "family": 9,
+        "kind": 67,
+        "price": 1900,
+        "size": [3, 3]
+      },
+      {
+        "id": 16,
+        "family": 10,
+        "kind": 68,
+        "price": 1600,
+        "size": [3, 3]
+      },
+      {
+        "id": 17,
+        "family": 11,
+        "kind": 69,
+        "price": 3000,
+        "size": [4, 3]
+      },
+      {
+        "id": 18,
+        "family": 61,
+        "kind": 70,
+        "price": 1000,
+        "size": [1, 1]
+      },
+      {
+        "id": 19,
+        "family": 60,
+        "kind": 71,
+        "price": 1300,
+        "size": [1, 1]
+      },
+      {
+        "id": 20,
+        "family": 103,
+        "kind": 72,
+        "price": 1700,
+        "size": [1, 1]
+      },
+      {
+        "id": 21,
+        "family": 18,
+        "kind": 168,
+        "price": 100
+      },
+      {
+        "id": 22,
+        "family": 19,
+        "kind": 169,
+        "price": 100
+      },
+      {
+        "id": 23,
+        "family": 20,
+        "kind": 170,
+        "price": 100
+      },
+      {
+        "id": 24,
+        "family": 21,
+        "kind": 171,
+        "price": 100
+      },
+      {
+        "id": 25,
+        "family": 22,
+        "kind": 172,
+        "price": 100
+      },
+      {
+        "id": 26,
+        "family": 23,
+        "kind": 173,
+        "price": 100
+      },
+      {
+        "id": 27,
+        "family": 24,
+        "kind": 174,
+        "price": 100
+      },
+      {
+        "id": 28,
+        "family": 25,
+        "kind": 175,
+        "price": 100
+      },
+      {
+        "id": 29,
+        "family": 26,
+        "kind": 176,
+        "price": 100
+      },
+      {
+        "id": 30,
+        "family": 27,
+        "kind": 177,
+        "price": 100
+      },
+      {
+        "id": 31,
+        "family": 28,
+        "kind": 178,
+        "price": 100
+      },
+      {
+        "id": 32,
+        "family": 29,
+        "kind": 179,
+        "price": 100
+      },
+      {
+        "id": 33,
+        "family": 30,
+        "kind": 180,
+        "price": 100
+      },
+      {
+        "id": 34,
+        "family": 31,
+        "kind": 181,
+        "price": 100
+      },
+      {
+        "id": 35,
+        "family": 32,
+        "kind": 182,
+        "price": 100
+      },
+      {
+        "id": 36,
+        "family": 33,
+        "kind": 183,
+        "price": 100
+      },
+      {
+        "id": 45,
+        "family": 37,
+        "kind": 160,
+        "price": 800
+      },
+      {
+        "id": 46,
+        "family": 34,
+        "kind": 161,
+        "price": 600
+      },
+      {
+        "id": 47,
+        "family": 35,
+        "kind": 162,
+        "price": 300
+      },
+      {
+        "id": 48,
+        "family": 36,
+        "kind": 163,
+        "price": 200
+      },
+      {
+        "id": 50,
+        "kind": 168,
+        "price": 100
+      },
+      {
+        "id": 51,
+        "kind": 169,
+        "price": 100
+      },
+      {
+        "id": 52,
+        "kind": 170,
+        "price": 100
+      },
+      {
+        "id": 53,
+        "kind": 171,
+        "price": 100
+      },
+      {
+        "id": 54,
+        "kind": 172,
+        "price": 100
+      },
+      {
+        "id": 55,
+        "kind": 173,
+        "price": 100
+      },
+      {
+        "id": 56,
+        "kind": 174,
+        "price": 100
+      },
+      {
+        "id": 57,
+        "kind": 175,
+        "price": 100
+      },
+      {
+        "id": 58,
+        "kind": 176,
+        "price": 100
+      },
+      {
+        "id": 59,
+        "kind": 177,
+        "price": 100
+      },
+      {
+        "id": 60,
+        "kind": 178,
+        "price": 100
+      },
+      {
+        "id": 61,
+        "kind": 179,
+        "price": 100
+      },
+      {
+        "id": 62,
+        "kind": 180,
+        "price": 100
+      },
+      {
+        "id": 63,
+        "kind": 181,
+        "price": 100
+      },
+      {
+        "id": 64,
+        "kind": 182,
+        "price": 100
+      },
+      {
+        "id": 65,
+        "kind": 183,
+        "price": 100
+      },
+      {
+        "id": 66,
+        "kind": 192,
+        "price": 25
+      },
+      {
+        "id": 67,
+        "kind": 193,
+        "price": 25
+      },
+      {
+        "id": 68,
+        "kind": 194,
+        "price": 25
+      },
+      {
+        "id": 69,
+        "kind": 195,
+        "price": 25
+      },
+      {
+        "id": 70,
+        "kind": 196,
+        "price": 25
+      },
+      {
+        "id": 71,
+        "kind": 197,
+        "price": 25
+      },
+      {
+        "id": 72,
+        "kind": 198,
+        "price": 25
+      },
+      {
+        "id": 73,
+        "kind": 199,
+        "price": 25
+      },
+      {
+        "id": 74,
+        "kind": 200,
+        "price": 25
+      },
+      {
+        "id": 75,
+        "kind": 201,
+        "price": 25
+      },
+      {
+        "id": 76,
+        "kind": 202,
+        "price": 25
+      },
+      {
+        "id": 77,
+        "kind": 203,
+        "price": 25
+      },
+      {
+        "id": 78,
+        "kind": 204,
+        "price": 25
+      },
+      {
+        "id": 79,
+        "kind": 205,
+        "price": 25
+      },
+      {
+        "id": 80,
+        "kind": 206,
+        "price": 25
+      },
+      {
+        "id": 81,
+        "kind": 207,
+        "price": 25
+      },
+      {
+        "id": 82,
+        "family": 74,
+        "kind": 220,
+        "price": 40
+      },
+      {
+        "id": 83,
+        "family": 75,
+        "kind": 221,
+        "price": 50
+      },
+      {
+        "id": 84,
+        "family": 76,
+        "kind": 222,
+        "price": 45
+      },
+      {
+        "id": 85,
+        "family": 51,
+        "kind": 223,
+        "price": 55
+      }
+    ]
+  },
+  "crops": [
+    {
+      "file": "corn.crp",
+      "name": "Corn",
+      "params": {
+        "weeks": 18,
+        "stages": 8,
+        "baseTemp": 50,
+        "heat": 100,
+        "yield": 300,
+        "price": 300,
+        "seedBase": 100,
+        "waterMin": 5,
+        "waterMax": 19,
+        "drainA": 3,
+        "drainB": 2,
+        "drainC": 2,
+        "wetPenalty": 3,
+        "dryPenalty": 4,
+        "resistPests": 150,
+        "resistWeeds": 203,
+        "resistDisease": 176
+      },
+      "art": "crops/corn.png",
+      "help": [
+        "Warm season crop.",
+        "Rain: Medium.",
+        "18 weeks to grow."
+      ],
+      "info": "Corn~Temperature: Warm~Rain: Medium~Days: 126"
+    },
+    {
+      "file": "wheat.crp",
+      "name": "Wheat",
+      "params": {
+        "weeks": 16,
+        "stages": 8,
+        "baseTemp": 40,
+        "heat": 50,
+        "yield": 250,
+        "price": 220,
+        "seedBase": 73,
+        "waterMin": 3,
+        "waterMax": 16,
+        "drainA": 4,
+        "drainB": 3,
+        "drainC": 3,
+        "wetPenalty": 4,
+        "dryPenalty": 5,
+        "resistPests": 187,
+        "resistWeeds": 160,
+        "resistDisease": 213
+      },
+      "art": "crops/wheat.png",
+      "help": [
+        "Cool season crop.",
+        "Rain: Low.",
+        "16 weeks to grow."
+      ],
+      "info": "Wheat~Temperature: Cool~Rain: Low~Days: 112"
+    },
+    {
+      "file": "barley.crp",
+      "name": "Barley",
+      "params": {
+        "weeks": 14,
+        "stages": 8,
+        "baseTemp": 40,
+        "heat": 50,
+        "yield": 240,
+        "price": 200,
+        "seedBase": 66,
+        "waterMin": 3,
+        "waterMax": 16,
+        "drainA": 5,
+        "drainB": 4,
+        "drainC": 2,
+        "wetPenalty": 5,
+        "dryPenalty": 3,
+        "resistPests": 224,
+        "resistWeeds": 197,
+        "resistDisease": 170
+      },
+      "art": "crops/barley.png",
+      "help": [
+        "Cool season crop.",
+        "Rain: Low.",
+        "14 weeks to grow."
+      ],
+      "info": "Barley~Temperature: Cool~Rain: Low~Days: 98"
+    },
+    {
+      "file": "potatoes.crp",
+      "name": "Potatoes",
+      "params": {
+        "weeks": 15,
+        "stages": 8,
+        "baseTemp": 40,
+        "heat": 50,
+        "yield": 350,
+        "price": 180,
+        "seedBase": 60,
+        "waterMin": 5,
+        "waterMax": 19,
+        "drainA": 3,
+        "drainB": 5,
+        "drainC": 3,
+        "wetPenalty": 3,
+        "dryPenalty": 4,
+        "resistPests": 181,
+        "resistWeeds": 154,
+        "resistDisease": 207
+      },
+      "art": "crops/potatoes.png",
+      "help": [
+        "Cool season crop.",
+        "Rain: Medium.",
+        "15 weeks to grow."
+      ],
+      "info": "Potatoes~Temperature: Cool~Rain: Medium~Days: 105"
+    },
+    {
+      "file": "oats.crp",
+      "name": "Oats",
+      "params": {
+        "weeks": 13,
+        "stages": 8,
+        "baseTemp": 40,
+        "heat": 50,
+        "yield": 230,
+        "price": 160,
+        "seedBase": 53,
+        "waterMin": 5,
+        "waterMax": 19,
+        "drainA": 4,
+        "drainB": 2,
+        "drainC": 2,
+        "wetPenalty": 4,
+        "dryPenalty": 5,
+        "resistPests": 218,
+        "resistWeeds": 191,
+        "resistDisease": 164
+      },
+      "art": "crops/oats.png",
+      "help": [
+        "Cool season crop.",
+        "Rain: Medium.",
+        "13 weeks to grow."
+      ],
+      "info": "Oats~Temperature: Cool~Rain: Medium~Days: 91"
+    },
+    {
+      "file": "rice.crp",
+      "name": "Rice",
+      "params": {
+        "weeks": 20,
+        "stages": 8,
+        "baseTemp": 55,
+        "heat": 130,
+        "yield": 330,
+        "price": 260,
+        "seedBase": 86,
+        "waterMin": 8,
+        "waterMax": 24,
+        "drainA": 5,
+        "drainB": 3,
+        "drainC": 3,
+        "wetPenalty": 5,
+        "dryPenalty": 3,
+        "resistPests": 175,
+        "resistWeeds": 228,
+        "resistDisease": 201
+      },
+      "art": "crops/rice.png",
+      "help": [
+        "Hot season crop.",
+        "Rain: High.",
+        "20 weeks to grow."
+      ],
+      "info": "Rice~Temperature: Hot~Rain: High~Days: 140"
+    },
+    {
+      "file": "sorghum.crp",
+      "name": "Sorghum",
+      "params": {
+        "weeks": 17,
+        "stages": 8,
+        "baseTemp": 55,
+        "heat": 130,
+        "yield": 260,
+        "price": 190,
+        "seedBase": 63,
+        "waterMin": 3,
+        "waterMax": 16,
+        "drainA": 3,
+        "drainB": 4,
+        "drainC": 2,
+        "wetPenalty": 3,
+        "dryPenalty": 4,
+        "resistPests": 212,
+        "resistWeeds": 185,
+        "resistDisease": 158
+      },
+      "art": "crops/sorghum.png",
+      "help": [
+        "Hot season crop.",
+        "Rain: Low.",
+        "17 weeks to grow."
+      ],
+      "info": "Sorghum~Temperature: Hot~Rain: Low~Days: 119"
+    },
+    {
+      "file": "soybeans.crp",
+      "name": "Soybeans",
+      "params": {
+        "weeks": 16,
+        "stages": 8,
+        "baseTemp": 50,
+        "heat": 100,
+        "yield": 280,
+        "price": 280,
+        "seedBase": 93,
+        "waterMin": 5,
+        "waterMax": 19,
+        "drainA": 4,
+        "drainB": 5,
+        "drainC": 3,
+        "wetPenalty": 4,
+        "dryPenalty": 5,
+        "resistPests": 169,
+        "resistWeeds": 222,
+        "resistDisease": 195
+      },
+      "art": "crops/soybeans.png",
+      "help": [
+        "Warm season crop.",
+        "Rain: Medium.",
+        "16 weeks to grow."
+      ],
+      "info": "Soybeans~Temperature: Warm~Rain: Medium~Days: 112"
+    },
+    {
+      "file": "cotton.crp",
+      "name": "Cotton",
+      "params": {
+        "weeks": 22,
+        "stages": 8,
+        "baseTemp": 55,
+        "heat": 130,
+        "yield": 220,
+        "price": 420,
+        "seedBase": 140,
+        "waterMin": 5,
+        "waterMax": 19,
+        "drainA": 5,
+        "drainB": 2,
+        "drainC": 2,
+        "wetPenalty": 5,
+        "dryPenalty": 3,
+        "resistPests": 206,
+        "resistWeeds": 179,
+        "resistDisease": 152
+      },
+      "art": "crops/cotton.png",
+      "help": [
+        "Hot season crop.",
+        "Rain: Medium.",
+        "22 weeks to grow."
+      ],
+      "info": "Cotton~Temperature: Hot~Rain: Medium~Days: 154"
+    },
+    {
+      "file": "onions.crp",
+      "name": "Onions",
+      "params": {
+        "weeks": 14,
+        "stages": 8,
+        "baseTemp": 40,
+        "heat": 50,
+        "yield": 300,
+        "price": 210,
+        "seedBase": 70,
+        "waterMin": 5,
+        "waterMax": 19,
+        "drainA": 3,
+        "drainB": 3,
+        "drainC": 3,
+        "wetPenalty": 3,
+        "dryPenalty": 4,
+        "resistPests": 163,
+        "resistWeeds": 216,
+        "resistDisease": 189
+      },
+      "art": "crops/onions.png",
+      "help": [
+        "Cool season crop.",
+        "Rain: Medium.",
+        "14 weeks to grow."
+      ],
+      "info": "Onions~Temperature: Cool~Rain: Medium~Days: 98"
+    },
+    {
+      "file": "tomatoes.crp",
+      "name": "Tomatoes",
+      "params": {
+        "weeks": 15,
+        "stages": 8,
+        "baseTemp": 50,
+        "heat": 100,
+        "yield": 360,
+        "price": 320,
+        "seedBase": 106,
+        "waterMin": 8,
+        "waterMax": 24,
+        "drainA": 4,
+        "drainB": 4,
+        "drainC": 2,
+        "wetPenalty": 4,
+        "dryPenalty": 5,
+        "resistPests": 200,
+        "resistWeeds": 173,
+        "resistDisease": 226
+      },
+      "art": "crops/tomatoes.png",
+      "help": [
+        "Warm season crop.",
+        "Rain: High.",
+        "15 weeks to grow."
+      ],
+      "info": "Tomatoes~Temperature: Warm~Rain: High~Days: 105"
+    },
+    {
+      "file": "lettuce.crp",
+      "name": "Lettuce",
+      "params": {
+        "weeks": 9,
+        "stages": 8,
+        "baseTemp": 40,
+        "heat": 50,
+        "yield": 280,
+        "price": 170,
+        "seedBase": 56,
+        "waterMin": 8,
+        "waterMax": 24,
+        "drainA": 5,
+        "drainB": 5,
+        "drainC": 3,
+        "wetPenalty": 5,
+        "dryPenalty": 3,
+        "resistPests": 157,
+        "resistWeeds": 210,
+        "resistDisease": 183
+      },
+      "art": "crops/lettuce.png",
+      "help": [
+        "Cool season crop.",
+        "Rain: High.",
+        "9 weeks to grow."
+      ],
+      "info": "Lettuce~Temperature: Cool~Rain: High~Days: 63"
+    },
+    {
+      "file": "carrots.crp",
+      "name": "Carrots",
+      "params": {
+        "weeks": 12,
+        "stages": 8,
+        "baseTemp": 40,
+        "heat": 50,
+        "yield": 310,
+        "price": 200,
+        "seedBase": 66,
+        "waterMin": 5,
+        "waterMax": 19,
+        "drainA": 3,
+        "drainB": 2,
+        "drainC": 2,
+        "wetPenalty": 3,
+        "dryPenalty": 4,
+        "resistPests": 194,
+        "resistWeeds": 167,
+        "resistDisease": 220
+      },
+      "art": "crops/carrots.png",
+      "help": [
+        "Cool season crop.",
+        "Rain: Medium.",
+        "12 weeks to grow."
+      ],
+      "info": "Carrots~Temperature: Cool~Rain: Medium~Days: 84"
+    },
+    {
+      "file": "strawber.crp",
+      "name": "Strawberries",
+      "params": {
+        "weeks": 12,
+        "stages": 8,
+        "baseTemp": 50,
+        "heat": 100,
+        "yield": 260,
+        "price": 480,
+        "seedBase": 160,
+        "waterMin": 8,
+        "waterMax": 24,
+        "drainA": 4,
+        "drainB": 3,
+        "drainC": 3,
+        "wetPenalty": 4,
+        "dryPenalty": 5,
+        "handPicked": true,
+        "resistPests": 111,
+        "resistWeeds": 164,
+        "resistDisease": 137
+      },
+      "art": "crops/strawber.png",
+      "help": [
+        "Warm season crop.",
+        "Rain: High.",
+        "12 weeks to grow."
+      ],
+      "info": "Strawberries~Temperature: Warm~Rain: High~Days: 84"
+    },
+    {
+      "file": "sugar.crp",
+      "name": "Sugar Cane",
+      "params": {
+        "weeks": 24,
+        "stages": 8,
+        "baseTemp": 55,
+        "heat": 130,
+        "yield": 400,
+        "price": 150,
+        "seedBase": 50,
+        "waterMin": 8,
+        "waterMax": 24,
+        "drainA": 5,
+        "drainB": 4,
+        "drainC": 2,
+        "wetPenalty": 5,
+        "dryPenalty": 3,
+        "resistPests": 188,
+        "resistWeeds": 161,
+        "resistDisease": 214
+      },
+      "art": "crops/sugar.png",
+      "help": [
+        "Hot season crop.",
+        "Rain: High.",
+        "24 weeks to grow."
+      ],
+      "info": "Sugar Cane~Temperature: Hot~Rain: High~Days: 168"
+    },
+    {
+      "file": "peanuts.crp",
+      "name": "Peanuts",
+      "params": {
+        "weeks": 18,
+        "stages": 8,
+        "baseTemp": 50,
+        "heat": 100,
+        "yield": 240,
+        "price": 330,
+        "seedBase": 110,
+        "waterMin": 3,
+        "waterMax": 16,
+        "drainA": 3,
+        "drainB": 5,
+        "drainC": 3,
+        "wetPenalty": 3,
+        "dryPenalty": 4,
+        "resistPests": 225,
+        "resistWeeds": 198,
+        "resistDisease": 171
+      },
+      "art": "crops/peanuts.png",
+      "help": [
+        "Warm season crop.",
+        "Rain: Low.",
+        "18 weeks to grow."
+      ],
+      "info": "Peanuts~Temperature: Warm~Rain: Low~Days: 126"
+    },
+    {
+      "file": "gladiolu.crp",
+      "name": "Gladiolus",
+      "params": {
+        "weeks": 12,
+        "stages": 8,
+        "baseTemp": 40,
+        "heat": 50,
+        "yield": 180,
+        "price": 450,
+        "seedBase": 150,
+        "waterMin": 5,
+        "waterMax": 19,
+        "drainA": 4,
+        "drainB": 2,
+        "drainC": 2,
+        "wetPenalty": 4,
+        "dryPenalty": 5,
+        "handPicked": true,
+        "resistPests": 142,
+        "resistWeeds": 115,
+        "resistDisease": 168
+      },
+      "art": "crops/gladiolu.png",
+      "help": [
+        "Cool season crop.",
+        "Rain: Medium.",
+        "12 weeks to grow."
+      ],
+      "info": "Gladiolus~Temperature: Cool~Rain: Medium~Days: 84"
+    },
+    {
+      "file": "sweet.crp",
+      "name": "Sweet Corn",
+      "params": {
+        "weeks": 14,
+        "stages": 8,
+        "baseTemp": 50,
+        "heat": 100,
+        "yield": 260,
+        "price": 280,
+        "seedBase": 93,
+        "waterMin": 5,
+        "waterMax": 19,
+        "drainA": 5,
+        "drainB": 3,
+        "drainC": 3,
+        "wetPenalty": 5,
+        "dryPenalty": 3,
+        "resistPests": 219,
+        "resistWeeds": 192,
+        "resistDisease": 165
+      },
+      "art": "crops/sweet.png",
+      "help": [
+        "Warm season crop.",
+        "Rain: Medium.",
+        "14 weeks to grow."
+      ],
+      "info": "Sweet Corn~Temperature: Warm~Rain: Medium~Days: 98"
+    },
+    {
+      "file": "tobacco.crp",
+      "name": "Tobacco",
+      "params": {
+        "weeks": 20,
+        "stages": 8,
+        "baseTemp": 55,
+        "heat": 130,
+        "yield": 200,
+        "price": 520,
+        "seedBase": 173,
+        "waterMin": 5,
+        "waterMax": 19,
+        "drainA": 3,
+        "drainB": 4,
+        "drainC": 2,
+        "wetPenalty": 3,
+        "dryPenalty": 4,
+        "handPicked": true,
+        "resistPests": 136,
+        "resistWeeds": 189,
+        "resistDisease": 162
+      },
+      "art": "crops/tobacco.png",
+      "help": [
+        "Hot season crop.",
+        "Rain: Medium.",
+        "20 weeks to grow."
+      ],
+      "info": "Tobacco~Temperature: Hot~Rain: Medium~Days: 140"
+    },
+    {
+      "file": "sunflowe.crp",
+      "name": "Sunflowers",
+      "params": {
+        "weeks": 16,
+        "stages": 8,
+        "baseTemp": 50,
+        "heat": 100,
+        "yield": 240,
+        "price": 250,
+        "seedBase": 83,
+        "waterMin": 3,
+        "waterMax": 16,
+        "drainA": 4,
+        "drainB": 5,
+        "drainC": 3,
+        "wetPenalty": 4,
+        "dryPenalty": 5,
+        "resistPests": 213,
+        "resistWeeds": 186,
+        "resistDisease": 159
+      },
+      "art": "crops/sunflowe.png",
+      "help": [
+        "Warm season crop.",
+        "Rain: Low.",
+        "16 weeks to grow."
+      ],
+      "info": "Sunflowers~Temperature: Warm~Rain: Low~Days: 112"
+    },
+    {
+      "file": "grapes.crp",
+      "name": "Grapes",
+      "params": {
+        "weeks": 18,
+        "stages": 8,
+        "baseTemp": 50,
+        "heat": 100,
+        "yield": 220,
+        "price": 500,
+        "seedBase": 166,
+        "waterMin": 5,
+        "waterMax": 19,
+        "drainA": 5,
+        "drainB": 2,
+        "drainC": 2,
+        "wetPenalty": 5,
+        "dryPenalty": 3,
+        "perennial": true,
+        "orchard": true,
+        "handPicked": true,
+        "harvestWeek": 30,
+        "regrowAge": 1,
+        "resistPests": 170,
+        "resistWeeds": 223,
+        "resistDisease": 196
+      },
+      "art": "crops/grapes.png",
+      "help": [
+        "Warm season crop.",
+        "Rain: Medium.",
+        "18 weeks to grow."
+      ],
+      "info": "Grapes~Temperature: Warm~Rain: Medium~Days: 126"
+    },
+    {
+      "file": "oranges.crp",
+      "name": "Oranges",
+      "params": {
+        "weeks": 20,
+        "stages": 8,
+        "baseTemp": 55,
+        "heat": 130,
+        "yield": 240,
+        "price": 440,
+        "seedBase": 146,
+        "waterMin": 5,
+        "waterMax": 19,
+        "drainA": 3,
+        "drainB": 3,
+        "drainC": 3,
+        "wetPenalty": 3,
+        "dryPenalty": 4,
+        "perennial": true,
+        "orchard": true,
+        "handPicked": true,
+        "harvestWeek": 40,
+        "regrowAge": 1,
+        "resistPests": 207,
+        "resistWeeds": 180,
+        "resistDisease": 153
+      },
+      "art": "crops/oranges.png",
+      "help": [
+        "Hot season crop.",
+        "Rain: Medium.",
+        "20 weeks to grow."
+      ],
+      "info": "Oranges~Temperature: Hot~Rain: Medium~Days: 140"
+    },
+    {
+      "file": "almonds.crp",
+      "name": "Almonds",
+      "params": {
+        "weeks": 20,
+        "stages": 8,
+        "baseTemp": 50,
+        "heat": 100,
+        "yield": 200,
+        "price": 560,
+        "seedBase": 186,
+        "waterMin": 3,
+        "waterMax": 16,
+        "drainA": 4,
+        "drainB": 4,
+        "drainC": 2,
+        "wetPenalty": 4,
+        "dryPenalty": 5,
+        "perennial": true,
+        "orchard": true,
+        "handPicked": true,
+        "harvestWeek": 34,
+        "regrowAge": 1,
+        "resistPests": 164,
+        "resistWeeds": 217,
+        "resistDisease": 190
+      },
+      "art": "crops/almonds.png",
+      "help": [
+        "Warm season crop.",
+        "Rain: Low.",
+        "20 weeks to grow."
+      ],
+      "info": "Almonds~Temperature: Warm~Rain: Low~Days: 140"
+    },
+    {
+      "file": "apples.crp",
+      "name": "Apples",
+      "params": {
+        "weeks": 18,
+        "stages": 8,
+        "baseTemp": 40,
+        "heat": 50,
+        "yield": 260,
+        "price": 460,
+        "seedBase": 153,
+        "waterMin": 5,
+        "waterMax": 19,
+        "drainA": 5,
+        "drainB": 5,
+        "drainC": 3,
+        "wetPenalty": 5,
+        "dryPenalty": 3,
+        "perennial": true,
+        "orchard": true,
+        "handPicked": true,
+        "harvestWeek": 36,
+        "regrowAge": 1,
+        "resistPests": 201,
+        "resistWeeds": 174,
+        "resistDisease": 227
+      },
+      "art": "crops/apples.png",
+      "help": [
+        "Cool season crop.",
+        "Rain: Medium.",
+        "18 weeks to grow."
+      ],
+      "info": "Apples~Temperature: Cool~Rain: Medium~Days: 126"
+    }
+  ],
+  "cards": [
+    {
+      "id": 1,
+      "items": [
+        {
+          "picture": 66,
+          "x": 24,
+          "y": 40
+        },
+        {
+          "text": "Hello! I am the Farm Expert. What would you like to know about?",
+          "x": 150,
+          "y": 44,
+          "width": 230
+        },
+        {
+          "text": "Getting started",
+          "x": 40,
+          "y": 100,
+          "width": 200
+        },
+        {
+          "button": 4,
+          "x": 280,
+          "y": 88,
+          "goto": 2
+        },
+        {
+          "text": "Fields and crops",
+          "x": 40,
+          "y": 124,
+          "width": 200
+        },
+        {
+          "button": 4,
+          "x": 280,
+          "y": 112,
+          "goto": 3
+        },
+        {
+          "text": "Machines and storage",
+          "x": 40,
+          "y": 148,
+          "width": 200
+        },
+        {
+          "button": 4,
+          "x": 280,
+          "y": 136,
+          "goto": 4
+        },
+        {
+          "text": "Weather and water",
+          "x": 40,
+          "y": 172,
+          "width": 200
+        },
+        {
+          "button": 4,
+          "x": 280,
+          "y": 160,
+          "goto": 5
+        },
+        {
+          "text": "Money and the town",
+          "x": 40,
+          "y": 196,
+          "width": 200
+        },
+        {
+          "button": 4,
+          "x": 280,
+          "y": 184,
+          "goto": 6
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "items": [
+        {
+          "picture": 66,
+          "x": 24,
+          "y": 36
+        },
+        {
+          "text": "GETTING STARTED",
+          "x": 150,
+          "y": 40,
+          "width": 230
+        },
+        {
+          "text": "Click BUY to buy machines and buildings, then click your own land to place them. A farm needs a tractor, a plow, a planter, a sprayer, a harvester and a trailer. Plot a field, pick a crop from the list on the left and click the field to plant it. The date and your cash are at the top right.",
+          "x": 24,
+          "y": 112,
+          "width": 352
+        },
+        {
+          "button": 3,
+          "x": 336,
+          "y": 200,
+          "goto": 1
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "items": [
+        {
+          "picture": 0,
+          "x": 24,
+          "y": 36
+        },
+        {
+          "text": "FIELDS AND CROPS",
+          "x": 150,
+          "y": 40,
+          "width": 230
+        },
+        {
+          "text": "A field is a block of land you farm. Crops need warmth and water, and weeds, pests and disease slow them down: spray a field when its status shows a problem. Poor soil needs fertilizer. Harvest when the crop is ripe, or it spoils. Open EVAL to see how the farm is doing and which crops to try.",
+          "x": 24,
+          "y": 112,
+          "width": 352
+        },
+        {
+          "button": 3,
+          "x": 336,
+          "y": 200,
+          "goto": 1
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "items": [
+        {
+          "picture": 34,
+          "x": 24,
+          "y": 36
+        },
+        {
+          "text": "MACHINES AND STORAGE",
+          "x": 150,
+          "y": 40,
+          "width": 230
+        },
+        {
+          "text": "A tractor pulls a plow and a planter. A harvester cuts the crop and a trailer carries it. Park machines in a shed or a barn so that they wear out slowly. A silo keeps the harvest until you sell it; seed and spray are kept in barns.",
+          "x": 24,
+          "y": 112,
+          "width": 352
+        },
+        {
+          "button": 3,
+          "x": 336,
+          "y": 200,
+          "goto": 1
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "items": [
+        {
+          "picture": 57,
+          "x": 24,
+          "y": 36
+        },
+        {
+          "text": "WEATHER AND WATER",
+          "x": 150,
+          "y": 40,
+          "width": 230
+        },
+        {
+          "text": "Open WTHR for today's weather and the forecast. Rain wets the soil. A field that is too dry or too wet grows badly: dig ditches, and add a pump, a windmill or a water tower to bring water where it is needed.",
+          "x": 24,
+          "y": 112,
+          "width": 352
+        },
+        {
+          "button": 3,
+          "x": 336,
+          "y": 200,
+          "goto": 1
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "items": [
+        {
+          "picture": 76,
+          "x": 24,
+          "y": 36
+        },
+        {
+          "text": "MONEY AND THE TOWN",
+          "x": 150,
+          "y": 40,
+          "width": 230
+        },
+        {
+          "text": "Open MKT for the price of each crop over the last thirty weeks, BAL for your balance sheet and BANK to borrow money. Taxes fall due every year. As the town grows it buys more, and it holds a fair or a rodeo now and then.",
+          "x": 24,
+          "y": 112,
+          "width": 352
+        },
+        {
+          "button": 3,
+          "x": 336,
+          "y": 200,
+          "goto": 1
+        }
+      ]
+    }
+  ],
+  "tables": {
+    "climate": {
+      "rain": [
+        [0, 1, 1, 1, 0, 0, 2, 1, 2, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 2, 1, 1, 1, 1, 0, 1, 0, 1, 2, 1, 1, 1, 1, 1, 0, 0, 2, 1, 1, 1, 1, 1, 2, 1, 2, 1, 1, 1, 2, 1, 1, 1, 0, 0, 2, 1, 1, 1, 1, 0, 1, 1, 1, 0, 2, 1, 1, 2, 2, 0, 1, 2, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 0, 0, 2, 1, 1, 1, 2, 2, 2, 1, 1, 1, 2, 1, 0, 1, 1, 2, 2, 1, 0, 1, 2, 2, 1, 1, 1, 0, 0, 1, 0, 3, 2, 1, 0, 2, 1, 1, 1, 1, 0, 1, 1, 0, 2, 1, 0, 3, 2, 1, 1, 1, 0, 0, 1, 2, 1, 2, 2, 1, 1, 1, 1, 1, 1, 0, 1, 0, 2, 1, 1, 1, 2, 1, 1, 1, 0, 0, 1, 1, 2, 2, 1, 1, 1, 1, 0, 1, 0, 1, 1, 2, 1, 1, 2, 0, 1, 2, 1, 1, 1, 1, 1, 2, 0, 1, 1, 2, 1, 0, 3, 1, 2, 0, 2, 0, 3, 2, 1, 1, 1, 1, 0, 0, 2, 2, 1, 1, 1, 2, 0, 1, 2, 0, 2, 0, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 0],
+        [1, 1, 0, 2, 1, 1, 1, 1, 0, 1, 2, 1, 1, 0, 2, 1, 0, 1, 1, 1, 2, 1, 1, 2, 0, 2, 1, 1, 1, 2, 2, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 2, 1, 0, 1, 2, 2, 0, 3, 1, 1, 2, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 0, 1, 2, 2, 0, 2, 1, 0, 3, 1, 1, 0, 2, 0, 0, 2, 1, 2, 0, 1, 1, 2, 0, 1, 1, 1, 2, 2, 1, 1, 1, 2, 1, 1, 1, 2, 1, 1, 1, 0, 1, 1, 1, 2, 0, 0, 1, 2, 1, 1, 1, 2, 2, 0, 2, 1, 1, 1, 0, 2, 2, 0, 2, 1, 2, 1, 1, 1, 0, 1, 1, 0, 1, 0, 1, 3, 1, 1, 2, 1, 2, 2, 0, 1, 2, 1, 1, 1, 2, 0, 1, 2, 2, 1, 0, 2, 1, 2, 2, 1, 0, 0, 2, 2, 1, 1, 1, 2, 2, 1, 1, 0, 1, 0, 1, 1, 1, 2, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 2, 1, 1, 1, 1, 1, 2, 0, 2, 1, 1, 1, 2, 1, 2, 1, 1, 2, 1, 1, 1, 1, 0, 2, 1, 1, 1, 1, 1, 1, 0, 0, 2, 1, 1, 1, 1, 2, 1, 2, 1, 1, 1, 1],
+        [2, 1, 1, 1, 1, 1, 1, 1, 2, 1, 0, 2, 1, 2, 2, 1, 1, 0, 1, 1, 1, 1, 3, 2, 1, 0, 2, 1, 1, 1, 1, 2, 1, 1, 2, 1, 2, 1, 0, 1, 1, 0, 2, 2, 1, 0, 1, 1, 1, 3, 1, 2, 0, 1, 1, 1, 1, 1, 1, 1, 3, 1, 2, 1, 1, 1, 0, 1, 2, 1, 0, 2, 2, 2, 2, 1, 1, 1, 2, 2, 1, 0, 2, 1, 2, 1, 1, 0, 0, 1, 1, 2, 1, 1, 2, 1, 2, 1, 0, 1, 2, 1, 0, 1, 2, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1, 0, 2, 3, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 0, 2, 2, 1, 1, 0, 1, 1, 1, 1, 1, 0, 2, 1, 2, 1, 2, 0, 2, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 2, 2, 1, 2, 1, 1, 2, 1, 0, 2, 2, 1, 2, 0, 1, 1, 1, 1, 1, 2, 2, 2, 1, 1, 1, 1, 1, 0, 0, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 0, 3, 0, 2, 1, 2, 2, 1, 1, 1, 1, 2, 1, 2, 2, 1, 1, 2, 2, 0, 1, 1, 1, 1, 1, 2, 0, 3, 1, 1, 2, 1],
+        [1, 3, 1, 2, 1, 0, 2, 2, 2, 0, 1, 1, 2, 2, 0, 3, 1, 1, 1, 0, 2, 2, 1, 2, 2, 1, 1, 2, 1, 1, 1, 1, 0, 3, 1, 1, 1, 2, 2, 0, 1, 2, 2, 1, 1, 0, 0, 1, 2, 1, 2, 1, 0, 2, 2, 2, 0, 2, 2, 1, 2, 0, 1, 0, 2, 2, 1, 3, 1, 2, 2, 1, 1, 1, 1, 1, 2, 1, 2, 1, 1, 0, 1, 3, 2, 1, 1, 1, 1, 1, 1, 2, 0, 1, 1, 2, 1, 0, 2, 1, 1, 2, 2, 1, 1, 0, 1, 3, 2, 0, 2, 1, 0, 3, 1, 1, 2, 1, 1, 1, 1, 2, 1, 2, 1, 1, 1, 1, 1, 1, 2, 2, 1, 1, 0, 2, 1, 0, 2, 1, 2, 2, 1, 2, 1, 1, 0, 1, 1, 1, 1, 1, 0, 2, 2, 2, 1, 1, 1, 1, 1, 1, 2, 0, 2, 2, 0, 1, 1, 2, 3, 1, 1, 0, 3, 1, 2, 2, 1, 0, 2, 0, 2, 1, 1, 1, 1, 1, 0, 1, 0, 2, 1, 2, 1, 2, 1, 2, 1, 1, 1, 1, 1, 1, 1, 0, 2, 1, 1, 1, 1, 1, 1, 1, 3, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1, 3, 0, 2, 2, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 0]
+      ],
+      "temperature": [
+        [23, 26, 24, 27, 28, 31, 29, 31, 38, 33, 40, 45, 46, 47, 48, 53, 54, 57, 62, 59, 61, 68, 65, 66, 71, 63, 70, 62, 64, 60, 64, 59, 54, 55, 51, 44, 46, 42, 37, 36, 32, 29, 28, 24, 24, 25, 26, 26, 22, 23, 27, 26, 24, 24, 26, 35, 32, 39, 42, 41, 46, 46, 51, 56, 58, 55, 60, 59, 63, 68, 64, 70, 67, 67, 68, 68, 63, 66, 64, 55, 54, 57, 52, 49, 42, 40, 42, 40, 34, 30, 30, 27, 25, 27, 20, 27, 21, 26, 21, 22, 23, 27, 33, 30, 37, 33, 36, 44, 43, 48, 54, 56, 56, 61, 58, 59, 68, 65, 67, 64, 70, 67, 64, 64, 65, 61, 62, 54, 58, 50, 53, 50, 42, 42, 36, 33, 31, 33, 33, 31, 29, 27, 23, 26, 20, 25, 22, 24, 26, 25, 27, 34, 36, 35, 39, 39, 42, 46, 51, 56, 55, 61, 60, 65, 63, 69, 70, 68, 70, 65, 64, 62, 65, 60, 61, 58, 57, 57, 53, 47, 47, 40, 43, 33, 30, 28, 30, 27, 26, 25, 20, 23, 23, 24, 27, 25, 23, 25, 33, 30, 32, 37, 37, 39, 48, 50, 51, 51, 56, 55, 59, 62, 62, 63, 64, 67, 65, 68, 64, 68, 67, 63, 64, 56, 56, 55, 49, 48, 46, 46, 36, 37, 34, 28, 30, 24, 26, 25, 27, 22],
+        [35, 29, 34, 32, 34, 36, 38, 40, 40, 44, 49, 49, 53, 59, 65, 64, 64, 70, 72, 76, 79, 77, 78, 79, 80, 76, 74, 77, 78, 71, 69, 67, 70, 63, 61, 58, 55, 53, 47, 46, 44, 39, 42, 37, 38, 31, 32, 31, 32, 29, 32, 29, 36, 37, 35, 37, 45, 49, 51, 50, 54, 58, 63, 66, 69, 72, 70, 71, 78, 76, 78, 82, 82, 79, 75, 80, 80, 70, 69, 66, 70, 66, 58, 54, 53, 49, 51, 42, 39, 42, 38, 37, 37, 30, 34, 34, 31, 30, 29, 36, 38, 37, 37, 44, 42, 42, 48, 52, 54, 62, 58, 68, 66, 73, 73, 74, 74, 78, 80, 75, 79, 82, 81, 80, 75, 77, 72, 74, 64, 68, 62, 60, 53, 50, 47, 48, 40, 39, 36, 39, 34, 31, 30, 30, 27, 29, 29, 35, 32, 32, 35, 39, 42, 43, 49, 48, 53, 62, 60, 67, 70, 72, 68, 70, 77, 74, 78, 78, 76, 79, 77, 79, 73, 77, 73, 71, 64, 67, 65, 62, 53, 52, 51, 42, 46, 44, 34, 36, 32, 33, 34, 32, 28, 28, 28, 31, 34, 34, 35, 42, 44, 48, 48, 50, 54, 58, 63, 66, 64, 68, 71, 73, 72, 77, 80, 77, 78, 75, 81, 78, 78, 73, 74, 71, 64, 68, 62, 55, 52, 53, 47, 48, 46, 43, 36, 36, 37, 35, 28, 29],
+        [41, 39, 43, 44, 40, 46, 48, 53, 50, 55, 54, 64, 67, 66, 72, 73, 78, 83, 81, 86, 86, 88, 87, 91, 87, 89, 92, 92, 90, 82, 86, 82, 76, 75, 70, 72, 61, 61, 55, 57, 54, 46, 43, 44, 40, 40, 42, 42, 41, 41, 37, 43, 40, 46, 48, 53, 52, 57, 61, 61, 67, 71, 70, 74, 81, 85, 81, 82, 91, 92, 88, 91, 94, 87, 89, 89, 88, 84, 82, 80, 75, 78, 73, 66, 68, 64, 60, 57, 48, 48, 44, 43, 42, 41, 42, 42, 41, 43, 42, 38, 39, 45, 50, 47, 52, 53, 57, 66, 63, 67, 70, 72, 75, 79, 81, 87, 88, 92, 90, 91, 90, 88, 88, 91, 88, 89, 83, 77, 79, 75, 74, 66, 61, 64, 55, 56, 49, 48, 49, 47, 46, 39, 39, 37, 39, 38, 43, 37, 40, 44, 48, 51, 51, 54, 60, 65, 66, 70, 75, 76, 81, 83, 80, 89, 88, 89, 90, 88, 89, 90, 92, 87, 87, 86, 84, 81, 82, 72, 73, 66, 61, 62, 60, 58, 50, 46, 47, 43, 40, 37, 39, 37, 39, 41, 37, 43, 43, 46, 50, 48, 54, 54, 55, 63, 66, 67, 72, 76, 75, 81, 84, 83, 89, 87, 88, 89, 88, 94, 87, 93, 84, 85, 87, 79, 75, 75, 70, 66, 68, 61, 60, 53, 55, 46, 45, 42, 46, 43, 44, 37],
+        [49, 50, 49, 49, 57, 54, 62, 63, 65, 64, 67, 75, 75, 79, 84, 85, 94, 93, 102, 104, 102, 107, 107, 103, 102, 105, 102, 104, 104, 98, 95, 92, 89, 89, 82, 85, 76, 75, 74, 69, 61, 65, 62, 56, 51, 50, 47, 47, 51, 47, 51, 50, 51, 57, 56, 61, 61, 69, 74, 78, 80, 79, 87, 92, 90, 94, 96, 102, 103, 104, 103, 108, 108, 106, 104, 103, 103, 101, 96, 98, 94, 90, 84, 80, 76, 74, 73, 70, 63, 65, 60, 53, 56, 51, 54, 52, 50, 49, 54, 52, 54, 54, 56, 62, 67, 68, 73, 77, 75, 83, 84, 89, 92, 99, 99, 101, 99, 103, 101, 109, 107, 103, 102, 107, 103, 99, 101, 93, 90, 90, 85, 82, 78, 73, 74, 68, 60, 64, 60, 58, 51, 49, 49, 53, 49, 52, 50, 51, 51, 59, 55, 64, 60, 70, 72, 77, 76, 85, 85, 87, 90, 92, 97, 100, 105, 102, 102, 105, 103, 103, 105, 102, 106, 100, 100, 99, 93, 90, 87, 79, 79, 74, 68, 64, 64, 64, 58, 52, 53, 52, 54, 52, 47, 47, 55, 54, 55, 58, 56, 62, 61, 66, 68, 76, 80, 81, 87, 89, 90, 99, 101, 97, 102, 102, 109, 109, 104, 107, 108, 102, 99, 98, 98, 91, 93, 91, 89, 83, 78, 78, 68, 66, 64, 62, 58, 55, 52, 53, 53, 49]
+      ],
+      "wind": [
+        [2, 2, 6, 2, 6, 6, 4, 7, 2, 2, 6, 7, 2, 5, 4, 4, 7, 2, 6, 6, 2, 6, 7, 4, 7, 3, 7, 5, 5, 6, 6, 5, 6, 5, 4, 3, 4, 6, 7, 4, 6, 4, 4, 7, 4, 3, 2, 4, 2, 6, 4, 2, 3, 6, 3, 3, 6, 5, 7, 4, 6, 2, 4, 4, 3, 5, 2, 7, 3, 7, 3, 4, 3, 7, 2, 2, 3, 5, 6, 3, 5, 4, 5, 3, 6, 6, 4, 6, 4, 5, 6, 2, 2, 7, 4, 7, 5, 5, 6, 3, 5, 5, 7, 3, 2, 2, 3, 4, 6, 5, 7, 5, 2, 2, 4, 3, 4, 7, 5, 3, 7, 7, 3, 7, 4, 5, 7, 7, 2, 2, 2, 3, 7, 6, 2, 4, 5, 3, 7, 4, 3, 5, 6, 6, 6, 6, 2, 4, 5, 2, 7, 6, 5, 6, 2, 7, 5, 7, 3, 3, 3, 2, 7, 3, 7, 4, 3, 4, 7, 5, 7, 6, 7, 2, 6, 3, 2, 2, 2, 4, 6, 7, 7, 5, 5, 3, 6, 2, 6, 4, 6, 5, 7, 6, 6, 4, 5, 7, 5, 6, 5, 7, 6, 5, 5, 6, 3, 6, 2, 5, 5, 6, 4, 4, 4, 2, 5, 5, 6, 7, 6, 7, 4, 5, 6, 4, 7, 3, 4, 5, 5, 2, 2, 2, 5, 4, 4, 6, 7, 3],
+        [5, 6, 10, 10, 7, 9, 10, 5, 9, 10, 10, 5, 9, 9, 10, 10, 5, 7, 5, 6, 5, 9, 9, 10, 5, 8, 9, 9, 9, 9, 9, 10, 6, 6, 5, 8, 5, 8, 5, 5, 5, 8, 7, 8, 6, 6, 9, 6, 7, 5, 6, 8, 6, 10, 8, 8, 8, 7, 5, 7, 6, 5, 10, 5, 10, 7, 8, 8, 7, 9, 9, 8, 7, 6, 7, 7, 5, 6, 10, 8, 8, 7, 5, 6, 7, 8, 6, 10, 5, 9, 9, 5, 10, 6, 9, 6, 9, 6, 9, 6, 7, 8, 9, 8, 9, 8, 9, 7, 8, 8, 7, 9, 10, 8, 7, 9, 9, 6, 8, 9, 7, 8, 6, 7, 10, 5, 6, 10, 10, 8, 9, 7, 8, 7, 9, 7, 9, 9, 6, 10, 7, 10, 10, 10, 8, 8, 6, 5, 6, 8, 9, 6, 5, 5, 5, 9, 7, 9, 8, 5, 9, 6, 8, 7, 6, 10, 8, 5, 7, 5, 7, 9, 8, 9, 5, 6, 10, 8, 10, 9, 6, 9, 7, 6, 5, 10, 10, 6, 6, 9, 7, 9, 10, 5, 8, 9, 10, 5, 7, 6, 10, 9, 7, 7, 5, 9, 8, 10, 7, 10, 5, 7, 7, 8, 10, 6, 9, 7, 7, 6, 5, 10, 7, 6, 10, 8, 8, 7, 10, 6, 8, 10, 9, 6, 5, 7, 10, 5, 6, 10],
+        [13, 8, 13, 8, 11, 8, 12, 8, 10, 13, 9, 8, 9, 10, 9, 11, 12, 13, 9, 8, 10, 8, 13, 9, 9, 11, 10, 13, 10, 8, 8, 12, 11, 13, 9, 12, 13, 13, 12, 13, 10, 11, 12, 8, 10, 9, 11, 9, 9, 11, 12, 8, 9, 8, 11, 11, 10, 12, 13, 13, 12, 11, 13, 11, 10, 9, 8, 8, 8, 12, 10, 13, 13, 9, 8, 13, 11, 11, 8, 10, 13, 12, 12, 13, 11, 13, 13, 10, 9, 12, 13, 13, 9, 13, 9, 8, 12, 12, 10, 13, 12, 9, 11, 9, 10, 12, 8, 11, 13, 12, 11, 8, 13, 10, 9, 8, 8, 13, 11, 12, 11, 10, 12, 9, 10, 8, 10, 13, 11, 8, 11, 9, 8, 9, 12, 8, 8, 10, 8, 11, 12, 8, 12, 12, 12, 8, 9, 10, 9, 8, 12, 8, 8, 13, 12, 13, 12, 13, 9, 12, 13, 13, 10, 9, 10, 9, 12, 12, 12, 12, 13, 9, 10, 10, 12, 12, 9, 12, 11, 8, 13, 12, 9, 13, 8, 11, 9, 11, 10, 9, 8, 10, 12, 9, 11, 13, 11, 8, 9, 13, 8, 11, 9, 10, 10, 10, 12, 9, 9, 9, 11, 11, 8, 8, 9, 9, 9, 10, 12, 12, 13, 11, 13, 8, 11, 13, 13, 8, 11, 12, 8, 9, 8, 9, 9, 13, 8, 13, 13, 9],
+        [15, 11, 14, 14, 16, 12, 12, 15, 14, 11, 12, 15, 16, 15, 14, 15, 13, 16, 12, 14, 11, 11, 12, 12, 15, 16, 14, 14, 15, 15, 11, 12, 13, 11, 13, 13, 12, 12, 12, 11, 14, 11, 13, 16, 11, 16, 15, 11, 13, 16, 13, 15, 15, 12, 12, 14, 12, 15, 13, 12, 13, 14, 14, 16, 15, 12, 11, 12, 13, 11, 14, 16, 15, 13, 16, 16, 15, 16, 12, 16, 11, 13, 11, 13, 15, 13, 15, 14, 14, 15, 16, 16, 16, 11, 13, 12, 14, 13, 15, 11, 14, 13, 14, 15, 15, 11, 11, 16, 14, 15, 12, 15, 12, 13, 14, 13, 16, 15, 16, 16, 13, 13, 16, 14, 16, 11, 14, 14, 13, 15, 15, 15, 15, 12, 13, 11, 12, 16, 13, 12, 15, 13, 15, 15, 11, 16, 14, 13, 15, 11, 11, 11, 11, 15, 13, 15, 15, 11, 14, 14, 12, 13, 15, 16, 16, 16, 14, 13, 16, 16, 12, 12, 14, 14, 11, 14, 11, 13, 15, 11, 11, 12, 14, 14, 12, 14, 13, 13, 16, 14, 13, 15, 13, 13, 11, 13, 16, 13, 12, 15, 11, 12, 12, 14, 15, 12, 15, 13, 11, 15, 11, 13, 15, 11, 16, 15, 14, 14, 13, 14, 15, 15, 12, 16, 11, 13, 12, 14, 15, 16, 11, 12, 11, 15, 14, 12, 15, 15, 11, 12]
+      ]
+    },
+    "regions": {
+      "rain": [
+        "aaaaabbbbcccccdddd",
+        "aaaaabbbbcccccdddd",
+        "aaaaabbbbcccccdddd",
+        "aaaaabbbbcccccdddd",
+        "aaaaabbbbcccccdddd",
+        "aaaaabbbbcccccdddd",
+        "aaaaabbbbcccccdddd",
+        "aaaaabbbbcccccdddd",
+        "aaaaabbbbcccccdddd",
+        "aaaaabbbbcccccdddd",
+        "aaaaabbbbcccccdddd",
+        "aaaaabbbbcccccdddd",
+        "aaaaabbbbcccccdddd",
+        "aaaaabbbbcccccdddd",
+        "aaaaabbbbcccccdddd",
+        "aaaaabbbbcccccdddd",
+        "aaaaabbbbcccccdddd",
+        "aaaaabbbbcccccdddd"
+      ],
+      "temperature": [
+        "aaaaaaaaaaaaaaaaaa",
+        "aaaaaaaaaaaaaaaaaa",
+        "aaaaaaaaaaaaaaaaaa",
+        "aaaaaaaaaaaaaaaaaa",
+        "aaaaaaaaaaaaaaaaaa",
+        "bbbbbbbbbbbbbbbbbb",
+        "bbbbbbbbbbbbbbbbbb",
+        "bbbbbbbbbbbbbbbbbb",
+        "bbbbbbbbbbbbbbbbbb",
+        "cccccccccccccccccc",
+        "cccccccccccccccccc",
+        "cccccccccccccccccc",
+        "cccccccccccccccccc",
+        "cccccccccccccccccc",
+        "dddddddddddddddddd",
+        "dddddddddddddddddd",
+        "dddddddddddddddddd",
+        "dddddddddddddddddd"
+      ],
+      "wind": [
+        "aaaaabbbbbcccccddd",
+        "aaaabbbbbcccccdddd",
+        "aaabbbbbcccccddddd",
+        "aabbbbbcccccddddda",
+        "abbbbbcccccdddddaa",
+        "bbbbbcccccdddddaaa",
+        "bbbbcccccdddddaaaa",
+        "bbbcccccdddddaaaaa",
+        "bbcccccdddddaaaaab",
+        "bcccccdddddaaaaabb",
+        "cccccdddddaaaaabbb",
+        "ccccdddddaaaaabbbb",
+        "cccdddddaaaaabbbbb",
+        "ccdddddaaaaabbbbbc",
+        "cdddddaaaaabbbbbcc",
+        "dddddaaaaabbbbbccc",
+        "ddddaaaaabbbbbcccc",
+        "dddaaaaabbbbbccccc"
+      ],
+      "hotpoints": [
+        "aabbbbbbbbbbbbbbaa",
+        "aabbbbbbbbbbbbbbaa",
+        "bbbbbbbbbbbbbbbbbb",
+        "bbbbbbbbbbbbbbbbbb",
+        "bbbbbbbbbbbbbbbbbb",
+        "bbbbbbbbbbbbbbbbbb",
+        "bbbbbbbbbbbbbbbbbb",
+        "bbbbbbbbbbbbbbbbbb",
+        "bbbbbbbbbbbbbbbbbb",
+        "bbbbbbbbbbbbbbbbbb",
+        "bbbbbbbbbbbbbbbbbb",
+        "bbbbbbbbbbbbbbbbbb",
+        "bbbbbbbbbbbbbbbbbb",
+        "bbbbbbbbbbbbbbbbbb",
+        "bbbbbbbbbbbbbbbbbb",
+        "bbbbbbbbbbbbbbbbbb",
+        "aabbbbbbbbbbbbbbaa",
+        "aabbbbbbbbbbbbbbaa"
+      ]
+    },
+    "townLayout": {
+      "blocks": [
+        [
+          [320, 321, 322, 323, 324, 325, 332, 333],
+          [360, 361, 362, 363, 364, 365, 372, 373],
+          [400, 401, 402, 403, 404, 405, 161, 15],
+          [326, 327, 328, 329, 330, 331, 161, 15],
+          [366, 367, 368, 369, 370, 371, 161, 15],
+          [406, 407, 408, 409, 410, 411, 161, 15],
+          [161, 161, 161, 161, 161, 161, 161, 161],
+          [15, 15, 15, 15, 15, 15, 161, 15]
+        ],
+        [
+          [252, 253, 15, 161, 252, 253, 15, 15],
+          [292, 293, 15, 161, 292, 293, 15, 15],
+          [15, 15, 15, 161, 15, 15, 15, 15],
+          [162, 162, 162, 171, 162, 162, 162, 162],
+          [252, 253, 15, 161, 252, 253, 15, 15],
+          [292, 293, 15, 161, 292, 293, 15, 15],
+          [15, 15, 15, 161, 15, 15, 15, 15],
+          [15, 15, 15, 161, 15, 15, 15, 15]
+        ],
+        [
+          [252, 253, 15, 161, 252, 253, 15, 15],
+          [292, 293, 15, 161, 292, 293, 15, 15],
+          [15, 15, 15, 161, 15, 15, 15, 15],
+          [162, 162, 162, 171, 162, 162, 162, 162],
+          [252, 253, 15, 161, 252, 253, 15, 15],
+          [292, 293, 15, 161, 292, 293, 15, 15],
+          [15, 15, 15, 161, 15, 15, 15, 15],
+          [15, 15, 15, 161, 15, 15, 15, 15]
+        ],
+        [
+          [252, 253, 15, 161, 252, 253, 15, 15],
+          [292, 293, 15, 161, 292, 293, 15, 15],
+          [15, 15, 15, 161, 15, 15, 15, 15],
+          [162, 162, 162, 171, 162, 162, 162, 162],
+          [252, 253, 15, 161, 252, 253, 15, 15],
+          [292, 293, 15, 161, 292, 293, 15, 15],
+          [15, 15, 15, 161, 15, 15, 15, 15],
+          [15, 15, 15, 161, 15, 15, 15, 15]
+        ],
+        [
+          [15, 15, 15, 15, 15, 15, 15, 161],
+          [483, 484, 485, 486, 487, 488, 489, 161],
+          [490, 491, 492, 493, 494, 495, 496, 161],
+          [497, 498, 499, 500, 501, 502, 503, 161],
+          [504, 505, 506, 507, 508, 509, 510, 161],
+          [511, 512, 513, 514, 515, 516, 517, 161],
+          [15, 15, 15, 15, 15, 15, 15, 161],
+          [162, 162, 162, 162, 162, 162, 162, 171]
+        ],
+        [
+          [15, 15, 15, 15, 15, 15, 15, 15],
+          [15, 15, 15, 15, 15, 15, 15, 15],
+          [15, 15, 15, 15, 15, 15, 15, 15],
+          [151, 151, 151, 151, 151, 151, 151, 151],
+          [15, 15, 15, 15, 15, 15, 15, 15],
+          [15, 15, 15, 15, 15, 15, 15, 15],
+          [15, 15, 15, 15, 15, 15, 15, 15],
+          [15, 15, 15, 15, 15, 15, 15, 15]
+        ],
+        [
+          [252, 253, 15, 161, 252, 253, 15, 15],
+          [292, 293, 15, 161, 292, 293, 15, 15],
+          [15, 15, 15, 161, 15, 15, 15, 15],
+          [162, 162, 162, 171, 162, 162, 162, 162],
+          [252, 253, 15, 161, 252, 253, 15, 15],
+          [292, 293, 15, 161, 292, 293, 15, 15],
+          [15, 15, 15, 161, 15, 15, 15, 15],
+          [15, 15, 15, 161, 15, 15, 15, 15]
+        ],
+        [
+          [252, 253, 15, 161, 252, 253, 15, 15],
+          [292, 293, 15, 161, 292, 293, 15, 15],
+          [15, 15, 15, 161, 15, 15, 15, 15],
+          [162, 162, 162, 171, 162, 162, 162, 162],
+          [252, 253, 15, 161, 252, 253, 15, 15],
+          [292, 293, 15, 161, 292, 293, 15, 15],
+          [15, 15, 15, 161, 15, 15, 15, 15],
+          [15, 15, 15, 161, 15, 15, 15, 15]
+        ],
+        [
+          [335, 336, 337, 161, 338, 339, 340, 15],
+          [375, 376, 377, 161, 378, 379, 380, 15],
+          [415, 416, 417, 161, 418, 419, 420, 15],
+          [162, 162, 162, 171, 162, 162, 162, 162],
+          [252, 253, 15, 161, 252, 253, 15, 15],
+          [292, 293, 15, 161, 292, 293, 15, 15],
+          [15, 15, 15, 161, 15, 15, 15, 15],
+          [15, 15, 15, 161, 15, 15, 15, 15]
+        ],
+        [
+          [252, 253, 15, 161, 252, 253, 15, 15],
+          [292, 293, 15, 161, 292, 293, 15, 15],
+          [15, 15, 15, 161, 15, 15, 15, 15],
+          [162, 162, 162, 171, 162, 162, 162, 162],
+          [252, 253, 15, 161, 252, 253, 15, 15],
+          [292, 293, 15, 161, 292, 293, 15, 15],
+          [15, 15, 15, 161, 15, 15, 15, 15],
+          [15, 15, 15, 161, 15, 15, 15, 15]
+        ],
+        [
+          [252, 253, 15, 161, 252, 253, 15, 15],
+          [292, 293, 15, 161, 292, 293, 15, 15],
+          [15, 15, 15, 161, 15, 15, 15, 15],
+          [162, 162, 162, 171, 162, 162, 162, 162],
+          [252, 253, 15, 161, 252, 253, 15, 15],
+          [292, 293, 15, 161, 292, 293, 15, 15],
+          [15, 15, 15, 161, 15, 15, 15, 15],
+          [15, 15, 15, 161, 15, 15, 15, 15]
+        ],
+        [
+          [252, 253, 15, 161, 252, 253, 15, 15],
+          [292, 293, 15, 161, 292, 293, 15, 15],
+          [15, 15, 15, 161, 15, 15, 15, 15],
+          [162, 162, 162, 171, 162, 162, 162, 162],
+          [252, 253, 15, 161, 252, 253, 15, 15],
+          [292, 293, 15, 161, 292, 293, 15, 15],
+          [15, 15, 15, 161, 15, 15, 15, 15],
+          [15, 15, 15, 161, 15, 15, 15, 15]
+        ],
+        [
+          [352, 353, 354, 161, 355, 356, 357, 15],
+          [392, 393, 394, 161, 395, 396, 397, 15],
+          [432, 433, 434, 161, 435, 436, 437, 15],
+          [162, 162, 162, 171, 162, 162, 162, 162],
+          [252, 253, 15, 161, 252, 253, 15, 15],
+          [292, 293, 15, 161, 292, 293, 15, 15],
+          [15, 15, 15, 161, 15, 15, 15, 15],
+          [15, 15, 15, 161, 15, 15, 15, 15]
+        ],
+        [
+          [335, 336, 337, 161, 352, 353, 354, 15],
+          [375, 376, 377, 161, 392, 393, 394, 15],
+          [415, 416, 417, 161, 432, 433, 434, 15],
+          [162, 162, 162, 171, 162, 162, 162, 162],
+          [252, 253, 15, 161, 252, 253, 15, 15],
+          [292, 293, 15, 161, 292, 293, 15, 15],
+          [15, 15, 15, 161, 15, 15, 15, 15],
+          [15, 15, 15, 161, 15, 15, 15, 15]
+        ],
+        [
+          [355, 356, 357, 161, 338, 339, 340, 15],
+          [395, 396, 397, 161, 378, 379, 380, 15],
+          [435, 436, 437, 161, 418, 419, 420, 15],
+          [162, 162, 162, 171, 162, 162, 162, 162],
+          [252, 253, 15, 161, 252, 253, 15, 15],
+          [292, 293, 15, 161, 292, 293, 15, 15],
+          [15, 15, 15, 161, 15, 15, 15, 15],
+          [15, 15, 15, 161, 15, 15, 15, 15]
+        ]
+      ]
+    },
+    "events": [
+      {
+        "id": 0,
+        "title": "NOTICE 0",
+        "lines": [
+          "Placeholder message 0."
+        ]
+      },
+      {
+        "id": 1,
+        "title": "NOTICE 1",
+        "lines": [
+          "Placeholder message 1."
+        ]
+      },
+      {
+        "id": 2,
+        "title": "NOTICE 2",
+        "lines": [
+          "A crop of ... died: it was",
+          "not harvested in time."
+        ]
+      },
+      {
+        "id": 3,
+        "title": "NOTICE 3",
+        "lines": [
+          "Placeholder message 3."
+        ]
+      },
+      {
+        "id": 4,
+        "title": "NOTICE 4",
+        "lines": [
+          "Placeholder message 4."
+        ]
+      },
+      {
+        "id": 5,
+        "title": "NOTICE 5",
+        "lines": [
+          "Placeholder message 5."
+        ]
+      },
+      {
+        "id": 6,
+        "title": "NOTICE 6",
+        "lines": [
+          "Placeholder message 6."
+        ]
+      },
+      {
+        "id": 7,
+        "title": "NOTICE 7",
+        "lines": [
+          "Placeholder message 7."
+        ]
+      },
+      {
+        "id": 8,
+        "title": "NOTICE 8",
+        "lines": [
+          "Placeholder message 8."
+        ]
+      },
+      {
+        "id": 9,
+        "title": "NOTICE 9",
+        "lines": [
+          "Placeholder message 9."
+        ]
+      },
+      {
+        "id": 10,
+        "title": "NOTICE 10",
+        "lines": [
+          "Placeholder message 10."
+        ]
+      },
+      {
+        "id": 11,
+        "title": "NOTICE 11",
+        "lines": [
+          "Placeholder message 11."
+        ]
+      },
+      {
+        "id": 12,
+        "title": "NOTICE 12",
+        "lines": [
+          "This is a placeholder card."
+        ]
+      },
+      {
+        "id": 13,
+        "title": "NOTICE 13",
+        "lines": [
+          "The homestead plot cannot",
+          "be sold."
+        ]
+      },
+      {
+        "id": 14,
+        "title": "NOTICE 14",
+        "lines": [
+          "Fields on the plot must be",
+          "removed before it can be",
+          "sold."
+        ]
+      },
+      {
+        "id": 15,
+        "title": "NOTICE 15",
+        "lines": [
+          "Placeholder message 15."
+        ]
+      },
+      {
+        "id": 16,
+        "title": "NOTICE 16",
+        "lines": [
+          "Placeholder message 16."
+        ]
+      },
+      {
+        "id": 17,
+        "title": "NOTICE 17",
+        "lines": [
+          "Placeholder message 17."
+        ]
+      },
+      {
+        "id": 18,
+        "title": "NOTICE 18",
+        "lines": [
+          "Placeholder message 18."
+        ]
+      },
+      {
+        "id": 19,
+        "title": "NOTICE 19",
+        "lines": [
+          "The airport has no room for",
+          "another plane."
+        ]
+      },
+      {
+        "id": 20,
+        "title": "NOTICE 20",
+        "lines": [
+          "The tornado has passed."
+        ]
+      },
+      {
+        "id": 21,
+        "title": "NOTICE 21",
+        "lines": [
+          "Placeholder message 21."
+        ]
+      },
+      {
+        "id": 22,
+        "title": "NOTICE 22",
+        "lines": [
+          "Placeholder message 22."
+        ]
+      },
+      {
+        "id": 23,
+        "title": "NOTICE 23",
+        "lines": [
+          "Placeholder message 23."
+        ]
+      },
+      {
+        "id": 24,
+        "title": "NOTICE 24",
+        "lines": [
+          "Placeholder message 24."
+        ]
+      },
+      {
+        "id": 25,
+        "title": "NOTICE 25",
+        "lines": [
+          "Placeholder message 25."
+        ]
+      },
+      {
+        "id": 26,
+        "title": "NOTICE 26",
+        "lines": [
+          "There is no airport in town",
+          "for a crop duster."
+        ]
+      },
+      {
+        "id": 27,
+        "title": "NOTICE 27",
+        "lines": [
+          "Placeholder message 27."
+        ]
+      },
+      {
+        "id": 28,
+        "title": "NOTICE 28",
+        "lines": [
+          "Placeholder message 28."
+        ]
+      },
+      {
+        "id": 29,
+        "title": "NOTICE 29",
+        "lines": [
+          "Your crop duster is waiting",
+          "at the town airport."
+        ]
+      },
+      {
+        "id": 30,
+        "title": "NOTICE 30",
+        "lines": [
+          "Placeholder message 30."
+        ]
+      },
+      {
+        "id": 31,
+        "title": "NOTICE 31",
+        "lines": [
+          "You could not pay this",
+          "year's taxes. You have",
+          "three months of grace."
+        ]
+      },
+      {
+        "id": 32,
+        "title": "NOTICE 32",
+        "lines": [
+          "Placeholder message 32."
+        ]
+      },
+      {
+        "id": 33,
+        "title": "NOTICE 33",
+        "lines": [
+          "Your cash is below the",
+          "estimated yearly tax."
+        ]
+      },
+      {
+        "id": 34,
+        "title": "NOTICE 34",
+        "lines": [
+          "Another month has passed",
+          "and your taxes are still",
+          "unpaid."
+        ]
+      },
+      {
+        "id": 35,
+        "title": "NOTICE 35",
+        "lines": [
+          "Your back taxes are paid in",
+          "full."
+        ]
+      },
+      {
+        "id": 36,
+        "title": "NOTICE 36",
+        "lines": [
+          "Placeholder message 36."
+        ]
+      },
+      {
+        "id": 37,
+        "title": "NOTICE 37",
+        "lines": [
+          "The tax board sold assets",
+          "to cover your taxes."
+        ]
+      },
+      {
+        "id": 38,
+        "title": "NOTICE 38",
+        "lines": [
+          "You could not make the loan",
+          "payment. The bank will",
+          "foreclose in three months."
+        ]
+      },
+      {
+        "id": 39,
+        "title": "NOTICE 39",
+        "lines": [
+          "Placeholder message 39."
+        ]
+      },
+      {
+        "id": 40,
+        "title": "NOTICE 40",
+        "lines": [
+          "The bank sold enough of",
+          "your assets to pay the",
+          "loan."
+        ]
+      },
+      {
+        "id": 41,
+        "title": "NOTICE 41",
+        "lines": [
+          "Another month has passed",
+          "and the loan payment is",
+          "still due."
+        ]
+      },
+      {
+        "id": 42,
+        "title": "NOTICE 42",
+        "lines": [
+          "The bank thanks you: the",
+          "quarter's loan payment is",
+          "made."
+        ]
+      },
+      {
+        "id": 43,
+        "title": "NOTICE 43",
+        "lines": [
+          "That crop is in use or",
+          "already loaded. Sell or",
+          "remove everything that",
+          "belongs to it first."
+        ]
+      },
+      {
+        "id": 44,
+        "title": "NOTICE 44",
+        "lines": [
+          "A water tower has burst.",
+          "Bulldoze it and buy a new",
+          "one."
+        ]
+      },
+      {
+        "id": 45,
+        "title": "NOTICE 45",
+        "lines": [
+          "Do you want to quit the",
+          "game?"
+        ]
+      },
+      {
+        "id": 46,
+        "title": "NOTICE 46",
+        "lines": [
+          "Placeholder message 46."
+        ]
+      },
+      {
+        "id": 47,
+        "title": "NOTICE 47",
+        "lines": [
+          "Placeholder message 47."
+        ]
+      },
+      {
+        "id": 48,
+        "title": "NOTICE 48",
+        "lines": [
+          "Windstorm warning: strong",
+          "winds are blowing away your",
+          "topsoil."
+        ]
+      },
+      {
+        "id": 49,
+        "title": "NOTICE 49",
+        "lines": [
+          "Frost warning: a hard frost",
+          "has hit your crops."
+        ]
+      },
+      {
+        "id": 50,
+        "title": "NOTICE 50",
+        "lines": [
+          "Placeholder message 50."
+        ]
+      },
+      {
+        "id": 51,
+        "title": "NOTICE 51",
+        "lines": [
+          "Placeholder message 51."
+        ]
+      },
+      {
+        "id": 52,
+        "title": "NOTICE 52",
+        "lines": [
+          "Tornado warning: a tornado",
+          "has been sighted."
+        ]
+      },
+      {
+        "id": 53,
+        "title": "NOTICE 53",
+        "lines": [
+          "Drought warning: ponds and",
+          "ditches are drying up."
+        ]
+      },
+      {
+        "id": 54,
+        "title": "NOTICE 54",
+        "lines": [
+          "Flood warning: the river",
+          "has burst its banks."
+        ]
+      },
+      {
+        "id": 55,
+        "title": "NOTICE 55",
+        "lines": [
+          "Locusts: a swarm is over",
+          "your fields."
+        ]
+      },
+      {
+        "id": 56,
+        "title": "NOTICE 56",
+        "lines": [
+          "The flood waters are going",
+          "down."
+        ]
+      },
+      {
+        "id": 57,
+        "title": "NOTICE 57",
+        "lines": [
+          "The wind is back to normal."
+        ]
+      },
+      {
+        "id": 58,
+        "title": "NOTICE 58",
+        "lines": [
+          "Rain has ended the drought."
+        ]
+      },
+      {
+        "id": 59,
+        "title": "NOTICE 59",
+        "lines": [
+          "Placeholder message 59."
+        ]
+      },
+      {
+        "id": 60,
+        "title": "NOTICE 60",
+        "lines": [
+          "Placeholder message 60."
+        ]
+      },
+      {
+        "id": 61,
+        "title": "NOTICE 61",
+        "lines": [
+          "Bet 500 on a rodeo rider?"
+        ]
+      },
+      {
+        "id": 62,
+        "title": "NOTICE 62",
+        "lines": [
+          "Placeholder message 62."
+        ]
+      },
+      {
+        "id": 63,
+        "title": "NOTICE 63",
+        "lines": [
+          "Placeholder message 63."
+        ]
+      },
+      {
+        "id": 64,
+        "title": "NOTICE 64",
+        "lines": [
+          "Placeholder message 64."
+        ]
+      },
+      {
+        "id": 65,
+        "title": "NOTICE 65",
+        "lines": [
+          "Placeholder message 65."
+        ]
+      },
+      {
+        "id": 66,
+        "title": "NOTICE 66",
+        "lines": [
+          "Placeholder message 66."
+        ]
+      },
+      {
+        "id": 67,
+        "title": "NOTICE 67",
+        "lines": [
+          "Placeholder message 67."
+        ]
+      },
+      {
+        "id": 68,
+        "title": "NOTICE 68",
+        "lines": [
+          "Placeholder message 68."
+        ]
+      },
+      {
+        "id": 69,
+        "title": "NOTICE 69",
+        "lines": [
+          "Placeholder message 69."
+        ]
+      },
+      {
+        "id": 70,
+        "title": "NOTICE 70",
+        "lines": [
+          "Placeholder message 70."
+        ]
+      },
+      {
+        "id": 71,
+        "title": "NOTICE 71",
+        "lines": [
+          "Placeholder message 71."
+        ]
+      },
+      {
+        "id": 72,
+        "title": "NOTICE 72",
+        "lines": [
+          "Placeholder message 72."
+        ]
+      },
+      {
+        "id": 73,
+        "title": "NOTICE 73",
+        "lines": [
+          "Placeholder message 73."
+        ]
+      },
+      {
+        "id": 74,
+        "title": "NOTICE 74",
+        "lines": [
+          "Placeholder message 74."
+        ]
+      },
+      {
+        "id": 75,
+        "title": "NOTICE 75",
+        "lines": [
+          "Placeholder message 75."
+        ]
+      },
+      {
+        "id": 76,
+        "title": "NOTICE 76",
+        "lines": [
+          "Placeholder message 76."
+        ]
+      },
+      {
+        "id": 77,
+        "title": "NOTICE 77",
+        "lines": [
+          "Placeholder message 77."
+        ]
+      },
+      {
+        "id": 78,
+        "title": "NOTICE 78",
+        "lines": [
+          "Placeholder message 78."
+        ]
+      },
+      {
+        "id": 79,
+        "title": "NOTICE 79",
+        "lines": [
+          "Placeholder message 79."
+        ]
+      }
+    ],
+    "items": [
+      {
+        "id": 0,
+        "name": "Bare Ground",
+        "description": "Open ground. Wetter soil looks darker."
+      },
+      {
+        "id": 1,
+        "name": "Water",
+        "description": "A pond or a river. Crops and machines cannot go here."
+      },
+      {
+        "id": 2,
+        "name": "Ditch",
+        "description": "Carries water to the fields. It is dark when empty, blue when full."
+      },
+      {
+        "id": 3,
+        "name": "Town",
+        "description": "Part of the town, where all sorts of things go on."
+      },
+      {
+        "id": 4,
+        "name": "Road",
+        "description": "A road. Machines drive best on roads."
+      },
+      {
+        "id": 5,
+        "name": "Dirt Road",
+        "description": "A cheap road of packed dirt."
+      },
+      {
+        "id": 6,
+        "name": "Small Silo",
+        "description": "Holds a little grain."
+      },
+      {
+        "id": 7,
+        "name": "Large Silo",
+        "description": "Holds a lot of grain."
+      },
+      {
+        "id": 8,
+        "name": "Small Shed",
+        "description": "Shelters machines."
+      },
+      {
+        "id": 9,
+        "name": "Large Shed",
+        "description": "Shelters more machines."
+      },
+      {
+        "id": 10,
+        "name": "Small Barn",
+        "description": "Stores seed and spray."
+      },
+      {
+        "id": 11,
+        "name": "Large Barn",
+        "description": "Stores much seed and spray."
+      },
+      {
+        "id": 12,
+        "name": "Town Square",
+        "description": "The place where the town holds its events."
+      },
+      {
+        "id": 13,
+        "name": "House",
+        "description": "A home in the town."
+      },
+      {
+        "id": 14,
+        "name": "House",
+        "description": "A home in the town."
+      },
+      {
+        "id": 15,
+        "name": "Town Square",
+        "description": "The place where the town holds its events."
+      },
+      {
+        "id": 16,
+        "name": "House",
+        "description": "A home in the town."
+      },
+      {
+        "id": 17,
+        "name": "House",
+        "description": "A home in the town."
+      },
+      {
+        "id": 18,
+        "name": "Corn",
+        "description": "A crop to grow."
+      },
+      {
+        "id": 19,
+        "name": "Wheat",
+        "description": "A crop to grow."
+      },
+      {
+        "id": 20,
+        "name": "Barley",
+        "description": "A crop to grow."
+      },
+      {
+        "id": 21,
+        "name": "Potatoes",
+        "description": "A crop to grow."
+      },
+      {
+        "id": 22,
+        "name": "Oats",
+        "description": "A crop to grow."
+      },
+      {
+        "id": 23,
+        "name": "Rice",
+        "description": "A crop to grow."
+      },
+      {
+        "id": 24,
+        "name": "Sorghum",
+        "description": "A crop to grow."
+      },
+      {
+        "id": 25,
+        "name": "Soybeans",
+        "description": "A crop to grow."
+      },
+      {
+        "id": 26,
+        "name": "Cotton",
+        "description": "A crop to grow."
+      },
+      {
+        "id": 27,
+        "name": "Onions",
+        "description": "A crop to grow."
+      },
+      {
+        "id": 28,
+        "name": "Tomatoes",
+        "description": "A crop to grow."
+      },
+      {
+        "id": 29,
+        "name": "Lettuce",
+        "description": "A crop to grow."
+      },
+      {
+        "id": 30,
+        "name": "Carrots",
+        "description": "A crop to grow."
+      },
+      {
+        "id": 31,
+        "name": "Strawberries",
+        "description": "A crop to grow."
+      },
+      {
+        "id": 32,
+        "name": "Sugar",
+        "description": "A crop to grow."
+      },
+      {
+        "id": 33,
+        "name": "Peanuts",
+        "description": "A crop to grow."
+      },
+      {
+        "id": 34,
+        "name": "Cow",
+        "description": "Gives milk."
+      },
+      {
+        "id": 35,
+        "name": "Pig",
+        "description": "Eats almost anything."
+      },
+      {
+        "id": 36,
+        "name": "Sheep",
+        "description": "Grazes and gives wool."
+      },
+      {
+        "id": 37,
+        "name": "Horse",
+        "description": "Eats hay and grazes."
+      },
+      {
+        "id": 38,
+        "name": "Valve",
+        "description": "Opens and closes a ditch."
+      },
+      {
+        "id": 39,
+        "name": "Valve",
+        "description": "Opens and closes a ditch."
+      },
+      {
+        "id": 40,
+        "name": "Tractor",
+        "description": "Pulls the plow and other tools."
+      },
+      {
+        "id": 41,
+        "name": "Plow",
+        "description": "Turns the soil before planting."
+      },
+      {
+        "id": 42,
+        "name": "Thing",
+        "description": "Something on the farm."
+      },
+      {
+        "id": 43,
+        "name": "Thing",
+        "description": "Something on the farm."
+      },
+      {
+        "id": 44,
+        "name": "Planter",
+        "description": "Sows seed in rows."
+      },
+      {
+        "id": 45,
+        "name": "Thing",
+        "description": "Something on the farm."
+      },
+      {
+        "id": 46,
+        "name": "Thing",
+        "description": "Something on the farm."
+      },
+      {
+        "id": 47,
+        "name": "Thing",
+        "description": "Something on the farm."
+      },
+      {
+        "id": 48,
+        "name": "Thing",
+        "description": "Something on the farm."
+      },
+      {
+        "id": 49,
+        "name": "Thing",
+        "description": "Something on the farm."
+      },
+      {
+        "id": 50,
+        "name": "Sprayer",
+        "description": "Sprays chemicals on a field."
+      },
+      {
+        "id": 51,
+        "name": "Fungicide",
+        "description": "Stops crop disease."
+      },
+      {
+        "id": 52,
+        "name": "Harvester",
+        "description": "Cuts and gathers the crop."
+      },
+      {
+        "id": 53,
+        "name": "Thing",
+        "description": "Something on the farm."
+      },
+      {
+        "id": 54,
+        "name": "Trailer",
+        "description": "Hauls the harvest."
+      },
+      {
+        "id": 55,
+        "name": "Thing",
+        "description": "Something on the farm."
+      },
+      {
+        "id": 56,
+        "name": "Valve",
+        "description": "Opens and closes a ditch."
+      },
+      {
+        "id": 57,
+        "name": "Town Square",
+        "description": "The place where the town holds its events."
+      },
+      {
+        "id": 58,
+        "name": "Scenery",
+        "description": "Part of the farm."
+      },
+      {
+        "id": 59,
+        "name": "Scenery",
+        "description": "Part of the farm."
+      },
+      {
+        "id": 60,
+        "name": "Windmill",
+        "description": "Pumps water free."
+      },
+      {
+        "id": 61,
+        "name": "Water Pump",
+        "description": "Draws water for ditches."
+      },
+      {
+        "id": 62,
+        "name": "Tree",
+        "description": "A tree. It gives shade and shelter."
+      },
+      {
+        "id": 63,
+        "name": "Tree",
+        "description": "A tree. It gives shade and shelter."
+      },
+      {
+        "id": 64,
+        "name": "Tree",
+        "description": "A tree. It gives shade and shelter."
+      },
+      {
+        "id": 65,
+        "name": "Tree",
+        "description": "A tree. It gives shade and shelter."
+      },
+      {
+        "id": 66,
+        "name": "Scenery",
+        "description": "Part of the farm."
+      },
+      {
+        "id": 67,
+        "name": "Scenery",
+        "description": "Part of the farm."
+      },
+      {
+        "id": 68,
+        "name": "Scenery",
+        "description": "Part of the farm."
+      },
+      {
+        "id": 69,
+        "name": "Scenery",
+        "description": "Part of the farm."
+      },
+      {
+        "id": 70,
+        "name": "Town Square",
+        "description": "The place where the town holds its events."
+      },
+      {
+        "id": 71,
+        "name": "Thing",
+        "description": "Something on the farm."
+      },
+      {
+        "id": 72,
+        "name": "Truck",
+        "description": "Carries goods to town."
+      },
+      {
+        "id": 73,
+        "name": "Town Building",
+        "description": "A building in the town centre."
+      },
+      {
+        "id": 74,
+        "name": "Fertilizer",
+        "description": "Feeds the soil."
+      },
+      {
+        "id": 75,
+        "name": "Pesticide",
+        "description": "Kills crop pests."
+      },
+      {
+        "id": 76,
+        "name": "Herbicide",
+        "description": "Kills weeds."
+      },
+      {
+        "id": 77,
+        "name": "Thing",
+        "description": "Something on the farm."
+      },
+      {
+        "id": 78,
+        "name": "Fence",
+        "description": "Keeps animals in and strangers out."
+      },
+      {
+        "id": 79,
+        "name": "Water Trough",
+        "description": "Animals drink here. Fill it with water."
+      },
+      {
+        "id": 80,
+        "name": "Gate",
+        "description": "A gate in a fence."
+      },
+      {
+        "id": 81,
+        "name": "Thing",
+        "description": "Something on the farm."
+      },
+      {
+        "id": 82,
+        "name": "Crop Duster",
+        "description": "A plane that sprays fields."
+      },
+      {
+        "id": 83,
+        "name": "Ditch",
+        "description": "Carries water to the fields. It is dark when empty, blue when full."
+      },
+      {
+        "id": 84,
+        "name": "Ditch",
+        "description": "Carries water to the fields. It is dark when empty, blue when full."
+      },
+      {
+        "id": 85,
+        "name": "Sign",
+        "description": "A sign that tells you about the field."
+      },
+      {
+        "id": 86,
+        "name": "Town",
+        "description": "Part of the town, where all sorts of things go on."
+      },
+      {
+        "id": 87,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 88,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 89,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 90,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 91,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 92,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 93,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 94,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 95,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 96,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 97,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 98,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 99,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 100,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 101,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 102,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 103,
+        "name": "Water Tower",
+        "description": "Stores water for ditches."
+      },
+      {
+        "id": 104,
+        "name": "Thing",
+        "description": "Something on the farm."
+      },
+      {
+        "id": 105,
+        "name": "Sign",
+        "description": "A sign that tells you about the field."
+      },
+      {
+        "id": 106,
+        "name": "Thing",
+        "description": "Something on the farm."
+      },
+      {
+        "id": 107,
+        "name": "Thing",
+        "description": "Something on the farm."
+      },
+      {
+        "id": 108,
+        "name": "Water",
+        "description": "A pond or a river. Crops and machines cannot go here."
+      },
+      {
+        "id": 109,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 110,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 111,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 112,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 113,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 114,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 115,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 116,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 117,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 118,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 119,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 120,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 121,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 122,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 123,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 124,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 125,
+        "name": "Thing",
+        "description": "Something on the farm."
+      },
+      {
+        "id": 126,
+        "name": "Thing",
+        "description": "Something on the farm."
+      },
+      {
+        "id": 127,
+        "name": "Thing",
+        "description": "Something on the farm."
+      },
+      {
+        "id": 128,
+        "name": "Bridge",
+        "description": "Lets you cross water."
+      },
+      {
+        "id": 129,
+        "name": "Valve",
+        "description": "Opens and closes a ditch."
+      },
+      {
+        "id": 130,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 131,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 132,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 133,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 134,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 135,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 136,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 137,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 138,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 139,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 140,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 141,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 142,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 143,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 144,
+        "name": "Crop",
+        "description": "A crop growing in a field."
+      },
+      {
+        "id": 145,
+        "name": "Rocks",
+        "description": "Rocks. They must be cleared with a bulldozer."
+      },
+      {
+        "id": 146,
+        "name": "Scenery",
+        "description": "Part of the farm."
+      },
+      {
+        "id": 147,
+        "name": "Town Square",
+        "description": "The place where the town holds its events."
+      }
+    ],
+    "overview": {
+      "default": "#3f9f3f",
+      "ranges": [
+        {
+          "from": 15,
+          "to": 30,
+          "colours": "#80502a"
+        },
+        {
+          "from": 31,
+          "to": 38,
+          "colours": "#3f9f3f"
+        },
+        {
+          "from": 39,
+          "to": 69,
+          "colours": "#3a5fd0"
+        },
+        {
+          "from": 87,
+          "to": 97,
+          "colours": [
+            "#80502a",
+            "#55aaff",
+            "#55aaff",
+            "#80502a"
+          ]
+        },
+        {
+          "from": 98,
+          "to": 108,
+          "colours": "#55aaff"
+        },
+        {
+          "from": 128,
+          "to": 146,
+          "colours": "#1f6a2e"
+        },
+        {
+          "from": 150,
+          "to": 171,
+          "colours": [
+            "#868686",
+            "#d8c08a",
+            "#d8c08a",
+            "#868686"
+          ]
+        },
+        {
+          "from": 172,
+          "to": 173,
+          "colours": [
+            "#3a5fd0",
+            "#80502a",
+            "#80502a",
+            "#3a5fd0"
+          ]
+        },
+        {
+          "from": 177,
+          "to": 193,
+          "colours": [
+            "#80502a",
+            "#3f9f3f",
+            "#3f9f3f",
+            "#80502a"
+          ]
+        },
+        {
+          "from": 232,
+          "to": 300,
+          "colours": "#d03030"
+        },
+        {
+          "from": 440,
+          "to": 480,
+          "colours": [
+            "#d03030",
+            "#484848",
+            "#484848",
+            "#d03030"
+          ]
+        },
+        {
+          "from": 483,
+          "to": 517,
+          "colours": "#c4c4c4"
+        },
+        {
+          "from": 535,
+          "to": 538,
+          "colours": [
+            "#484848",
+            "#868686",
+            "#868686",
+            "#484848"
+          ]
+        },
+        {
+          "from": 688,
+          "to": 815,
+          "colours": [
+            "#3f9f3f",
+            "#1f6a2e",
+            "#3f9f3f",
+            "#1f6a2e"
+          ]
+        },
+        {
+          "from": 464,
+          "to": 464,
+          "colours": [
+            "#d8c08a",
+            "#d8c08a",
+            "#d8c08a",
+            "#d8c08a"
+          ]
+        },
+        {
+          "from": 465,
+          "to": 465,
+          "colours": [
+            "#d8c08a",
+            "#d8c08a",
+            "#d8c08a",
+            "#d8c08a"
+          ]
+        },
+        {
+          "from": 466,
+          "to": 466,
+          "colours": [
+            "#d8c08a",
+            "#d8c08a",
+            "#d8c08a",
+            "#d8c08a"
+          ]
+        },
+        {
+          "from": 467,
+          "to": 467,
+          "colours": [
+            "#d8c08a",
+            "#d8c08a",
+            "#d8c08a",
+            "#d8c08a"
+          ]
+        },
+        {
+          "from": 468,
+          "to": 468,
+          "colours": [
+            "#d8c08a",
+            "#d8c08a",
+            "#d8c08a",
+            "#d8c08a"
+          ]
+        },
+        {
+          "from": 469,
+          "to": 469,
+          "colours": [
+            "#d8c08a",
+            "#d8c08a",
+            "#d8c08a",
+            "#d8c08a"
+          ]
+        },
+        {
+          "from": 470,
+          "to": 470,
+          "colours": [
+            "#d8c08a",
+            "#d8c08a",
+            "#d8c08a",
+            "#d8c08a"
+          ]
+        },
+        {
+          "from": 471,
+          "to": 471,
+          "colours": [
+            "#d8c08a",
+            "#d8c08a",
+            "#d8c08a",
+            "#d8c08a"
+          ]
+        },
+        {
+          "from": 472,
+          "to": 472,
+          "colours": [
+            "#d8c08a",
+            "#3f9f3f",
+            "#3f9f3f",
+            "#d8c08a"
+          ]
+        },
+        {
+          "from": 473,
+          "to": 473,
+          "colours": [
+            "#d8c08a",
+            "#3f9f3f",
+            "#3f9f3f",
+            "#d8c08a"
+          ]
+        },
+        {
+          "from": 474,
+          "to": 474,
+          "colours": [
+            "#d8c08a",
+            "#3f9f3f",
+            "#3f9f3f",
+            "#d8c08a"
+          ]
+        },
+        {
+          "from": 475,
+          "to": 475,
+          "colours": [
+            "#d8c08a",
+            "#3f9f3f",
+            "#3f9f3f",
+            "#d8c08a"
+          ]
+        },
+        {
+          "from": 476,
+          "to": 476,
+          "colours": [
+            "#d8c08a",
+            "#3f9f3f",
+            "#3f9f3f",
+            "#d8c08a"
+          ]
+        },
+        {
+          "from": 477,
+          "to": 477,
+          "colours": [
+            "#d8c08a",
+            "#3f9f3f",
+            "#3f9f3f",
+            "#d8c08a"
+          ]
+        },
+        {
+          "from": 478,
+          "to": 478,
+          "colours": [
+            "#d8c08a",
+            "#3f9f3f",
+            "#3f9f3f",
+            "#d8c08a"
+          ]
+        },
+        {
+          "from": 479,
+          "to": 479,
+          "colours": [
+            "#d8c08a",
+            "#3f9f3f",
+            "#3f9f3f",
+            "#d8c08a"
+          ]
+        },
+        {
+          "from": 480,
+          "to": 480,
+          "colours": [
+            "#3f9f3f",
+            "#3f9f3f",
+            "#3f9f3f",
+            "#d8c08a"
+          ]
+        },
+        {
+          "from": 481,
+          "to": 481,
+          "colours": [
+            "#3f9f3f",
+            "#3f9f3f",
+            "#3f9f3f",
+            "#d8c08a"
+          ]
+        },
+        {
+          "from": 482,
+          "to": 482,
+          "colours": [
+            "#3f9f3f",
+            "#3f9f3f",
+            "#3f9f3f",
+            "#d8c08a"
+          ]
+        },
+        {
+          "from": 483,
+          "to": 483,
+          "colours": [
+            "#3f9f3f",
+            "#3f9f3f",
+            "#3f9f3f",
+            "#d8c08a"
+          ]
+        },
+        {
+          "from": 484,
+          "to": 484,
+          "colours": [
+            "#3f9f3f",
+            "#3f9f3f",
+            "#3f9f3f",
+            "#d8c08a"
+          ]
+        },
+        {
+          "from": 485,
+          "to": 485,
+          "colours": [
+            "#3f9f3f",
+            "#3f9f3f",
+            "#3f9f3f",
+            "#d8c08a"
+          ]
+        },
+        {
+          "from": 486,
+          "to": 486,
+          "colours": [
+            "#3f9f3f",
+            "#3f9f3f",
+            "#3f9f3f",
+            "#d8c08a"
+          ]
+        },
+        {
+          "from": 487,
+          "to": 487,
+          "colours": [
+            "#3f9f3f",
+            "#3f9f3f",
+            "#3f9f3f",
+            "#d8c08a"
+          ]
+        },
+        {
+          "from": 488,
+          "to": 488,
+          "colours": [
+            "#3f9f3f",
+            "#1f6a2e",
+            "#1f6a2e",
+            "#3f9f3f"
+          ]
+        },
+        {
+          "from": 489,
+          "to": 489,
+          "colours": [
+            "#3f9f3f",
+            "#1f6a2e",
+            "#1f6a2e",
+            "#3f9f3f"
+          ]
+        },
+        {
+          "from": 490,
+          "to": 490,
+          "colours": [
+            "#3f9f3f",
+            "#1f6a2e",
+            "#1f6a2e",
+            "#3f9f3f"
+          ]
+        },
+        {
+          "from": 491,
+          "to": 491,
+          "colours": [
+            "#3f9f3f",
+            "#1f6a2e",
+            "#1f6a2e",
+            "#3f9f3f"
+          ]
+        },
+        {
+          "from": 492,
+          "to": 492,
+          "colours": [
+            "#3f9f3f",
+            "#1f6a2e",
+            "#1f6a2e",
+            "#3f9f3f"
+          ]
+        },
+        {
+          "from": 493,
+          "to": 493,
+          "colours": [
+            "#3f9f3f",
+            "#1f6a2e",
+            "#1f6a2e",
+            "#3f9f3f"
+          ]
+        },
+        {
+          "from": 494,
+          "to": 494,
+          "colours": [
+            "#3f9f3f",
+            "#1f6a2e",
+            "#1f6a2e",
+            "#3f9f3f"
+          ]
+        },
+        {
+          "from": 495,
+          "to": 495,
+          "colours": [
+            "#3f9f3f",
+            "#1f6a2e",
+            "#1f6a2e",
+            "#3f9f3f"
+          ]
+        }
+      ]
+    }
+  }
+}

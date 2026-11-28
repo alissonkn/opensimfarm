@@ -2,7 +2,9 @@
 // Licensed under the GNU General Public License version 3 (see LICENSE.txt).
 #include "ui/StartScreen.h"
 
+#include "assets/TableFormats.h"
 #include "assets/Megadata.h"
+#include "game/Template.h"
 #include "core/Lang.h"
 #include "core/Paths.h"
 #include "game/GameState.h"
@@ -11,6 +13,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cmath>
+#include <cstdlib>
 #include <filesystem>
 
 namespace osf {
@@ -30,7 +33,8 @@ constexpr Button kEditButton{ 329, 342, 150, 22 }; // and its right edge (479)
 constexpr Button kLanguageButton{ 200, 350, 240, 20 };
 constexpr int kLanguageRowH = 14;
 // the eight prebuilt farms on the region map: 17x17 boxes at (248 + 16 gx, 40 + 16 gy)
-constexpr int kFarmGx[8] = { 0, 1, 1, 3, 9, 11, 13, 15 }, kFarmGy[8] = { 8, 11, 3, 6, 7, 6, 11, 8 };
+const int (&kFarmGx)[8] = kPrebuiltFarmGx; // (game/WorldGen.h: also where a pack's prebuilt farms take their climate)
+const int (&kFarmGy)[8] = kPrebuiltFarmGy;
 } // namespace
 
 StartScreen::StartScreen(Gfx& g, const std::string& gameDir) : _g(g), _gameDir(gameDir)
@@ -70,26 +74,7 @@ void StartScreen::LoadClimateMap()
     const Megadata* mega = _g.Mega();
     if (!mega)
         return;
-    std::string section, line;
-    for (uint8_t c : mega->Read("scenario.odt"))
-    {
-        if (c == '\r')
-            continue;
-        if (c != '\n')
-        {
-            line += static_cast<char>(c);
-            continue;
-        }
-        if (line.rfind("//", 0) == 0)
-        {
-            section.clear();
-            for (char ch : line.substr(2))
-                section += static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
-        }
-        else if (!section.empty() && line.size() >= 18 && line[18] == ' ')
-            _grids[section].push_back(line.substr(0, 18));
-        line.clear();
-    }
+    _grids = DecodeScenarioGrids(mega->Read("scenario.odt"));
 }
 
 bool StartScreen::ToPicture(int px, int py, int& x, int& y) const
@@ -244,9 +229,11 @@ void StartScreen::Generate(bool byButton)
     const Megadata* mega = _g.Mega();
     if (!mega)
         return;
-    if (!_template.Load(_gameDir, FindFileNoCase(_gameDir, "SCEN0.SSM").value_or(""), _note))
+    if (!LoadTemplateState(*mega, _gameDir, _template, _note)) // (a pack's template farm, else SCEN0.SSM)
         return;
     _opt.seed = static_cast<unsigned>(SDL_GetTicks()) * 2654435761u + 7u;
+    if (const char* fixed = std::getenv("OSF_WORLDSEED")) // a test run's fixed seed (the first farm of --pack honours it too)
+        _opt.seed = static_cast<unsigned>(std::atoi(fixed));
     std::string err;
     // the ground shade term: the design screen's GENERATE WORLD sets it to rainfall x 4 first (live:
     // rainfall 0 gave the driest ground 15-17); entering the screen and Use This Region keep the live soil
@@ -283,7 +270,7 @@ void StartScreen::MakePreview()
         return;
     // the preview as the original draws it: each cell's ground tile (the low 11 bits of its word) as a
     // 2 x 2 block of its overview colours (far_mapc.mbm, the Map window's table) in the design picture's palette
-    const std::vector<uint8_t> mapc = mega->Read("far_mapc.mbm");
+    const OverviewTable mapc = MakeOverview(mega->Read("overview.rgb"), mega->Read("far_mapc.mbm")); // (a pack's colours are RGB)
     const Palette pal = LoadPalette(mega->Read("scenario.pal"));
     // (a larger world is drawn the same way at two pixels a cell and scaled into the preview box)
     const int N = _land.world.size, D = 2 * N;
@@ -294,17 +281,12 @@ void StartScreen::MakePreview()
         {
             const int t = _land.world.At(x, y).BaseTile();
             for (int r = 0; r < 2; ++r)
-            {
-                const int b = 2 * t + r < static_cast<int>(mapc.size()) ? mapc[static_cast<size_t>(2 * t + r)] : 0;
                 for (int c = 0; c < 2; ++c)
                 {
-                    int idx = 0;
-                    for (int plane = 0; plane < 4; ++plane)
-                        idx |= ((b >> (6 - 2 * plane + (1 - c))) & 1) << plane;
+                    const int idx = mapc.Index(t, r, c);
                     _preview[static_cast<size_t>(2 * y + r) * D + 2 * x + c] =
-                        0xFF000000u | (pal[idx][0] << 16) | (pal[idx][1] << 8) | pal[idx][2];
+                        mapc.rgb ? mapc.Argb(t, r, c) : 0xFF000000u | (pal[idx][0] << 16) | (pal[idx][1] << 8) | pal[idx][2];
                 }
-            }
         }
 }
 

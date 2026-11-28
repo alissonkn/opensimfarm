@@ -5,6 +5,7 @@
 #include <optional>
 #include <filesystem>
 #include "core/Paths.h"
+#include "assets/TableFormats.h"
 #include "assets/Graphics.h"
 
 #include "game/Editing.h"
@@ -2235,11 +2236,7 @@ void Simulation::Answer(int id, bool yes)
 
 void Simulation::SetTownLayout(const std::vector<uint8_t>& cmp)
 {
-    _townLayout.clear();
-    if (cmp.size() < 1920)
-        return;
-    for (size_t i = 0; i < 960; ++i)
-        _townLayout.push_back(static_cast<uint16_t>(cmp[2 * i] | (cmp[2 * i + 1] << 8)));
+    _townLayout = DecodeTownLayout(cmp);
 }
 
 bool Simulation::BuyPlot(int c, int r, std::string& why)
@@ -2744,17 +2741,12 @@ const std::vector<Simulation::SpareCropMarket>& Simulation::SpareMarket()
     old.swap(_spare);
     _spareLoaded = loaded;
     std::error_code ec;
-    const auto dir = _gameDir.empty() ? std::nullopt : FindFileNoCase(_gameDir, "CROPS");
-    if (!dir)
-        return _spare;
-    std::vector<std::string> files;
-    for (const auto& e : std::filesystem::directory_iterator(*dir, ec))
-    {
-        const std::string n = upper(e.path().filename().string());
-        if (n.size() > 4 && n.substr(n.size() - 4) == ".CRP" && loaded.find(n + "|") == std::string::npos)
+    std::vector<std::string> files; // the crop files not loaded: a pack's crops, else the CROPS folder's
+    for (const std::string& n : CropFiles(_gameDir))
+        if (loaded.find(n + "|") == std::string::npos)
             files.push_back(n);
-    }
-    std::sort(files.begin(), files.end());
+    if (files.empty())
+        return _spare;
     for (const std::string& n : files)
     {
         auto it = std::find_if(old.begin(), old.end(), [&](const SpareCropMarket& m) { return m.file == n; });
@@ -2764,15 +2756,20 @@ const std::vector<Simulation::SpareCropMarket>& Simulation::SpareMarket()
             continue;
         }
         CropDef def;
-        if (_spare.size() >= 96 || !LoadCropFile(_gameDir, n, def) || def.art.size() < 14 * 128)
+        if (_spare.size() >= 96 || !LoadCropFile(_gameDir, n, def) || (def.art.size() < 14 * 128 && !def.HasArgbArt()))
             continue;
         SpareCropMarket m;
         m.file = n;
         m.name = def.name;
         m.basePrice = def.BasePrice();
         m.yield = def.Yield();
-        const TileSheet t = DecodeTiles16(def.art, 14);
-        m.icon.assign(t.Tile(13), t.Tile(13) + 256);
+        if (def.HasArgbArt())
+            m.iconArgb = def.IconArgb16();
+        else
+        {
+            const TileSheet t = DecodeTiles16(def.art, 14);
+            m.icon.assign(t.Tile(13), t.Tile(13) + 256);
+        }
         // the history as the original makes the loaded crops' at game start (GenerateHistory), from the base price
         const int q = m.basePrice >> 2;
         int p = m.basePrice;

@@ -77,11 +77,26 @@ add_executable(opensimfarm
     src/core/DiscImage.cpp
     src/core/InstallDisc.cpp
     src/core/Lang.cpp
+    src/core/Json.cpp
     ${OSF_LANG_CPP}
     ${OSF_MUSIC_CPP}
     ${OSF_FONT_CPP}
     src/assets/Megadata.cpp
     src/assets/Graphics.cpp
+    src/assets/TilePack.cpp
+    src/assets/Png.cpp
+    src/assets/TableFormats.cpp
+    src/assets/PackTables.cpp
+    src/assets/PackSounds.cpp
+    src/assets/PackCards.cpp
+    src/assets/Theme.cpp
+    src/assets/Weather.cpp
+    src/assets/PicturePack.cpp
+    src/ui/TruecolourTest.cpp
+    src/ui/TablesTest.cpp
+    src/ui/CropsTest.cpp
+    src/ui/TemplateTest.cpp
+    src/ui/OverviewImage.cpp
     src/assets/Picture.cpp
     src/assets/WindowsEdition.cpp
     src/assets/SaveGame.cpp
@@ -103,6 +118,8 @@ add_executable(opensimfarm
     src/game/Shop.cpp
     src/game/Simulation.cpp
     src/game/WorldGen.cpp
+    src/game/Template.cpp
+    src/game/PackCrops.cpp
     src/ui/GameUi.cpp
     src/ui/Gfx.cpp
     src/ui/PictureText.cpp

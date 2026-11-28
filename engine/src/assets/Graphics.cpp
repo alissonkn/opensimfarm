@@ -46,13 +46,26 @@ TileSheet DecodeTiles16(const std::vector<uint8_t>& data, int maxTiles)
 
 bool ApplyCropArt(TileSheet& sheet, int slot, const std::vector<uint8_t>& art)
 {
-    if (art.size() < 14 * 128 || slot < 0 || slot >= 16 || sheet.count < 848)
-        return false;
+    if (art.size() < 14 * 128 || slot < 0 || slot >= 16 || sheet.count < 848 || sheet.TrueColour())
+        return false; // (a tile pack brings its own crop pictures)
     const TileSheet t = DecodeTiles16(art, 14);
     for (int k = 0; k < 14; ++k)
     {
         const int id = k < 8 ? 688 + 8 * slot + k : k < 12 ? 539 + 4 * slot + (k - 8) : (k == 12 ? 816 : 832) + slot;
         std::copy(t.Tile(k), t.Tile(k) + 256, sheet.pixels.begin() + static_cast<long>(id) * 256);
+    }
+    return true;
+}
+
+bool ApplyCropArtArgb(TileSheet& sheet, int slot, const std::vector<uint32_t>& art, int artSize)
+{
+    if (!sheet.TrueColour() || sheet.size != artSize || artSize < 1 || art.size() < static_cast<size_t>(14) * artSize * artSize || slot < 0 || slot >= 16 || sheet.count < 848)
+        return false;
+    const size_t n = static_cast<size_t>(artSize) * artSize;
+    for (int k = 0; k < 14; ++k)
+    {
+        const int id = k < 8 ? 688 + 8 * slot + k : k < 12 ? 539 + 4 * slot + (k - 8) : (k == 12 ? 816 : 832) + slot;
+        std::copy(art.begin() + static_cast<long>(k * n), art.begin() + static_cast<long>((k + 1) * n), sheet.argb.begin() + static_cast<long>(id * n));
     }
     return true;
 }
